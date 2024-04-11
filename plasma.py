@@ -15,4 +15,7 @@ class Plasma(Component):
         return (1 - self.TBE)/self.TBE * self.N_burn
     
     def calculate_inventory_derivative(self):
-        return super().calculate_inventory_derivative() - self.N_burn
+        inflow = self.get_inflow()
+        outflow = self.get_outflow()
+        dydt = inflow - outflow  + self.tritium_source
+        return dydt

@@ -1,3 +1,6 @@
+from port import Port
+LAMBDA = 1.73e-9 # Decay constant for tritium
+
 class Component:
     def __init__(self, name, residence_time, initial_inventory=0, tritium_source=0):
         self.name = name
