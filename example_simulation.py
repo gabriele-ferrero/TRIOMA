@@ -2,9 +2,9 @@ from fuelingSystem import FuelingSystem
 from component import Component
 from plasma import Plasma
 from componentMap import ComponentMap
-from port import Port
 from matplotlib import pyplot as plt
 from simulate import Simulate
+from utils import visualize_connections
 
 LAMBDA = 1.73e-9 # Decay constant for tritium
 N_burn = 9.3e-7 # Tritium burn rate in the plasma
@@ -37,11 +37,12 @@ component_map.connect_ports(component4, port3, component3, port4)
 component_map.connect_ports(component3, port5, component1, port7)
 component_map.connect_ports(component2, port6, component3, port8)
 component_map.print_connected_map()
-# visualize_connections(component_map)
+visualize_connections(component_map)
 component1.get_inflow()
 
 simulation = Simulate(0.1, 1e5, component_map)
 t, y = simulation.run()
+plt.figure()
 plt.plot(t, y)
 plt.legend(component_map.components.keys())
 print(y[-1,:])

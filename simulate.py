@@ -2,6 +2,14 @@ import numpy as np
 
 class Simulate:
     def __init__(self, dt, final_time, component_map):
+        """
+        Initialize the Simulate class.
+
+        Args:
+        - dt: Time step size.
+        - final_time: Final simulation time.
+        - component_map: Mapping of component names to Component objects.
+        """
         self.dt = dt
         self.final_time = final_time
         self.time = []
@@ -13,6 +21,13 @@ class Simulate:
         self.component_map = component_map
 
     def run(self):
+        """
+        Run the simulation.
+
+        Returns:
+        - t: Array of time values.
+        - y: Array of component inventory values.
+        """
         while True:
             self.y[0] = [component.tritium_inventory for component in self.components.values()] # self.initial_conditions, possibly updated by the restart method
             t,y = self.forward_euler()
@@ -24,16 +39,29 @@ class Simulate:
                 return t,y
             
     def update_I_startup(self):
+        """
+        Update the initial tritium inventory of the Fueling System component.
+        """
         self.I_startup += 0.1
         self.initial_conditions['Fueling System'] = self.I_startup
 
     def restart(self):
+        """
+        Restart the simulation by resetting time and component inventory.
+        """
         self.time = []
         self.y = np.zeros((self.n_steps + 1, len(self.initial_conditions)))
         for component, initial_condition in zip(self.components.values(), self.initial_conditions.values()):
             component.tritium_inventory = initial_condition
 
     def forward_euler(self):
+        """
+        Perform the forward Euler integration method.
+
+        Returns:
+        - time: Array of time values.
+        - y: Array of component inventory values.
+        """
         print(self.y[0])
         for n in range(self.n_steps):
             t = n * self.dt
@@ -49,7 +77,16 @@ class Simulate:
 
 
     def f(self, y):
+        """
+        Calculate the derivative of component inventory.
+
+        Args:
+        - y: Array of component inventory values.
+
+        Returns:
+        - dydt: Array of derivative values.
+        """
         dydt = np.zeros_like(y)
         for i, component in enumerate(self.components.values()):
             dydt[i] += component.calculate_inventory_derivative()
-        return dydt 
+        return dydt
