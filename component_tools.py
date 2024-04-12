@@ -2,6 +2,8 @@ import numpy as np
 import molten_salts as MS
 import liquid_metals as LM
 import correlations as corr
+import extractor
+import matplotlib.pyplot as plt
 
 
 def set_attribute(instance, attr_name, new_value):
@@ -157,6 +159,81 @@ class Component:
                     P_H2=self.fluid.p_H2,
                 )
 
+    def get_efficiency(self, L):  # L is the characteristic length of the component
+        """
+        Calculates the efficiency of the component.
+
+        Args:
+            L (float): The characteristic length of the component.
+
+        Returns:
+            float: The efficiency of the component.
+        """
+        L_vec = np.linspace(0, L, 1000)
+        dl = L_vec[1] - L_vec[0]
+
+        c_vec = np.ndarray(len(L_vec))
+        for i in range(len(L_vec)):
+            if self.fluid.MS:
+                f_H2 = 0.5
+            else:
+                f_H2 = 1
+            if i == 0:
+
+                c_vec[i] = self.c_in
+                self.get_flux(c_vec[i])
+            else:
+                c_vec[i] = c_vec[
+                    i - 1
+                ] + f_H2 * self.J_perm * self.fluid.d_Hyd * np.pi * dl**2 / self.fluid.U0 / (
+                    np.pi * self.fluid.d_Hyd**2 / 4 * dl
+                )
+                self.get_flux(c_vec[i])
+        plt.plot(L_vec, c_vec)
+        self.eff = 1 - (self.c_in - c_vec[-1]) / self.c_in
+
+    def get_flux(self, c):
+        self.get_adimensionals()
+        if self.fluid.MS:
+            if self.H < 0.1:  ## TODO limits to check
+                print("Surface limited approximation")
+                self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
+            elif self.W > 10:  ## TODO limits to check
+                print("Diffusion limited approximation")
+                self.J_perm = -(
+                    self.membrane.D
+                    / self.membrane.thick
+                    * self.membrane.K_S
+                    * (c / self.fluid.Solubility) ** 0.5
+                )
+            elif self.H > 10 and self.H / self.W > 100:  ## TODO limits to check
+                print("Mass transport limited approximation")
+
+                self.J_perm = -2 * self.fluid.k_t * c
+            else:
+                print("Mixed regime approximation")
+                raise ValueError("Mixed regime not yet implemented")
+        else:  ### Liquid Metal
+            raise ValueError("Liquid Metal not implemented")
+            if self.H < 0.1:  ## TODO limits to check
+                print("Surface limited approximation")
+                self.J_perm = -self.membrane.k_r * (c**2)
+            elif self.W > 10:  ## TODO limits to check
+                print("Diffusion limited approximation")
+                self.J_perm = -(
+                    self.membrane.D
+                    / self.membrane.thick
+                    * self.membrane.K_S
+                    * (c / self.fluid.Solubility)
+                )
+            elif self.H > 10 and self.H / self.W > 100:  ## TODO limits to check
+                print("Mass transport limited approximation")
+
+                self.J_perm = -self.fluid.k_t * c
+            else:
+                print("Mixed regime approximation")
+                raise ValueError("Mixed regime not implemented")
+
 
 class Fluid:
     """
@@ -214,7 +291,7 @@ class Fluid:
         if self.MS:
             self.p_H2 = c0 / Solubility
         else:
-            self.pH2 = (c0 / Solubility) ** 2
+            self.p_H2 = (c0 / Solubility) ** 2
         self.d_Hyd = d_Hyd
         self.mu = mu
         self.rho = rho
