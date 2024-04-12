@@ -196,10 +196,10 @@ class Component:
         self.get_adimensionals()
         if self.fluid.MS:
             if self.H < 0.1:  ## TODO limits to check
-                print("Surface limited approximation")
+                # print("Surface limited approximation")
                 self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
             elif self.W > 10:  ## TODO limits to check
-                print("Diffusion limited approximation")
+                # print("Diffusion limited approximation")
                 self.J_perm = -(
                     self.membrane.D
                     / self.membrane.thick
@@ -207,7 +207,7 @@ class Component:
                     * (c / self.fluid.Solubility) ** 0.5
                 )
             elif self.H > 10 and self.H / self.W > 100:  ## TODO limits to check
-                print("Mass transport limited approximation")
+                # print("Mass transport limited approximation")
 
                 self.J_perm = -2 * self.fluid.k_t * c
             else:
@@ -216,10 +216,10 @@ class Component:
         else:  ### Liquid Metal
             raise ValueError("Liquid Metal not implemented")
             if self.H < 0.1:  ## TODO limits to check
-                print("Surface limited approximation")
+                # print("Surface limited approximation")
                 self.J_perm = -self.membrane.k_r * (c**2)
             elif self.W > 10:  ## TODO limits to check
-                print("Diffusion limited approximation")
+                # print("Diffusion limited approximation")
                 self.J_perm = -(
                     self.membrane.D
                     / self.membrane.thick

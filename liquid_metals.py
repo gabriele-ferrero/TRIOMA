@@ -51,19 +51,19 @@ def get_regime(D, k_t, K_S_S, K_S_L, k_r, thick, P_H2):
     """
     W = lm.W(k_r, D, thick, K_S_S, P_H2)
     partition_param = lm.partition_param(D, k_t, K_S_S, K_S_L, thick)
-    print("H is equal to", partition_param, "and W is equal to", W)
-    if partition_param > 10 and W > 10:
-        print("Mass transport limited")
-        return
-    elif partition_param < 0.1 and W < 0.1:
-        print("Surface limited")
-        return
-    elif W > 10 and partition_param < 0.1:
-        print("Diffusion Limited")
-        return
-    elif partition_param > 10 and W < 0.1:
-        print("Transport and surface limited regime")
-        return
-    else:
-        print("Mixed regime")
-        return
+    # print("H is equal to", partition_param, "and W is equal to", W)
+    # if partition_param > 10 and W > 10:
+    #     #print("Mass transport limited")
+    #     return
+    # elif partition_param < 0.1 and W < 0.1:
+    #     #print("Surface limited")
+    #     return
+    # elif W > 10 and partition_param < 0.1:
+    #     #print("Diffusion Limited")
+    #     return
+    # elif partition_param > 10 and W < 0.1:
+    #     #print("Transport and surface limited regime")
+    #     return
+    # else:
+    #     print("Mixed regime")
+    #     return
