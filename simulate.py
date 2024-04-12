@@ -13,12 +13,13 @@ class Simulate:
         self.dt = dt
         self.final_time = final_time
         self.time = []
-        self.n_steps = int(final_time / dt)
         self.initial_conditions = {name: component.tritium_inventory for name, component in component_map.components.items()}
         self.I_startup = component_map.components['Fueling System'].tritium_inventory
-        self.y = np.zeros((self.n_steps + 1, len(self.initial_conditions)))
+        self.y = [list(self.initial_conditions.values())]  # Initialize y with the initial conditions
         self.components = component_map.components
         self.component_map = component_map
+        self.interval = self.final_time / 100
+
 
     def run(self):
         """
@@ -45,6 +46,31 @@ class Simulate:
         self.I_startup += 0.1
         self.initial_conditions['Fueling System'] = self.I_startup
 
+    def update_timestep(self, dt):
+        """
+        Update the time step size.
+
+        Args:
+        - dt: New time step size.
+        """
+        self.dt = dt
+        self.n_steps = int(self.final_time / dt)
+
+
+    def adaptive_timestep(self,y_new, y, t, tol=1e-6, max_dt=100, min_dt=1e-6):
+        """
+        Perform adaptive time stepping.
+        """
+        p = 1 # Order of the method
+        error = np.linalg.norm(y_new - (y + self.dt * self.f(y_new)))
+        # Adjust time step size
+        dt_new = self.dt * (tol / error)**p
+        if abs(t % self.interval) < 10:
+            print(f"Time = {t}, Error = {error}, dt = {self.dt}, dt_new = {dt_new}", end='\r')
+        # Compute the new time step size based on the definition of adaptive timestep
+        dt_new = min(max_dt, max(min_dt, dt_new))
+        self.update_timestep(dt_new)
+
     def restart(self):
         """
         Restart the simulation by resetting time and component inventory.
@@ -62,17 +88,21 @@ class Simulate:
         - time: Array of time values.
         - y: Array of component inventory values.
         """
+        t = 0
         print(self.y[0])
-        for n in range(self.n_steps):
-            t = n * self.dt
-            if n % 1000 == 0:
-                print(f"Percentage completed = {n/self.n_steps * 100:.1f}%", end='\r')
-            dydt = self.f(self.y[n])
-            self.y[n+1] = self.y[n] + self.dt * dydt
+        while t < self.final_time:
+            if abs(t % self.interval) < 10:
+                print(f"Percentage completed = {abs(t - self.final_time)/self.final_time * 100:.1f}%", end='\r')
+            dydt = self.f(self.y[-1])
+            y_new = self.y[-1] + self.dt * dydt
             self.time.append(t)
             for i, component in enumerate(self.components.values()):
-                component.update_inventory(self.y[n+1][i])
+                component.update_inventory(y_new[i])
             self.component_map.update_flow_rates()
+            self.adaptive_timestep(y_new, self.y[-1], t)  # Update the timestep based on the new and old y values
+            t += self.dt
+            self.y.append(y_new) # append y_new after updating the time step
+        self.y = np.array(self.y)
         return [self.time, self.y[:-1,:]]
 
 
