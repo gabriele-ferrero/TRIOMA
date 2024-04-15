@@ -1,4 +1,7 @@
 import numpy as np
+import tools.molten_salts as MS
+import tools.liquid_metals as LM
+import tools.correlations as corr
 import molten_salts as MS
 import liquid_metals as LM
 import correlations as corr
