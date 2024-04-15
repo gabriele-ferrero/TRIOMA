@@ -14,6 +14,7 @@ tau_ifc = 4 * 3600
 I_startup = 0.7 
 TBE = 0.02
 
+
 component1 = FuelingSystem("Fueling System", N_burn, TBE, initial_inventory=I_startup)
 component2 = Component("OFC", tau_ofc, initial_inventory=0, tritium_source=N_burn * TBR)
 component3 = Component("IFC", tau_ifc)
@@ -38,11 +39,10 @@ component_map.connect_ports(component3, port5, component1, port7)
 component_map.connect_ports(component2, port6, component3, port8)
 component_map.print_connected_map()
 visualize_connections(component_map)
-component1.get_inflow()
 
 simulation = Simulate(0.1, 1e5, component_map)
 t, y = simulation.run()
-plt.figure()
-plt.plot(t, y)
-plt.legend(component_map.components.keys())
-print(y[-1,:])
+# plt.figure()
+# plt.plot(t, y)
+# plt.legend(component_map.components.keys())
+# print(y[-1,:])
