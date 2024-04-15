@@ -1,5 +1,5 @@
 import numpy
-import correlations as cor
+import tools.correlations as cor
 
 
 def extractor_lm(Z, R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S):

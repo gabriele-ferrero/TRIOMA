@@ -2,11 +2,8 @@ import numpy as np
 import tools.molten_salts as MS
 import tools.liquid_metals as LM
 import tools.correlations as corr
-import molten_salts as MS
-import liquid_metals as LM
-import correlations as corr
-import extractor
 import matplotlib.pyplot as plt
+import tools.extractor as extractor
 
 
 def set_attribute(instance, attr_name, new_value):
@@ -162,7 +159,9 @@ class Component:
                     P_H2=self.fluid.p_H2,
                 )
 
-    def get_efficiency(self, L):  # L is the characteristic length of the component
+    def get_efficiency(
+        self, L, plotvar: bool = False
+    ):  # L is the characteristic length of the component
         """
         Calculates the efficiency of the component.
 
@@ -192,7 +191,8 @@ class Component:
                     np.pi * self.fluid.d_Hyd**2 / 4 * dl
                 )
                 self.get_flux(c_vec[i])
-        plt.plot(L_vec, c_vec)
+        if plotvar:
+            plt.plot(L_vec, c_vec)
         self.eff = 1 - (self.c_in - c_vec[-1]) / self.c_in
 
     def get_flux(self, c):
