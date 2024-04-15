@@ -50,3 +50,15 @@ def Pr(c_p, mu, k):
 
 def Sherwood_bubbles(Sc, Re):
     return 0.089 * Re**0.69 * Sc**0.33  ## Humrickhouse MS report
+
+
+def get_length_HX(deltaTML, d_hyd, U, Q):
+    L = Q / (U * np.pi * d_hyd * deltaTML)
+    return L
+
+
+def get_deltaTML(T_in_hot, T_out_hot, T_in_cold, T_out_cold):
+    delta_T1 = T_in_hot - T_out_cold
+    delta_T2 = T_out_hot - T_in_cold
+    delta_T_lm = (delta_T1 - delta_T2) / np.log(delta_T1 / delta_T2)
+    return delta_T_lm

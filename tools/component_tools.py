@@ -237,6 +237,26 @@ class Component:
                 print("Mixed regime approximation")
                 raise ValueError("Mixed regime not implemented")
 
+    def get_global_HX_coeff(self, R_conv_sec):
+        """
+        Calculates the global heat exchange coefficient of the component.
+
+        Returns:
+            float: The global heat exchange coefficient of the component.
+        """
+        R_cond = np.log((self.fluid.d_Hyd + self.membrane.thick) / self.fluid.d_Hyd) / (
+            2 * np.pi * self.membrane.k
+        )
+        Re = corr.Re(self.fluid.rho, self.fluid.U0, self.fluid.d_Hyd, self.fluid.mu)
+        Pr = corr.Pr(self.fluid.cp, self.fluid.mu, self.fluid.k)
+        h_prim = corr.get_h_from_Nu(
+            corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
+        )
+        R_conv_prim = 1 / h_prim
+        R_tot = R_conv_prim + R_cond + R_conv_sec
+        self.U = 1 / R_tot
+        return
+
 
 class Fluid:
     """
@@ -268,6 +288,8 @@ class Fluid:
         mu: float = None,
         rho: float = None,
         U0: float = None,
+        k: float = None,
+        cp: float = None,
     ):
         """
         Initializes a new instance of the Fluid class.
@@ -284,6 +306,7 @@ class Fluid:
             mu (float, optional): Viscosity of the fluid. Defaults to None.
             rho (float, optional): Density of the fluid. Defaults to None.
             U0 (float, optional): Velocity of the fluid. Defaults to None.
+            k thermal conductivity of the fluid. Defaults to None.
         """
         self.T = T
         self.Solubility = Solubility
@@ -299,6 +322,8 @@ class Fluid:
         self.mu = mu
         self.rho = rho
         self.U0 = U0
+        self.k = k
+        self.cp = cp
 
     def update_attribute(self, attr_name, new_value):
         """
@@ -357,6 +382,7 @@ class Membrane:
         K_S: float,
         k_d: float = 1e6,
         k_r: float = 1e6,
+        k: float = None,
     ):
         """
         Initializes a new instance of the Membrane class.
@@ -375,6 +401,7 @@ class Membrane:
         self.k_d = k_d
         self.K_S = K_S
         self.k_r = k_r
+        self.k = k
 
     def update_attribute(self, attr_name, new_value):
         """
