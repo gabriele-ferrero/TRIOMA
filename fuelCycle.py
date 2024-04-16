@@ -51,7 +51,7 @@ component_map.connect_ports(fueling_system, port1, plasma, port2)
 component_map.connect_ports(plasma, port3, IFC, port4)
 component_map.connect_ports(IFC, port5, fueling_system, port7)
 component_map.connect_ports(BB, port6, TES, port11)
-component_map.connect_ports(TES, port9, fueling_system, port7)
+component_map.connect_ports(TES, port9, fueling_system, port12)
 component_map.connect_ports(TES, port10, BB, port13)
 
 component_map.print_connected_map()
