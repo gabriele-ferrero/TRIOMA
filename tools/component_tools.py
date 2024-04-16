@@ -1,9 +1,13 @@
 import numpy as np
+from example_simulation import TBR
 import tools.molten_salts as MS
 import tools.liquid_metals as LM
 import tools.correlations as corr
 import matplotlib.pyplot as plt
 import tools.extractor as extractor
+from scipy.constants import N_A
+from scipy.constants import physical_constants
+import sympy as sp
 
 
 def set_attribute(instance, attr_name, new_value):
@@ -215,7 +219,14 @@ class Component:
                 self.J_perm = -2 * self.fluid.k_t * c
             else:
                 print("Mixed regime approximation")
-                raise ValueError("Mixed regime not yet implemented")
+                x = sp.symbols("x")
+                solution = sp.nsolve(
+                    sp.Eq(self.W**2 * x**4 + 2 * self.W * x**3 + 2 * x**2 - 1, 0),
+                    x,
+                    1.5,
+                )
+                self.J_perm = self.W * solution**2  ##TODO check is applicable for MS
+                # raise ValueError("Mixed regime not yet implemented")
         else:  ### Liquid Metal
             raise ValueError("Liquid Metal not implemented")
             if self.H < 0.1:  ## TODO limits to check
@@ -573,3 +584,35 @@ class SolidMaterial:
         self.K_S = K_S
         self.k_d = k_d
         self.k_r = k_r
+
+
+class BreedingBlanket:
+    def __init__(
+        self,
+        Q: float = None,
+        TBR: float = None,
+        T_out: float = None,
+        T_in: float = None,
+        fluid: Fluid = None,
+    ):
+        self.Q = Q
+        self.TBR = TBR
+        self.T_out = T_out
+        self.T_in = T_in
+        self.fluid = fluid
+
+    def get_flowrate(self):
+        self.m_coolant = self.TBR * self.Q / ((self.T_out - self.T_in) * self.fluid.cp)
+        return
+
+    def get_cout(self, print_var: bool = False):
+        self.get_flowrate()
+        eV_to_J = physical_constants["electron volt-joule relationship"][0]
+        reaction_energy = 17.6e6  # reaction energy in eV 17.6 MeV
+        neutrons = self.Q / (reaction_energy * eV_to_J)
+
+        tritium_gen = TBR * neutrons / N_A  ##moles
+        if print_var:
+            print("neu", neutrons)
+            print("Trit", tritium_gen)
+        self.c_out = tritium_gen / (self.m_coolant / self.fluid.rho)
