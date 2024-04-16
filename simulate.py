@@ -1,7 +1,7 @@
 import numpy as np
 
 class Simulate:
-    def __init__(self, dt, final_time, component_map):
+    def __init__(self, dt, final_time, TBRr_start, component_map):
         """
         Initialize the Simulate class.
 
@@ -19,6 +19,7 @@ class Simulate:
         self.components = component_map.components
         self.component_map = component_map
         self.interval = self.final_time / 100
+        self.TBRr_start = TBRr_start # Initial guess for TBRr
 
     def run(self):
         """
@@ -31,10 +32,13 @@ class Simulate:
         while True:
             self.y[0] = [component.tritium_inventory for component in self.components.values()] # self.initial_conditions, possibly updated by the restart method
             t,y = self.forward_euler()
+            print(self.components['Fueling System'].tritium_inventory )
             if self.components['Fueling System'].tritium_inventory < 0:
                 print("Error: Tritium inventory in Fueling System is below zero.")
                 self.update_I_startup()
                 self.restart()
+            # elif self.doubling_time >= self.target_doubling_time:
+            #     self.components['BB'].
             else:
                 return t,y
             
