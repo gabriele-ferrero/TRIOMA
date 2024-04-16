@@ -6,7 +6,7 @@ class Component:
     Represents a component in a fuel cycle system.
     """
 
-    def __init__(self, name, residence_time, initial_inventory=0, tritium_source=0, efficiency = None):
+    def __init__(self, name, residence_time, initial_inventory=0, tritium_source=0):
         """
         Initializes a Component object.
 
@@ -22,7 +22,6 @@ class Component:
         self.output_ports = {}  # Dictionary where the key is the port name and the value is the port object
         self.tritium_inventory = initial_inventory
         self.tritium_source = tritium_source
-        self.efficiency = efficiency
 
     def add_input_port(self, port_name, incoming_fraction=1.0):
         """

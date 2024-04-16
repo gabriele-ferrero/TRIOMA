@@ -1,7 +1,7 @@
 import numpy as np
-import molten_salts as MS
-import liquid_metals as LM
-import correlations as corr
+import tools.molten_salts as MS
+import tools.liquid_metals as LM
+import tools.correlations as corr
 
 
 def set_attribute(instance, attr_name, new_value):
