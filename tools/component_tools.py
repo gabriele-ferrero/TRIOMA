@@ -202,10 +202,10 @@ class Component:
     def get_flux(self, c):
         self.get_adimensionals()
         if self.fluid.MS:
-            if self.H < 0.1:  ## TODO limits to check
+            if self.H < 0.1:
                 # print("Surface limited approximation")
                 self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
-            elif self.W > 10:  ## TODO limits to check
+            elif self.W > 10:
                 # print("Diffusion limited approximation")
                 self.J_perm = -(
                     self.membrane.D
@@ -213,7 +213,7 @@ class Component:
                     * self.membrane.K_S
                     * (c / self.fluid.Solubility) ** 0.5
                 )
-            elif self.H > 10 and self.H / self.W > 100:  ## TODO limits to check
+            elif self.H > 10 and self.H / self.W > 100:
                 # print("Mass transport limited approximation")
 
                 self.J_perm = -2 * self.fluid.k_t * c
@@ -225,7 +225,9 @@ class Component:
                     x,
                     1.5,
                 )
-                self.J_perm = self.W * solution**2  ##TODO check is applicable for MS
+                self.J_perm = (
+                    self.W * solution**2
+                )  ##TODO check is applicable for MS & add Mass transport limited Eq
                 # raise ValueError("Mixed regime not yet implemented")
         else:  ### Liquid Metal
             raise ValueError("Liquid Metal not implemented")
@@ -602,7 +604,7 @@ class BreedingBlanket:
         self.fluid = fluid
 
     def get_flowrate(self):
-        self.m_coolant = self.TBR * self.Q / ((self.T_out - self.T_in) * self.fluid.cp)
+        self.m_coolant = self.Q / ((self.T_out - self.T_in) * self.fluid.cp)
         return
 
     def get_cout(self, print_var: bool = False):
