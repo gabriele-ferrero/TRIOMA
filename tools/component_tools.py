@@ -219,7 +219,11 @@ class Component:
     def get_flux(self, c):
         self.get_adimensionals()
         if self.fluid.MS:
-            if self.H < 0.1:
+            if self.H > 10 and self.H / self.W > 100:
+                # print("Mass transport limited approximation")
+
+                self.J_perm = -2 * self.fluid.k_t * c
+            elif self.W < 0.1:
                 # print("Surface limited approximation")
                 self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
             elif self.W > 10:
@@ -230,10 +234,6 @@ class Component:
                     * self.membrane.K_S
                     * (c / self.fluid.Solubility) ** 0.5
                 )
-            elif self.H > 10 and self.H / self.W > 100:
-                # print("Mass transport limited approximation")
-
-                self.J_perm = -2 * self.fluid.k_t * c
             else:
                 print("Mixed regime approximation")
                 x = sp.symbols("x")
