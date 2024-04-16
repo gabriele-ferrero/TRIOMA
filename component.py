@@ -6,7 +6,7 @@ class Component:
     Represents a component in a fuel cycle system.
     """
 
-    def __init__(self, name, residence_time, initial_inventory=0, tritium_source=0):
+    def __init__(self, name, residence_time, initial_inventory=0, tritium_source=0, non_radioactive_loss=1e-4):
         """
         Initializes a Component object.
 
@@ -22,6 +22,7 @@ class Component:
         self.output_ports = {}  # Dictionary where the key is the port name and the value is the port object
         self.tritium_inventory = initial_inventory
         self.tritium_source = tritium_source
+        self.non_radioactive_loss = non_radioactive_loss
 
     def add_input_port(self, port_name, incoming_fraction=1.0):
         """
@@ -121,8 +122,8 @@ class Component:
         """
         inflow = self.get_inflow()
         outflow = self.get_outflow()
-        decay = self.tritium_inventory * LAMBDA  # assuming decay_rate is a constant
-        dydt = inflow - outflow - decay + self.tritium_source
+        decay = self.tritium_inventory * LAMBDA 
+        dydt = inflow - outflow * (1 + self.non_radioactive_loss) - decay + self.tritium_source
         return dydt
     
     def update_inventory(self, new_value):
