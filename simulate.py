@@ -1,7 +1,7 @@
 import numpy as np
 
 class Simulate:
-    def __init__(self, dt, final_time, TBRr_start, component_map):
+    def __init__(self, dt, final_time, component_map, TBRr_accuraty = 1e-2, target_doubling_time = 2):
         """
         Initialize the Simulate class.
 
@@ -19,7 +19,9 @@ class Simulate:
         self.components = component_map.components
         self.component_map = component_map
         self.interval = self.final_time / 100
-        self.TBRr_start = TBRr_start # Initial guess for TBRr
+        self.TBRr_accuracy = TBRr_accuraty
+        self.target_doubling_time = target_doubling_time # years 
+        self.doubling_time = None
 
     def run(self):
         """
@@ -32,16 +34,41 @@ class Simulate:
         while True:
             self.y[0] = [component.tritium_inventory for component in self.components.values()] # self.initial_conditions, possibly updated by the restart method
             t,y = self.forward_euler()
-            print(self.components['Fueling System'].tritium_inventory )
+            self.doubling_time = self.compute_doubling_time(t,y)
+            print(f"Doubling time: {self.doubling_time}")
+            print(self.components['Fueling System'].tritium_inventory)
             if self.components['Fueling System'].tritium_inventory < 0:
                 print("Error: Tritium inventory in Fueling System is below zero.")
                 self.update_I_startup()
                 self.restart()
-            # elif self.doubling_time >= self.target_doubling_time:
-            #     self.components['BB'].
+            elif self.doubling_time >= self.target_doubling_time or np.isnan(self.doubling_time):
+                # TODO: need to restart inventory, but restart is triggering an infinite loop
+                self.components['BB'].TBR += self.TBRr_accuracy
+                print('Updated TBR')
             else:
+                self.y.pop() # remove the last element of y whose time is greater than the final time
                 return t,y
             
+    def compute_doubling_time(self, t, y):
+        """
+        Compute the doubling time of the tritium inventory in the Fueling System component.
+
+        Args:
+        - t: Array of time values.
+        - y: Array of component inventory values.
+
+        Returns:
+        - doubling_time: The doubling time of the tritium inventory.
+        """
+        I = np.array(self.components['Fueling System'].tritium_inventory)
+        I_0 = self.I_startup
+        doubling_time_index = np.where(np.abs(I - 2 * I_0) <= 0.1)[0]
+        if len(doubling_time_index) == 0:
+            return np.nan
+        else:
+            doubling_time = t[doubling_time_index[0]]
+            return doubling_time
+    
     def update_I_startup(self):
         """
         Update the initial tritium inventory of the Fueling System component.
@@ -105,9 +132,7 @@ class Simulate:
             self.component_map.update_flow_rates()
             self.adaptive_timestep(y_new, self.y[-1], t)  # Update the timestep based on the new and old y values
             t += self.dt
-            self.y.append(y_new) # append y_new after updating the time step
-        self.y.pop() # remove the last element of y whose time is greater than the final time
-        
+            self.y.append(y_new) # append y_new after updating the time step        
         return [self.time, self.y]
 
 
