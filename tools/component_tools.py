@@ -10,6 +10,17 @@ from scipy.constants import physical_constants
 import sympy as sp
 
 
+def print_class_variables(instance):
+    """
+    Prints all variables of a class.
+
+    Args:
+        instance: The class instance.
+    """
+    for attr_name, attr_value in instance.__dict__.items():
+        print(f"{attr_name}: {attr_value}")
+
+
 def set_attribute(instance, attr_name, new_value):
     """
     Sets the specified attribute to a new value.
@@ -72,6 +83,12 @@ class Component:
             new_value: The new value for the attribute.
         """
         set_attribute(self, attr_name, new_value)
+
+    def inspect(self):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self)
 
     def outlet_c_comp(self) -> float:
         """
@@ -253,6 +270,7 @@ class Component:
     def get_global_HX_coeff(self, R_conv_sec):
         """
         Calculates the global heat exchange coefficient of the component.
+        It needs the secondary resistance to convection as input.
 
         Returns:
             float: The global heat exchange coefficient of the component.
@@ -348,6 +366,12 @@ class Fluid:
         """
         set_attribute(self, attr_name, new_value)
 
+    def inspect(self):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self)
+
     def get_kt(self):
         """
         Calculates the mass transport coefficient (k_t) for the fluid.
@@ -426,6 +450,12 @@ class Membrane:
         """
         set_attribute(self, attr_name, new_value)
 
+    def inspect(self):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self)
+
 
 class GLC_Gas:
     """
@@ -464,6 +494,12 @@ class GLC_Gas:
             new_value: The new value for the attribute.
         """
         set_attribute(self, attr_name, new_value)
+
+    def inspect(self):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self)
 
 
 class GLC(Component):
@@ -543,6 +579,12 @@ class GLC(Component):
             D=self.fluid.D,
         )
 
+    def inspect(self):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self)
+
 
 class FluidMaterial:
     """
@@ -569,6 +611,12 @@ class FluidMaterial:
         self.k = k
         self.cp = cp
 
+    def inspect(self):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self)
+
 
 class SolidMaterial:
     """
@@ -587,6 +635,12 @@ class SolidMaterial:
         self.k_d = k_d
         self.k_r = k_r
 
+    def inspect(self):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self)
+
 
 class BreedingBlanket:
     def __init__(
@@ -602,6 +656,12 @@ class BreedingBlanket:
         self.T_out = T_out
         self.T_in = T_in
         self.fluid = fluid
+
+    def inspect(self):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self)
 
     def get_flowrate(self):
         self.m_coolant = self.Q / ((self.T_out - self.T_in) * self.fluid.cp)
