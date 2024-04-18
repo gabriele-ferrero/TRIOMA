@@ -2,6 +2,7 @@
 from fuelingSystem import FuelingSystem
 from component import Component
 from plasma import Plasma
+from breedingBlanket import BreedingBlanket
 from componentMap import ComponentMap
 from matplotlib import pyplot as plt
 from simulate import Simulate
@@ -9,18 +10,19 @@ from tools.utils import visualize_connections
 
 LAMBDA = 1.73e-9 # Decay constant for tritium
 N_burn = 9.3e-7 # Tritium burn rate in the plasma
-TBR = 1.1
+TBR = 1.01
 tau_ofc = 2 * 3600
 tau_ifc = 5 * 3600
 tau_tes = 24 * 3600
 tau_HX = 1 * 3600
-I_startup = 0.7 
+I_startup = 0.9
 TBE = 0.02
 tes_efficiency = 0.9
+final_time = 2.1 * 3600 * 24 * 365 # NB: longer than doubling time
 
 # Define components
 fueling_system = FuelingSystem("Fueling System", N_burn, TBE, initial_inventory=I_startup)
-BB = Component("BB", tau_ofc, initial_inventory=0, tritium_source=N_burn * TBR)
+BB = BreedingBlanket("BB", tau_ofc, initial_inventory=0, N_burn = N_burn, TBR = TBR)
 IFC = Component("IFC", tau_ifc)
 plasma = Plasma("Plasma", N_burn, TBE) 
 TES = Component("TES", residence_time = tau_tes)
@@ -63,8 +65,8 @@ component_map.connect_ports(HX, port14, BB, port15)
 
 component_map.print_connected_map()
 visualize_connections(component_map)
-
-simulation = Simulate(0.1, 1e5, component_map)
+print(f'Startup inventory is: {fueling_system.tritium_inventory}')
+simulation = Simulate(dt=0.1, final_time=final_time, component_map=component_map)
 t, y = simulation.run()
 plt.figure()
 plt.plot(t, y)
