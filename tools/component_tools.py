@@ -8,6 +8,8 @@ import tools.extractor as extractor
 from scipy.constants import N_A
 from scipy.constants import physical_constants
 import sympy as sp
+from scipy.optimize import fsolve
+from scipy.optimize import newton_krylov
 
 
 def print_class_variables(instance):
@@ -192,7 +194,7 @@ class Component:
         Returns:
             float: The efficiency of the component.
         """
-        L_vec = np.linspace(0, L, 1000)
+        L_vec = np.linspace(0, L, 100)
         dl = L_vec[1] - L_vec[0]
 
         c_vec = np.ndarray(len(L_vec))
@@ -217,55 +219,130 @@ class Component:
         self.eff = 1 - (self.c_in - c_vec[-1]) / self.c_in
 
     def get_flux(self, c):
+        self.fluid.p_H2 = c / self.fluid.Solubility
         self.get_adimensionals()
         if self.fluid.MS:
-            if self.H > 10 and self.H / self.W > 100:
-                # print("Mass transport limited approximation")
+            if self.W > 10:
+                # DIFFUSION LIMITED
+                if self.H / self.W > 10:
+                    # Mass transport limited
+                    self.J_perm = -2 * self.fluid.k_t * c
+                elif self.H / self.W < 0.1:
+                    # Diffusion limited
+                    self.J_perm = -(
+                        self.membrane.D
+                        / self.membrane.thick
+                        * self.membrane.K_S
+                        * (c / self.fluid.Solubility) ** 0.5
+                    )
+                else:
+                    # Mixed regime mass transport diffusion
+                    def equations(vars):
+                        c_wl = vars
 
-                self.J_perm = -2 * self.fluid.k_t * c
+                        c_bl = c
+                        if c_wl > c_bl:
+                            c_wl = c_bl
+                        J_mt = 2 * self.fluid.k_t * (c_bl - c_wl)
+
+                        # J_d=k_d*(c_wl/K_H)
+                        J_diff = abs(
+                            self.membrane.D
+                            / self.membrane.thick
+                            * (
+                                self.membrane.K_S
+                                * (c_wl / self.fluid.Solubility) ** 0.5
+                            )
+                        )
+                        eq1 = J_mt / J_diff - 1
+
+                        return [eq1]
+
+                    initial_guess = [(c / 20)]
+                    solution = newton_krylov(
+                        equations,
+                        initial_guess,
+                        maxiter=int(1e5),
+                        method="bicgstab",
+                    )
+                    self.J_perm = -2 * self.fluid.k_t * (c - solution[0])
             elif self.W < 0.1:
-                # print("Surface limited approximation")
-                self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
-            elif self.W > 10:
-                # print("Diffusion limited approximation")
-                self.J_perm = -(
-                    self.membrane.D
-                    / self.membrane.thick
-                    * self.membrane.K_S
-                    * (c / self.fluid.Solubility) ** 0.5
-                )
-            else:
-                print("Mixed regime approximation")
-                x = sp.symbols("x")
-                solution = sp.nsolve(
-                    sp.Eq(self.W**2 * x**4 + 2 * self.W * x**3 + 2 * x**2 - 1, 0),
-                    x,
-                    1.5,
-                )
-                self.J_perm = (
-                    self.W * solution**2
-                )  ##TODO check is applicable for MS & add Mass transport limited Eq
-                # raise ValueError("Mixed regime not yet implemented")
-        else:  ### Liquid Metal
-            raise ValueError("Liquid Metal not implemented")
-            if self.H < 0.1:  ## TODO limits to check
-                # print("Surface limited approximation")
-                self.J_perm = -self.membrane.k_r * (c**2)
-            elif self.W > 10:  ## TODO limits to check
-                # print("Diffusion limited approximation")
-                self.J_perm = -(
-                    self.membrane.D
-                    / self.membrane.thick
-                    * self.membrane.K_S
-                    * (c / self.fluid.Solubility)
-                )
-            elif self.H > 10 and self.H / self.W > 100:  ## TODO limits to check
-                print("Mass transport limited approximation")
+                # Surface limited
+                if self.H > 10:
+                    # Mass transport limited
+                    self.J_perm = -2 * self.fluid.k_t * c
+                elif self.H < 0.1:
+                    # Surface limited
+                    self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
+                else:
+                    # Mixed regime mass transfer surface
+                    # raise ValueError("Mixed regime not yet implemented")
+                    def equations(vars):
+                        c_wl = vars
 
-                self.J_perm = -self.fluid.k_t * c
+                        c_bl = c
+                        J_mt = 2 * self.fluid.k_t * (c_bl - c_wl)
+
+                        # J_d=k_d*(c_wl/K_H)
+                        J_surf = (
+                            self.membrane.k_d * (c_bl / self.fluid.Solubility)
+                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
+                        )
+
+                        eq1 = J_mt / J_surf - 1
+
+                        return [eq1]
+
+                    initial_guess = [(c / 2)]
+                    solution = newton_krylov(
+                        equations, initial_guess, maxiter=int(1e5), method="gmres"
+                    )
+                    c_bl = c
+                    c_wl = solution[0]
+                    self.J_perm = 2 * self.fluid.k_t * (c_bl - c_wl)
             else:
-                print("Mixed regime approximation")
-                raise ValueError("Mixed regime not implemented")
+                # print("Mixed regime approximation")
+                if self.H / self.W < 0.1:
+                    # Mass transport limited
+                    self.J_perm = -2 * self.fluid.k_t * c
+                elif self.H / self.W > 10:
+                    # Mixed Diffusion Surface
+                    def equations(vars):
+                        c_wl = vars
+                        c_bl = c
+                        J_surf = (
+                            self.membrane.k_d * (c_bl / self.fluid.Solubility)
+                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
+                        )
+                        J_diff = (
+                            self.membrane.D
+                            / self.membrane.thick
+                            * (
+                                self.membrane.K_S
+                                * (c_wl / self.fluid.Solubility) ** 0.5
+                            )
+                        )
+                        eq1 = J_diff / J_surf - 1
+
+                        return [eq1]
+
+                    initial_guess = [(c / 2)]
+                    solution = newton_krylov(
+                        equations, initial_guess, maxiter=int(1e6), method="bicgstab"
+                    )
+                    c_wall = solution[0]
+                    self.J_perm = (
+                        self.membrane.D
+                        / self.membrane.thick
+                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility) ** 0.5)
+                    )
+
+                else:
+                    print("mixed regime not yet implemented")
+                    self.J_perm = 0
+                    # raise ValueError(
+                    #     "Mixed regime not yet implemented"
+                    # )  # Mixed regime MT diffusion and surface
 
     def get_global_HX_coeff(self, R_conv_sec):
         """
