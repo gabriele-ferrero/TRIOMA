@@ -46,5 +46,5 @@ class Plasma(Component):
         """
         inflow = self.get_inflow()
         outflow = self.get_outflow()
-        dydt = inflow - outflow + self.tritium_source
+        dydt = inflow - outflow + self.tritium_source - self.N_burn
         return dydt

@@ -1,4 +1,5 @@
 import numpy as np
+seconds_to_years = 1/(60*60*24*365)
 
 class Simulate:
     def __init__(self, dt, final_time, component_map, TBRr_accuraty = 1e-2, target_doubling_time = 2):
@@ -42,11 +43,10 @@ class Simulate:
                 self.update_I_startup()
                 print(f"Updated I_startup to {self.I_startup}")
                 self.restart()
-            # elif self.doubling_time >= self.target_doubling_time or np.isnan(self.doubling_time):
-            #     # TODO: need to restart inventory, but restart is triggering an infinite loop
-            #     self.restart()
-            #     self.components['BB'].TBR += self.TBRr_accuracy
-            #     print('Updated TBR at {}. Production is now {}'.format(self.components['BB'].TBR, self.components['BB'].tritium_source))
+            elif self.doubling_time >= self.target_doubling_time or np.isnan(self.doubling_time):
+                self.restart()
+                self.components['BB'].TBR += self.TBRr_accuracy
+                print('Updated TBR at {}. Production is now {}'.format(self.components['BB'].TBR, self.components['BB'].tritium_source))
             else:
                 self.y.pop() # remove the last element of y whose time is greater than the final time
                 return t,y
@@ -71,7 +71,7 @@ class Simulate:
         if len(doubling_time_index) == 0:
             return np.nan
         else:
-            doubling_time = t[doubling_time_index[0]]
+            doubling_time = t[doubling_time_index[0]]* seconds_to_years
             return doubling_time
     
     def update_I_startup(self):
