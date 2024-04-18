@@ -2,7 +2,7 @@ import numpy as np
 seconds_to_years = 1/(60*60*24*365)
 
 class Simulate:
-    def __init__(self, dt, final_time, component_map, TBRr_accuraty = 1e-2, target_doubling_time = 2):
+    def __init__(self, dt, final_time, I_reserve, component_map, TBRr_accuraty = 1e-2, target_doubling_time = 2):
         """
         Initialize the Simulate class.
 
@@ -23,6 +23,7 @@ class Simulate:
         self.TBRr_accuracy = TBRr_accuraty
         self.target_doubling_time = target_doubling_time # years 
         self.doubling_time = None
+        self.I_reserve = I_reserve
 
     def run(self):
         """
@@ -38,8 +39,8 @@ class Simulate:
             self.doubling_time = self.compute_doubling_time(t,y)
             print(f"Doubling time: {self.doubling_time} \n")
             print('Startup inventory is: {} \n'.format(y[0][0]))
-            if (np.array(self.y)[:,0] < 0).any(): # Increaase startup inventory if at any point the tritium inventory in the Fueling System component is below zero
-                print("Error: Tritium inventory in Fueling System is below zero.")
+            if (np.array(self.y)[:,0] - self.I_reserve < 0).any(): # Increaase startup inventory if at any point the tritium inventory in the Fueling System component is below zero
+                print("Error: Tritium inventory in Fueling System is below zero. Difference is {} kg".format(np.min(np.array(self.y)[:,0] - self.I_reserve)))
                 self.update_I_startup()
                 print(f"Updated I_startup to {self.I_startup}")
                 self.restart()
@@ -63,11 +64,9 @@ class Simulate:
         - doubling_time: The doubling time of the tritium inventory.
         """
         I = np.array(self.y)[:,0] # Tritium inventory in the Fueling System component
-        print(f'I = {I} kg')
         I_0 = self.I_startup
         print(f'I_0 = {I_0} kg')
         doubling_time_index = np.where((I - 2 * I_0) >= 0)[0]
-        print(f'Doubling time index = {doubling_time_index}')
         if len(doubling_time_index) == 0:
             return np.nan
         else:
@@ -125,7 +124,7 @@ class Simulate:
         - y: Array of component inventory values.
         """
         t = 0
-        print(self.y[0])
+        print(f'Initial inventories = {self.y[0]} kg')
         while t < self.final_time:
             if abs(t % self.interval) < 10:
                 print(f"Percentage completed = {abs(t - self.final_time)/self.final_time * 100:.1f}%", end='\r')
