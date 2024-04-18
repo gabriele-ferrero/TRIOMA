@@ -338,8 +338,30 @@ class Component:
                     )
 
                 else:
-                    print("mixed regime not yet implemented")
-                    self.J_perm = 0
+
+                    def equations(vars):
+                        c_wl, c_ws = vars
+
+                        c_bl = c
+                        J_mt = 2 * self.fluid.k_t * (c_bl - c_wl)
+
+                        J_d = self.membrane.k_d * (
+                            c_wl / self.membrane.K_S
+                        ) - self.membrane.k_d * self.membrane.K_S * (c_ws**2)
+                        J_diff = (
+                            self.membrane.D
+                            / self.membrane.thick
+                            * (self.membrane.K_S * c_ws)
+                        )
+                        eq1 = J_mt / J_d - 1
+                        eq2 = J_mt / J_diff - 1
+
+                        return [eq1, eq2]
+
+                    initial_guess = [(2 * c / 3), (c / 3)]
+                    solution = newton_krylov(
+                        equations, initial_guess, maxiter=int(1e5), method="bicgstab"
+                    )
                     # raise ValueError(
                     #     "Mixed regime not yet implemented"
                     # )  # Mixed regime MT diffusion and surface
