@@ -65,7 +65,7 @@ component_map.connect_ports(HX, port14, BB, port15)
 
 component_map.print_connected_map()
 visualize_connections(component_map)
-
+print(f'Startup inventory is: {fueling_system.tritium_inventory}')
 simulation = Simulate(dt=0.1, final_time=final_time, component_map=component_map)
 t, y = simulation.run()
 plt.figure()

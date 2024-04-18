@@ -35,18 +35,18 @@ class Simulate:
             self.y[0] = [component.tritium_inventory for component in self.components.values()] # self.initial_conditions, possibly updated by the restart method
             t,y = self.forward_euler()
             self.doubling_time = self.compute_doubling_time(t,y)
-            print(f"Doubling time: {self.doubling_time}")
-            print('Startup inventory is: {}'.format(self.components['Fueling System'].tritium_inventory))
-            if self.components['Fueling System'].tritium_inventory < 0:
+            print(f"Doubling time: {self.doubling_time} \n")
+            print('Startup inventory is: {} \n'.format(y[0][0]))
+            if (np.array(self.y)[:,0] < 0).any(): # Increaase startup inventory if at any point the tritium inventory in the Fueling System component is below zero
                 print("Error: Tritium inventory in Fueling System is below zero.")
                 self.update_I_startup()
                 print(f"Updated I_startup to {self.I_startup}")
                 self.restart()
-            elif self.doubling_time >= self.target_doubling_time or np.isnan(self.doubling_time):
-                # TODO: need to restart inventory, but restart is triggering an infinite loop
-                self.restart()
-                self.components['BB'].TBR += self.TBRr_accuracy
-                print('Updated TBR at {}. Production is now {}'.format(self.components['BB'].TBR, self.components['BB'].tritium_source))
+            # elif self.doubling_time >= self.target_doubling_time or np.isnan(self.doubling_time):
+            #     # TODO: need to restart inventory, but restart is triggering an infinite loop
+            #     self.restart()
+            #     self.components['BB'].TBR += self.TBRr_accuracy
+            #     print('Updated TBR at {}. Production is now {}'.format(self.components['BB'].TBR, self.components['BB'].tritium_source))
             else:
                 self.y.pop() # remove the last element of y whose time is greater than the final time
                 return t,y
@@ -62,9 +62,12 @@ class Simulate:
         Returns:
         - doubling_time: The doubling time of the tritium inventory.
         """
-        I = np.array(self.components['Fueling System'].tritium_inventory)
+        I = np.array(self.y)[:,0] # Tritium inventory in the Fueling System component
+        print(f'I = {I} kg')
         I_0 = self.I_startup
-        doubling_time_index = np.where(np.abs(I - 2 * I_0) <= 0.1)[0]
+        print(f'I_0 = {I_0} kg')
+        doubling_time_index = np.where((I - 2 * I_0) >= 0)[0]
+        print(f'Doubling time index = {doubling_time_index}')
         if len(doubling_time_index) == 0:
             return np.nan
         else:
