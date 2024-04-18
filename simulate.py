@@ -20,7 +20,6 @@ class Simulate:
         self.component_map = component_map
         self.interval = self.final_time / 100
 
-
     def run(self):
         """
         Run the simulation.
@@ -76,9 +75,10 @@ class Simulate:
         Restart the simulation by resetting time and component inventory.
         """
         self.time = []
-        self.y = np.zeros((self.n_steps + 1, len(self.initial_conditions)))
+        self.y = []
         for component, initial_condition in zip(self.components.values(), self.initial_conditions.values()):
             component.tritium_inventory = initial_condition
+        self.y = [list(self.initial_conditions.values())]
 
     def forward_euler(self):
         """
@@ -102,8 +102,9 @@ class Simulate:
             self.adaptive_timestep(y_new, self.y[-1], t)  # Update the timestep based on the new and old y values
             t += self.dt
             self.y.append(y_new) # append y_new after updating the time step
-        self.y = np.array(self.y)
-        return [self.time, self.y[:-1,:]]
+        self.y.pop() # remove the last element of y whose time is greater than the final time
+        
+        return [self.time, self.y]
 
 
     def f(self, y):

@@ -1,3 +1,6 @@
+import liquid_metals as lm
+
+
 def W(k_r, D, thick, K_S, P_H2):
     """
     Calculates the value of W using the given parameters.
