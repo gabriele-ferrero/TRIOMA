@@ -36,15 +36,17 @@ class Simulate:
             t,y = self.forward_euler()
             self.doubling_time = self.compute_doubling_time(t,y)
             print(f"Doubling time: {self.doubling_time}")
-            print(self.components['Fueling System'].tritium_inventory)
+            print('Startup inventory is: {}'.format(self.components['Fueling System'].tritium_inventory))
             if self.components['Fueling System'].tritium_inventory < 0:
                 print("Error: Tritium inventory in Fueling System is below zero.")
                 self.update_I_startup()
+                print(f"Updated I_startup to {self.I_startup}")
                 self.restart()
             elif self.doubling_time >= self.target_doubling_time or np.isnan(self.doubling_time):
                 # TODO: need to restart inventory, but restart is triggering an infinite loop
+                self.restart()
                 self.components['BB'].TBR += self.TBRr_accuracy
-                print('Updated TBR')
+                print('Updated TBR at {}. Production is now {}'.format(self.components['BB'].TBR, self.components['BB'].tritium_source))
             else:
                 self.y.pop() # remove the last element of y whose time is greater than the final time
                 return t,y

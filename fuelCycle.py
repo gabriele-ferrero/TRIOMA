@@ -18,6 +18,7 @@ tau_HX = 1 * 3600
 I_startup = 0.1
 TBE = 0.02
 tes_efficiency = 0.9
+final_time = 2.1 * 3600 * 24 * 365 # NB: longer than doubling time
 
 # Define components
 fueling_system = FuelingSystem("Fueling System", N_burn, TBE, initial_inventory=I_startup)
@@ -65,7 +66,7 @@ component_map.connect_ports(HX, port14, BB, port15)
 component_map.print_connected_map()
 visualize_connections(component_map)
 
-simulation = Simulate(0.1, 1e5, 1.1, component_map)
+simulation = Simulate(dt=0.1, final_time=final_time, component_map=component_map)
 t, y = simulation.run()
 plt.figure()
 plt.plot(t, y)
