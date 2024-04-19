@@ -1,7 +1,8 @@
 import numpy as np
+seconds_to_years = 1/(60*60*24*365)
 
 class Simulate:
-    def __init__(self, dt, final_time, component_map):
+    def __init__(self, dt, final_time, I_reserve, component_map, TBRr_accuraty = 1e-2, target_doubling_time = 2):
         """
         Initialize the Simulate class.
 
@@ -19,6 +20,10 @@ class Simulate:
         self.components = component_map.components
         self.component_map = component_map
         self.interval = self.final_time / 100
+        self.TBRr_accuracy = TBRr_accuraty
+        self.target_doubling_time = target_doubling_time # years 
+        self.doubling_time = None
+        self.I_reserve = I_reserve
 
     def run(self):
         """
@@ -31,13 +36,43 @@ class Simulate:
         while True:
             self.y[0] = [component.tritium_inventory for component in self.components.values()] # self.initial_conditions, possibly updated by the restart method
             t,y = self.forward_euler()
-            if self.components['Fueling System'].tritium_inventory < 0:
-                print("Error: Tritium inventory in Fueling System is below zero.")
+            self.doubling_time = self.compute_doubling_time(t,y)
+            print(f"Doubling time: {self.doubling_time} \n")
+            print('Startup inventory is: {} \n'.format(y[0][0]))
+            if (np.array(self.y)[:,0] - self.I_reserve < 0).any(): # Increaase startup inventory if at any point the tritium inventory in the Fueling System component is below zero
+                print("Error: Tritium inventory in Fueling System is below zero. Difference is {} kg".format(np.min(np.array(self.y)[:,0] - self.I_reserve)))
                 self.update_I_startup()
+                print(f"Updated I_startup to {self.I_startup}")
                 self.restart()
+            elif self.doubling_time >= self.target_doubling_time or np.isnan(self.doubling_time):
+                self.restart()
+                self.components['BB'].TBR += self.TBRr_accuracy
+                print('Updated TBR at {}. Production is now {}'.format(self.components['BB'].TBR, self.components['BB'].tritium_source))
             else:
+                self.y.pop() # remove the last element of y whose time is greater than the final time
                 return t,y
             
+    def compute_doubling_time(self, t, y):
+        """
+        Compute the doubling time of the tritium inventory in the Fueling System component.
+
+        Args:
+        - t: Array of time values.
+        - y: Array of component inventory values.
+
+        Returns:
+        - doubling_time: The doubling time of the tritium inventory.
+        """
+        I = np.array(self.y)[:,0] # Tritium inventory in the Fueling System component
+        I_0 = self.I_startup
+        print(f'I_0 = {I_0} kg')
+        doubling_time_index = np.where((I - 2 * I_0) >= 0)[0]
+        if len(doubling_time_index) == 0:
+            return np.nan
+        else:
+            doubling_time = t[doubling_time_index[0]]* seconds_to_years
+            return doubling_time
+    
     def update_I_startup(self):
         """
         Update the initial tritium inventory of the Fueling System component.
@@ -89,7 +124,7 @@ class Simulate:
         - y: Array of component inventory values.
         """
         t = 0
-        print(self.y[0])
+        print(f'Initial inventories = {self.y[0]} kg')
         while t < self.final_time:
             if abs(t % self.interval) < 10:
                 print(f"Percentage completed = {abs(t - self.final_time)/self.final_time * 100:.1f}%", end='\r')
@@ -101,9 +136,7 @@ class Simulate:
             self.component_map.update_flow_rates()
             self.adaptive_timestep(y_new, self.y[-1], t)  # Update the timestep based on the new and old y values
             t += self.dt
-            self.y.append(y_new) # append y_new after updating the time step
-        self.y.pop() # remove the last element of y whose time is greater than the final time
-        
+            self.y.append(y_new) # append y_new after updating the time step        
         return [self.time, self.y]
 
 
