@@ -1,5 +1,6 @@
 import numpy as np
-from example_simulation import TBR
+
+# from example_simulation import TBR
 import tools.molten_salts as MS
 import tools.liquid_metals as LM
 import tools.correlations as corr
@@ -253,9 +254,7 @@ class Component:
                         if c_wl > c_bl:
                             c_wl = c_bl
                         J_mt = 2 * self.fluid.k_t * (c_bl - c_wl)
-
-                        # J_d=k_d*(c_wl/K_H)
-                        J_diff = abs(
+                        J_diff = (
                             self.membrane.D
                             / self.membrane.thick
                             * (
@@ -263,16 +262,17 @@ class Component:
                                 * (c_wl / self.fluid.Solubility) ** 0.5
                             )
                         )
+
                         eq1 = J_mt / J_diff - 1
 
                         return [eq1]
 
-                    initial_guess = [(c / 20)]
+                    initial_guess = [(c * 1e-4)]
                     solution = newton_krylov(
                         equations,
                         initial_guess,
                         maxiter=int(1e5),
-                        method="bicgstab",
+                        method="gmres",
                     )
                     self.J_perm = -2 * self.fluid.k_t * (c - solution[0])
             elif self.W < 0.1:
@@ -296,7 +296,7 @@ class Component:
                         eq1 = J_mt / J_surf - 1
                         return [eq1]
 
-                    initial_guess = [(c / 2)]
+                    initial_guess = [(c * 1e-1)]
                     solution = newton_krylov(
                         equations, initial_guess, maxiter=int(1e5), method="gmres"
                     )
@@ -330,7 +330,7 @@ class Component:
 
                     initial_guess = [(c / 2)]
                     solution = newton_krylov(
-                        equations, initial_guess, maxiter=int(1e6), method="bicgstab"
+                        equations, initial_guess, maxiter=int(1e6), method="gmres"
                     )
                     c_wall = solution[0]
                     self.J_perm = (
@@ -340,7 +340,7 @@ class Component:
                     )
 
                 else:
-
+                    # Mixed regime mass transport diffusion surface and diffusion
                     def equations(vars):
                         c_wl, c_ws = vars
 
@@ -362,7 +362,7 @@ class Component:
 
                     initial_guess = [(2 * c / 3), (c / 3)]
                     solution = newton_krylov(
-                        equations, initial_guess, maxiter=int(1e5), method="bicgstab"
+                        equations, initial_guess, maxiter=int(1e5), method="gmres"
                     )
 
     def get_global_HX_coeff(self, R_conv_sec: float = 0):
