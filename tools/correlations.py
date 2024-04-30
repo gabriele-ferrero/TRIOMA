@@ -33,6 +33,10 @@ def Schmidt(D, mu, rho):
 
 
 def Sherwood(Sc, Re):
+    return 0.0096 * Re**0.913 * Sc**0.346
+
+
+def Sherwood_HT_analogy(Re, Sc):
     return 0.023 * Re**0.8 * Sc**0.4
 
 
