@@ -38,12 +38,6 @@ def set_attribute(instance, attr_name, new_value):
     """
     if hasattr(instance, attr_name):
         setattr(instance, attr_name, new_value)
-        if attr_name == "c_in":
-            new_p_H2 = calculate_p_H2_from_c0(instance, new_value)
-            if hasattr(instance, "p_H2"):
-                setattr(instance, "p_H2", new_p_H2)
-            if instance.fluid and hasattr(instance.fluid, "p_H2"):
-                setattr(instance.fluid, "p_H2", new_p_H2)
     else:
         raise ValueError(
             f"'{attr_name}' is not an attribute of {instance.__class__.__name__}"
@@ -138,7 +132,6 @@ class Component:
                         D=self.membrane.D,
                         thick=self.membrane.thick,
                         K_S=self.membrane.K_S,
-                        P_H2=self.fluid.p_H2,
                         k_t=self.fluid.k_t,
                         k_H=self.fluid.Solubility,
                     )
@@ -153,7 +146,6 @@ class Component:
                         K_S_L=self.fluid.Solubility,
                         k_r=self.membrane.k_r,
                         thick=self.membrane.thick,
-                        P_H2=self.fluid.p_H2,
                     )
                 else:
                     return "No membrane selected"
@@ -164,7 +156,6 @@ class Component:
 
         Updates the H and W attributes of the Component object.
         """
-        self.fluid.p_H2 = self.c_in / self.fluid.Solubility
         if self.fluid is not None:
             if self.fluid.MS:
                 self.H = MS.H(
@@ -175,7 +166,6 @@ class Component:
                     D=self.membrane.D,
                     thick=self.membrane.thick,
                     K_S=self.membrane.K_S,
-                    P_H2=self.fluid.p_H2,
                 )
             else:
                 self.H = LM.partition_param(
@@ -189,8 +179,7 @@ class Component:
                     k_r=self.membrane.k_r,
                     D=self.membrane.D,
                     thick=self.membrane.thick,
-                    K_S=self.membrane.K_S,
-                    P_H2=self.fluid.p_H2,
+                    K_S=self.membrane.K_S
                 )
 
     def get_efficiency(self, L, plotvar: bool = False, c_guess: float = None):
@@ -306,7 +295,6 @@ class Component:
             float: The permeation flux.
 
         """
-        self.fluid.p_H2 = c / self.fluid.Solubility
         self.get_adimensionals()
         if self.fluid.MS:
             if self.W > 10:
@@ -565,7 +553,6 @@ class Fluid:
         d_Hyd (float, optional): Hydraulic diameter of the fluid. Defaults to None.
         k_t (float, optional): Mass transport coefficient of the fluid. Defaults to None.
         c0 (float, optional): Inlet Tritium Concentration of the fluid. Defaults to None.
-        p_H2 (float, optional): Hydrogen pressure of the fluid at the inlet. Defaults to None.
         mu (float, optional): Viscosity of the fluid. Defaults to None.
         rho (float, optional): Density of the fluid. Defaults to None.
         U0 (float, optional): Velocity of the fluid. Defaults to None.
@@ -597,7 +584,6 @@ class Fluid:
             d_Hyd (float, optional): Hydraulic diameter of the fluid. Defaults to None.
             k_t (float, optional): Mass transport coefficient of the fluid. Defaults to None.
             c0 (float, optional): Inlet Concentration of the fluid. Defaults to None.
-            p_H2 (float, optional): Hydrogen pressure of the fluid at the inlet. Defaults to None.
             mu (float, optional): Viscosity of the fluid. Defaults to None.
             rho (float, optional): Density of the fluid. Defaults to None.
             U0 (float, optional): Velocity of the fluid. Defaults to None.
@@ -609,10 +595,6 @@ class Fluid:
         self.D = D
         self.k_t = k_t
         self.c0 = c0
-        if self.MS:
-            self.p_H2 = c0 / Solubility
-        else:
-            self.p_H2 = (c0 / Solubility) ** 2
         self.d_Hyd = d_Hyd
         self.mu = mu
         self.rho = rho
