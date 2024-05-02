@@ -14,13 +14,18 @@ from scipy.special import lambertw
 
 def print_class_variables(instance):
     """
-    Prints all variables of a class.
+    Prints all variables of a class. If a variable is a class itself,
+    calls this function recursively for the internal class.
 
     Args:
         instance: The class instance.
     """
     for attr_name, attr_value in instance.__dict__.items():
-        print(f"{attr_name}: {attr_value}")
+        if isinstance(attr_value, type(instance)):
+            print(f"{attr_name} is a class, printing its variables:")
+            print_class_variables(attr_value)
+        else:
+            print(f"{attr_name}: {attr_value}")
 
 
 def calculate_p_H2_from_c0(instance, c0):
@@ -50,14 +55,13 @@ class Component:
 
     Args:
         c_in (float): The concentration of the component at the inlet.
-        eff (float): The efficiency of the component.
         fluid (Fluid, optional): The fluid associated with the component. Defaults to None.
         membrane (Membrane, optional): The membrane associated with the component. Defaults to None.
     """
 
     def __init__(
         self,
-        c_in: float,
+        c_in: float = None,
         eff: float = None,
         fluid: "Fluid" = None,
         membrane: "Membrane" = None,
@@ -132,6 +136,7 @@ class Component:
                         D=self.membrane.D,
                         thick=self.membrane.thick,
                         K_S=self.membrane.K_S,
+                        c0=self.c_in,
                         k_t=self.fluid.k_t,
                         k_H=self.fluid.Solubility,
                     )
@@ -146,6 +151,7 @@ class Component:
                         K_S_L=self.fluid.Solubility,
                         k_r=self.membrane.k_r,
                         thick=self.membrane.thick,
+                        c0=self.c_in,
                     )
                 else:
                     return "No membrane selected"
