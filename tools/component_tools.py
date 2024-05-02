@@ -284,10 +284,21 @@ class Component:
                 ** 2
             )
             beta = (1 / epsilon + 1) ** 0.5 + np.log((1 / epsilon + 1) ** 0.5 - 1)
+            max_exp = np.log(np.finfo(np.float64).max)
+            beta_tau = beta - self.tau - 1
+            if beta_tau > max_exp:
+                print("Warning: Overflow encountered in exp, input too large.")
+                # Handle the overflow case here, e.g., by setting a maximum value
+                z = np.finfo(np.float64).max
+            else:
+                z = np.exp(beta_tau)
             self.eff_an = 1 - epsilon * (
-                lambertw(z=np.exp(beta - self.tau - 1), tol=1e-10) ** 2
-                + 2 * lambertw(z=np.exp(beta - self.tau - 1), tol=1e-10)
+                lambertw(z=z, tol=1e-10) ** 2 + 2 * lambertw(z=z, tol=1e-10)
             )
+            if self.eff_an.imag != 0:
+                raise ValueError("self.eff_an has a non-zero imaginary part")
+            else:
+                self.eff_an = self.eff_an.real # get rid of o*j
         else:
             self.eff_an = 1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
 
