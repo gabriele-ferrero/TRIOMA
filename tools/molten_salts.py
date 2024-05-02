@@ -39,8 +39,17 @@ def H(k_t, k_H, k_d):
 def get_regime(k_d, D, thick, K_S, c0, k_t, k_H, print_var: bool = False):
     """
     Get the regime based on the value of H and W.
-
+    k_d (float): The value of dissociation constant.
+    D (float): The value of Diffusivity in the metal.
+    thick (float): The value of thickness of the metal.
+    K_S (float): The value of the sievert's constant in the metal.
+    c0 (float): The value of the initial concentration of hydrogen in the molten salt.
+    k_t (float): The value of mass transport coefficient.
+    k_H (float): The value of Henri's constant.
+    print_var (bool): If True, print the value of H, W and H/W.
     Returns:
+    updates the values of Compontent.H and Component.W.
+    if print_var is True, it will print the regime based on the value of H and W.
     str: The regime based on the value of H and W.
     """
     W = ms.W(k_d, D, thick, K_S, c=c0, k_H=k_H)
