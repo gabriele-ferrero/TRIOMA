@@ -192,7 +192,7 @@ class Component:
                     K_S=self.membrane.K_S,
                     c0=self.c_in,
                     K_S_L=self.fluid.Solubility,
-                ) /LM.partition_param(
+                ) * LM.partition_param(
                     D=self.membrane.D,
                     k_t=self.fluid.k_t,
                     K_S_S=self.membrane.K_S,
@@ -312,11 +312,13 @@ class Component:
                 self.eff_an = self.eff_an.real  # get rid of 0*j
         else:
             self.zeta = (2 * self.membrane.K_S * self.membrane.D) / (
-            self.fluid.k_t
-            * self.fluid.Solubility
-            * self.fluid.d_Hyd
-            * np.log((self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd)
-        )
+                self.fluid.k_t
+                * self.fluid.Solubility
+                * self.fluid.d_Hyd
+                * np.log(
+                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
+                )
+            )
             self.eff_an = 1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
 
     def get_flux(self, c, c_guess=None):
