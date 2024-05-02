@@ -274,12 +274,6 @@ class Component:
         """
 
         self.get_adimensionals()
-        self.zeta = (2 * self.membrane.K_S * self.membrane.D) / (
-            self.fluid.k_t
-            * self.fluid.Solubility
-            * self.fluid.d_Hyd
-            * np.log((self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd)
-        )
         self.tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
         if self.fluid.MS:
             epsilon = (
@@ -317,6 +311,12 @@ class Component:
             else:
                 self.eff_an = self.eff_an.real  # get rid of 0*j
         else:
+            self.zeta = (2 * self.membrane.K_S * self.membrane.D) / (
+            self.fluid.k_t
+            * self.fluid.Solubility
+            * self.fluid.d_Hyd
+            * np.log((self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd)
+        )
             self.eff_an = 1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
 
     def get_flux(self, c, c_guess=None):
