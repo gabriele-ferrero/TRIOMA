@@ -8,20 +8,28 @@ import matplotlib.pyplot as plt
 import tools.extractor as extractor
 from scipy.constants import N_A
 from scipy.constants import physical_constants
-import sympy as sp
-from scipy.optimize import fsolve
-from scipy.optimize import newton_krylov
+from scipy.optimize import minimize
+from scipy.special import lambertw
 
 
 def print_class_variables(instance):
     """
-    Prints all variables of a class.
+    Prints all variables of a class. If a variable is a class itself,
+    calls this function recursively for the internal class.
 
     Args:
         instance: The class instance.
     """
     for attr_name, attr_value in instance.__dict__.items():
-        print(f"{attr_name}: {attr_value}")
+        if isinstance(attr_value, type(instance)):
+            print(f"{attr_name} is a class, printing its variables:")
+            print_class_variables(attr_value)
+        else:
+            print(f"{attr_name}: {attr_value}")
+
+
+def calculate_p_H2_from_c0(instance, c0):
+    return c0 / instance.fluid.Solubility
 
 
 def set_attribute(instance, attr_name, new_value):
@@ -47,14 +55,13 @@ class Component:
 
     Args:
         c_in (float): The concentration of the component at the inlet.
-        eff (float): The efficiency of the component.
         fluid (Fluid, optional): The fluid associated with the component. Defaults to None.
         membrane (Membrane, optional): The membrane associated with the component. Defaults to None.
     """
 
     def __init__(
         self,
-        c_in: float,
+        c_in: float = None,
         eff: float = None,
         fluid: "Fluid" = None,
         membrane: "Membrane" = None,
@@ -129,7 +136,7 @@ class Component:
                         D=self.membrane.D,
                         thick=self.membrane.thick,
                         K_S=self.membrane.K_S,
-                        P_H2=self.fluid.p_H2,
+                        c0=self.c_in,
                         k_t=self.fluid.k_t,
                         k_H=self.fluid.Solubility,
                     )
@@ -144,7 +151,7 @@ class Component:
                         K_S_L=self.fluid.Solubility,
                         k_r=self.membrane.k_r,
                         thick=self.membrane.thick,
-                        P_H2=self.fluid.p_H2,
+                        c0=self.c_in,
                     )
                 else:
                     return "No membrane selected"
@@ -165,7 +172,8 @@ class Component:
                     D=self.membrane.D,
                     thick=self.membrane.thick,
                     K_S=self.membrane.K_S,
-                    P_H2=self.fluid.p_H2,
+                    c0=self.c_in,
+                    k_H=self.fluid.Solubility,
                 )
             else:
                 self.H = LM.partition_param(
@@ -180,10 +188,9 @@ class Component:
                     D=self.membrane.D,
                     thick=self.membrane.thick,
                     K_S=self.membrane.K_S,
-                    P_H2=self.fluid.p_H2,
                 )
 
-    def get_efficiency(self, L, plotvar: bool = False):
+    def get_efficiency(self, L, plotvar: bool = False, c_guess: float = None):
         """
         Calculates the efficiency of the component.
 
@@ -205,19 +212,86 @@ class Component:
             if i == 0:
 
                 c_vec[i] = self.c_in
-                self.get_flux(c_vec[i])
+
+                if c_guess is float:
+                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
+                else:
+                    c_guess = self.get_flux(c_vec[i], c_guess=None)
             else:
                 c_vec[i] = c_vec[
                     i - 1
                 ] + f_H2 * self.J_perm * self.fluid.d_Hyd * np.pi * dl**2 / self.fluid.U0 / (
                     np.pi * self.fluid.d_Hyd**2 / 4 * dl
                 )
-                self.get_flux(c_vec[i])
+                if c_guess is float:
+                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
+                else:
+                    c_guess = self.get_flux(c_vec[i], c_guess=None)
         if plotvar:
             plt.plot(L_vec, c_vec)
-        self.eff = 1 - (self.c_in - c_vec[-1]) / self.c_in
+        self.eff = (self.c_in - c_vec[-1]) / self.c_in
 
-    def get_flux(self, c):
+    def analytical_efficiency(self, L):
+        """
+        Calculate the analytical efficiency of a component.
+
+        Parameters:
+        - L: Length of the component
+
+        Returns:
+        - eff_an: Analytical efficiency of the component (from Humrickhouse papers)
+
+        This function calculates the analytical efficiency of a component based on the given length (L) of the component.
+        It uses various properties of the component, such as membrane properties, fluid properties, and adimensionals.
+
+
+
+        If the fluid is a molten salt (MS=True), the analytical efficiency is calculated using the following formula:
+        eff_an = 1 - epsilon * (lambertw(z=np.exp(beta - tau - 1), tol=1e-10) ** 2 + 2 * lambertw(z=np.exp(beta - tau - 1), tol=1e-10)).
+
+        If the fluid is a liquid metal (MS= False), the analytical efficiency is calculated using the following formula:
+        eff_an = 1 - np.exp(-tau * zeta / (1 + zeta)).
+
+        The output of the function is the analytical efficiency of the component as Component.eff_an.
+        """
+
+        self.get_adimensionals()
+        self.zeta = (2 * self.membrane.K_S * self.membrane.D) / (
+            self.fluid.k_t
+            * self.fluid.Solubility
+            * self.fluid.d_Hyd
+            * np.log((self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd)
+        )
+        self.tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
+        if self.fluid.MS:
+            epsilon = (
+                1
+                / self.c_in
+                / self.fluid.Solubility
+                * (
+                    0.5
+                    * self.membrane.K_S
+                    * self.membrane.D
+                    / (
+                        self.fluid.k_t
+                        * self.fluid.d_Hyd
+                        * np.log(
+                            (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                            / self.fluid.d_Hyd
+                        )
+                    )
+                )
+                ** 2
+            )
+            beta = (1 / epsilon + 1) ** 0.5 + np.log((1 / epsilon + 1) ** 0.5 - 1)
+            self.eff_an = 1 - epsilon * (
+                lambertw(z=np.exp(beta - self.tau - 1), tol=1e-10) ** 2
+                + 2 * lambertw(z=np.exp(beta - self.tau - 1), tol=1e-10)
+            )
+        else:
+            self.eff_an = 1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
+
+    def get_flux(self, c, c_guess=None):
         """
         Calculates the Tritium flux of the component.
         It can make some approximations based on W and H to make the solver faster
@@ -229,19 +303,25 @@ class Component:
             float: The permeation flux.
 
         """
-        self.fluid.p_H2 = c / self.fluid.Solubility
         self.get_adimensionals()
         if self.fluid.MS:
             if self.W > 10:
                 # DIFFUSION LIMITED
-                if self.H / self.W > 10:
+                if self.H / self.W > 1000:
                     # Mass transport limited
                     self.J_perm = -2 * self.fluid.k_t * c
-                elif self.H / self.W < 0.1:
+                elif self.H / self.W < 0.0001:
                     # Diffusion limited
                     self.J_perm = -(
                         self.membrane.D
-                        / self.membrane.thick
+                        / (
+                            self.fluid.d_Hyd
+                            / 2
+                            * np.log(
+                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
+                                / (self.fluid.d_Hyd / 2)
+                            )
+                        )
                         * self.membrane.K_S
                         * (c / self.fluid.Solubility) ** 0.5
                     )
@@ -249,38 +329,66 @@ class Component:
                     # Mixed regime mass transport diffusion
                     def equations(vars):
                         c_wl = vars
-
-                        c_bl = c
-                        if c_wl > c_bl:
-                            c_wl = c_bl
-                        J_mt = 2 * self.fluid.k_t * (c_bl - c_wl)
+                        J_mt = 2 * self.fluid.k_t * (c - c_wl)
                         J_diff = (
                             self.membrane.D
-                            / self.membrane.thick
+                            / (
+                                self.fluid.d_Hyd
+                                / 2
+                                * np.log(
+                                    (self.fluid.d_Hyd / 2 + self.membrane.thick)
+                                    / (self.fluid.d_Hyd / 2)
+                                )
+                            )
                             * (
                                 self.membrane.K_S
                                 * (c_wl / self.fluid.Solubility) ** 0.5
                             )
                         )
 
-                        eq1 = J_mt / J_diff - 1
+                        # eq1 = abs((J_diff - J_mt))
 
-                        return [eq1]
+                        return abs((J_diff - J_mt))
 
-                    initial_guess = [(c * 1e-4)]
-                    solution = newton_krylov(
+                    if c_guess is None:
+                        initial_guess = [(c * 1e-2)]
+                    else:
+                        initial_guess = c_guess
+                    solution = minimize(
                         equations,
                         initial_guess,
-                        maxiter=int(1e5),
-                        method="gmres",
+                        method="Powell",
+                        bounds=[
+                            (0, c),
+                        ],
+                        tol=1e-15,
+                        options={
+                            "maxiter": int(1e6),
+                        },
                     )
-                    self.J_perm = -2 * self.fluid.k_t * (c - solution[0])
+                    J_diff = (
+                        self.membrane.D
+                        / (
+                            self.fluid.d_Hyd
+                            / 2
+                            * np.log(
+                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
+                                / (self.fluid.d_Hyd / 2)
+                            )
+                        )
+                        * (
+                            self.membrane.K_S
+                            * (solution.x[0] / self.fluid.Solubility) ** 0.5
+                        )
+                    )
+                    self.J_perm = -2 * self.fluid.k_t * (c - solution.x[0])
+                    return float(solution.x[0])
             elif self.W < 0.1:
                 # Surface limited
-                if self.H > 10:
+                if self.H > 100:
                     # Mass transport limited
                     self.J_perm = -2 * self.fluid.k_t * c
-                elif self.H < 0.1:
+                elif self.H < 0.01:
                     # Surface limited
                     self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
                 else:
@@ -293,21 +401,31 @@ class Component:
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
                             - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
                         )
-                        eq1 = J_mt / J_surf - 1
-                        return [eq1]
+
+                        return abs(J_mt - J_surf)
 
                     initial_guess = [(c * 1e-1)]
-                    solution = newton_krylov(
-                        equations, initial_guess, maxiter=int(1e5), method="gmres"
+                    solution = minimize(
+                        equations,
+                        initial_guess,
+                        method="Powell",
+                        bounds=[
+                            (0, c),
+                        ],
+                        tol=1e-15,
+                        options={
+                            "maxiter": int(1e6),
+                        },
                     )
                     c_bl = c
-                    c_wl = solution[0]
+                    c_wl = solution.x[0]
                     self.J_perm = 2 * self.fluid.k_t * (c_bl - c_wl)
+                    return float(solution.x[0])
             else:
-                if self.H / self.W < 0.1:
+                if self.H / self.W < 0.0001:
                     # Mass transport limited
                     self.J_perm = -2 * self.fluid.k_t * c
-                elif self.H / self.W > 10:
+                elif self.H / self.W > 1000:
                     # Mixed Diffusion Surface
                     def equations(vars):
                         c_wl = vars
@@ -318,27 +436,52 @@ class Component:
                         )
                         J_diff = (
                             self.membrane.D
-                            / self.membrane.thick
+                            / (
+                                self.fluid.d_Hyd
+                                / 2
+                                * np.log(
+                                    (self.fluid.d_Hyd / 2 + self.membrane.thick)
+                                    / (self.fluid.d_Hyd / 2)
+                                )
+                            )
                             * (
                                 self.membrane.K_S
                                 * (c_wl / self.fluid.Solubility) ** 0.5
                             )
                         )
-                        eq1 = J_diff / J_surf - 1
 
-                        return [eq1]
+                        return abs(J_diff - J_surf)
 
-                    initial_guess = [(c / 2)]
-                    solution = newton_krylov(
-                        equations, initial_guess, maxiter=int(1e6), method="gmres"
+                    if c_guess is None:
+                        initial_guess = [(c / 2)]
+                    else:
+                        initial_guess = c_guess
+                    solution = minimize(
+                        equations,
+                        initial_guess,
+                        method="Powell",
+                        bounds=[
+                            (1e-14, c),
+                        ],
+                        tol=1e-15,
+                        options={
+                            "maxiter": int(1e6),
+                        },
                     )
-                    c_wall = solution[0]
+                    c_wall = solution.x[0]
                     self.J_perm = (
                         self.membrane.D
-                        / self.membrane.thick
+                        / (
+                            self.fluid.d_Hyd
+                            / 2
+                            * np.log(
+                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
+                                / (self.fluid.d_Hyd / 2)
+                            )
+                        )
                         * (self.membrane.K_S * (c_wall / self.fluid.Solubility) ** 0.5)
                     )
-
+                    return float(solution.x[0])
                 else:
                     # Mixed regime mass transport diffusion surface and diffusion
                     def equations(vars):
@@ -352,18 +495,37 @@ class Component:
                         ) - self.membrane.k_d * self.membrane.K_S * (c_ws**2)
                         J_diff = (
                             self.membrane.D
-                            / self.membrane.thick
+                            / (
+                                self.fluid.d_Hyd
+                                / 2
+                                * np.log(
+                                    (self.fluid.d_Hyd / 2 + self.membrane.thick)
+                                    / (self.fluid.d_Hyd / 2)
+                                )
+                            )
                             * (self.membrane.K_S * c_ws)
                         )
-                        eq1 = J_mt / J_d - 1
-                        eq2 = J_mt / J_diff - 1
+                        eq1 = abs(J_mt / J_d - 1)
+                        eq2 = abs(J_mt / J_diff - 1)
 
                         return [eq1, eq2]
 
                     initial_guess = [(2 * c / 3), (c / 3)]
-                    solution = newton_krylov(
-                        equations, initial_guess, maxiter=int(1e5), method="gmres"
+                    solution = minimize(
+                        equations,
+                        initial_guess,
+                        method="Powell",
+                        bounds=[
+                            (0, c),
+                        ],
+                        tol=1e-15,
+                        options={
+                            "maxiter": int(1e6),
+                        },
                     )
+                    c_wl = solution.x[0]
+                    self.J_perm = 2 * self.fluid.k_t * (c - c_wl)
+                    return float(solution.x[0])
 
     def get_global_HX_coeff(self, R_conv_sec: float = 0):
         """
@@ -398,8 +560,6 @@ class Fluid:
         MS (bool): Indicates whether the fluid is a molten salt or a liquid metal.
         d_Hyd (float, optional): Hydraulic diameter of the fluid. Defaults to None.
         k_t (float, optional): Mass transport coefficient of the fluid. Defaults to None.
-        c0 (float, optional): Inlet Tritium Concentration of the fluid. Defaults to None.
-        p_H2 (float, optional): Hydrogen pressure of the fluid at the inlet. Defaults to None.
         mu (float, optional): Viscosity of the fluid. Defaults to None.
         rho (float, optional): Density of the fluid. Defaults to None.
         U0 (float, optional): Velocity of the fluid. Defaults to None.
@@ -411,7 +571,6 @@ class Fluid:
         D: float,
         Solubility: float,
         MS: bool,
-        c0: float,
         d_Hyd: float = None,
         k_t: float = None,
         mu: float = None,
@@ -430,8 +589,6 @@ class Fluid:
             MS (bool): Indicates whether the fluid is a molten salt or a liquid metal.
             d_Hyd (float, optional): Hydraulic diameter of the fluid. Defaults to None.
             k_t (float, optional): Mass transport coefficient of the fluid. Defaults to None.
-            c0 (float, optional): Inlet Concentration of the fluid. Defaults to None.
-            p_H2 (float, optional): Hydrogen pressure of the fluid at the inlet. Defaults to None.
             mu (float, optional): Viscosity of the fluid. Defaults to None.
             rho (float, optional): Density of the fluid. Defaults to None.
             U0 (float, optional): Velocity of the fluid. Defaults to None.
@@ -442,11 +599,6 @@ class Fluid:
         self.MS = MS
         self.D = D
         self.k_t = k_t
-        self.c0 = c0
-        if self.MS:
-            self.p_H2 = c0 / Solubility
-        else:
-            self.p_H2 = (c0 / Solubility) ** 2
         self.d_Hyd = d_Hyd
         self.mu = mu
         self.rho = rho
@@ -482,14 +634,21 @@ class Fluid:
         """
         if self.d_Hyd:
             if self.k_t is None:
+                Re = corr.Re(rho=self.rho, u=self.U0, L=self.d_Hyd, mu=self.mu)
+                Sc = corr.Schmidt(D=self.D, mu=self.mu, rho=self.rho)
+                if Re < 1e4 and Re > 2030:
+                    Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157
+                elif Re > 1e4:
+                    Sh = 0.0096 * Re**0.913 * Sc**0.346  ##Getthem paper
+                else:
+                    print(Re)
+                    raise ValueError("Reynolds number is too low")
                 self.k_t = corr.get_k_from_Sh(
-                    corr.Sherwood(
-                        corr.Schmidt(self.D, self.mu, self.rho),
-                        corr.Re(self.rho, self.U0, self.d_Hyd, self.mu),
-                    ),
-                    self.d_Hyd,
-                    self.D,
+                    Sh=Sh,
+                    L=self.d_Hyd,
+                    D=self.D,
                 )
+
             else:
                 print("k_t is already defined")
         else:
