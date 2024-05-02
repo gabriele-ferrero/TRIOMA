@@ -8,9 +8,6 @@ import matplotlib.pyplot as plt
 import tools.extractor as extractor
 from scipy.constants import N_A
 from scipy.constants import physical_constants
-import sympy as sp
-from scipy.optimize import fsolve
-from scipy.optimize import newton_krylov
 from scipy.optimize import minimize
 from scipy.special import lambertw
 
@@ -238,6 +235,29 @@ class Component:
         self.eff = (self.c_in - c_vec[-1]) / self.c_in
 
     def analytical_efficiency(self, L):
+        """
+        Calculate the analytical efficiency of a component.
+
+        Parameters:
+        - L: Length of the component
+
+        Returns:
+        - eff_an: Analytical efficiency of the component (from Humrickhouse papers)
+
+        This function calculates the analytical efficiency of a component based on the given length (L) of the component.
+        It uses various properties of the component, such as membrane properties, fluid properties, and adimensionals.
+
+
+
+        If the fluid is a molten salt (MS=True), the analytical efficiency is calculated using the following formula:
+        eff_an = 1 - epsilon * (lambertw(z=np.exp(beta - tau - 1), tol=1e-10) ** 2 + 2 * lambertw(z=np.exp(beta - tau - 1), tol=1e-10)).
+
+        If the fluid is a liquid metal (MS= False), the analytical efficiency is calculated using the following formula:
+        eff_an = 1 - np.exp(-tau * zeta / (1 + zeta)).
+
+        The output of the function is the analytical efficiency of the component as Component.eff_an.
+        """
+
         self.get_adimensionals()
         self.zeta = (2 * self.membrane.K_S * self.membrane.D) / (
             self.fluid.k_t
@@ -266,20 +286,13 @@ class Component:
                 )
                 ** 2
             )
-
-            print("eps", epsilon)
             beta = (1 / epsilon + 1) ** 0.5 + np.log((1 / epsilon + 1) ** 0.5 - 1)
-            print("beta", beta)
             self.eff_an = 1 - epsilon * (
                 lambertw(z=np.exp(beta - self.tau - 1), tol=1e-10) ** 2
                 + 2 * lambertw(z=np.exp(beta - self.tau - 1), tol=1e-10)
             )
-            print("limit mass transfer", 1 - np.exp(-self.tau))
-            print("Permeation limited", 1 - (1 - self.tau * (epsilon) ** 0.5) ** 2)
         else:
             self.eff_an = 1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
-            print(self.tau, "tau")
-            print(self.zeta, "zeta")
 
     def get_flux(self, c, c_guess=None):
         """
@@ -345,12 +358,6 @@ class Component:
                         initial_guess = [(c * 1e-2)]
                     else:
                         initial_guess = c_guess
-                    # solution = newton_krylov(
-                    #     equations,
-                    #     initial_guess,
-                    #     maxiter=int(1e5),
-                    #     method="gmres",
-                    # )
                     solution = minimize(
                         equations,
                         initial_guess,
@@ -360,9 +367,6 @@ class Component:
                         ],
                         tol=1e-15,
                         options={
-                            # "disp": True,
-                            # "adaptive": True,
-                            # "ftol": 1e-1,
                             "maxiter": int(1e6),
                         },
                     )
@@ -382,17 +386,6 @@ class Component:
                         )
                     )
                     self.J_perm = -2 * self.fluid.k_t * (c - solution.x[0])
-
-                    # print(
-                    #     "c",
-                    #     c,
-                    #     "c_wl",
-                    #     solution.x[0],
-                    #     "mass transfer",
-                    #     self.J_perm,
-                    #     "diffusion",
-                    #     J_diff,
-                    # )
                     return float(solution.x[0])
             elif self.W < 0.1:
                 # Surface limited
@@ -416,9 +409,6 @@ class Component:
                         return abs(J_mt - J_surf)
 
                     initial_guess = [(c * 1e-1)]
-                    # solution = newton_krylov(
-                    #     equations, initial_guess, maxiter=int(1e5), method="gmres"
-                    # )
                     solution = minimize(
                         equations,
                         initial_guess,
@@ -428,9 +418,6 @@ class Component:
                         ],
                         tol=1e-15,
                         options={
-                            # "disp": True,
-                            # "adaptive": True,
-                            # "ftol": 1e-1,
                             "maxiter": int(1e6),
                         },
                     )
@@ -473,9 +460,6 @@ class Component:
                         initial_guess = [(c / 2)]
                     else:
                         initial_guess = c_guess
-                    # solution = newton_krylov(
-                    #     equations, initial_guess, maxiter=int(1e6), method="gmres"
-                    # )
                     solution = minimize(
                         equations,
                         initial_guess,
@@ -485,9 +469,6 @@ class Component:
                         ],
                         tol=1e-15,
                         options={
-                            # "disp": True,
-                            # "adaptive": True,
-                            # "ftol": 1e-1,
                             "maxiter": int(1e6),
                         },
                     )
@@ -534,9 +515,6 @@ class Component:
                         return [eq1, eq2]
 
                     initial_guess = [(2 * c / 3), (c / 3)]
-                    # solution = newton_krylov(
-                    #     equations, initial_guess, maxiter=int(1e5), method="gmres"
-                    # )
                     solution = minimize(
                         equations,
                         initial_guess,
@@ -546,9 +524,6 @@ class Component:
                         ],
                         tol=1e-15,
                         options={
-                            # "disp": True,
-                            # "adaptive": True,
-                            # "ftol": 1e-1,
                             "maxiter": int(1e6),
                         },
                     )
