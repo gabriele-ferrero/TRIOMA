@@ -1,7 +1,7 @@
 import tools.molten_salts as ms
 
 
-def W(k_d, D, thick, K_S, P_H2):
+def W(k_d, D, thick, K_S, c0, k_H):
     """
     Calculates the value of W using the given parameters.
 
@@ -10,13 +10,14 @@ def W(k_d, D, thick, K_S, P_H2):
     D (float): The value of Diffusivity in the metal.
     thick (float): The value of thickness of the metal.
     K_S (float): The value of the sievert's constant.
-    P_H2 (float): The value of P_H2.
+    c0 (float): The value of the initial concentration of hydrogen in the molten salt.
+    k_H (float): The value of Henri's constant.
 
     Returns:
     float: The calculated value of W.
     For W<<1, the regime is surface limited.
     """
-    return 2 * k_d * thick * P_H2**0.5 / (D * K_S)
+    return 2 * k_d * thick * (c0 / k_H) ** 0.5 / (D * K_S)
 
 
 def H(k_t, k_H, k_d):
@@ -35,27 +36,28 @@ def H(k_t, k_H, k_d):
     return k_d / (k_t * k_H)
 
 
-def get_regime(k_d, D, thick, K_S, P_H2, k_t, k_H):
+def get_regime(k_d, D, thick, K_S, c0, k_t, k_H, print_var: bool = False):
     """
     Get the regime based on the value of H and W.
 
     Returns:
     str: The regime based on the value of H and W.
     """
-    W = ms.W(k_d, D, thick, K_S, P_H2)
+    W = ms.W(k_d, D, thick, K_S, c=c0, k_H=k_H)
     H = ms.H(k_t, k_H, k_d)
-    # print("H is equal to", H)
-    # print("W is equal to", W)
-    # print("H/W is equal to", H / W)
-    # if H > 10 and H / W > 10:
-    #     # print("Mass transport limited")
-    #     return
-    # elif H < 0.1 and W < 0.1:
-    #     # print("Surface limited")
-    #     return
-    # elif W > 10 and H / W < 0.1:
-    #     # print("Diffusion Limited")
-    #     return
-    # else:
-    #     # print("Mixed regime")
-    #     return
+    if print_var:
+        print("H is equal to", H)
+        print("W is equal to", W)
+        print("H/W is equal to", H / W)
+        if H > 10 and H / W > 10:
+            print("Mass transport limited")
+            return
+        elif H < 0.1 and W < 0.1:
+            print("Surface limited")
+            return
+        elif W > 10 and H / W < 0.1:
+            print("Diffusion Limited")
+            return
+        else:
+            print("Mixed regime")
+            return
