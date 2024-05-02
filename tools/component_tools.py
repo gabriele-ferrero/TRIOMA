@@ -292,13 +292,12 @@ class Component:
                 z = np.finfo(np.float64).max
             else:
                 z = np.exp(beta_tau)
-            self.eff_an = 1 - epsilon * (
-                lambertw(z=z, tol=1e-10) ** 2 + 2 * lambertw(z=z, tol=1e-10)
-            )
+            w = lambertw(z, tol=1e-10)
+            self.eff_an = 1 - epsilon * (w**2 + 2 * w)
             if self.eff_an.imag != 0:
                 raise ValueError("self.eff_an has a non-zero imaginary part")
             else:
-                self.eff_an = self.eff_an.real # get rid of o*j
+                self.eff_an = self.eff_an.real  # get rid of 0*j
         else:
             self.eff_an = 1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
 
