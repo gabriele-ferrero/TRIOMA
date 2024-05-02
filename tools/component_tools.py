@@ -185,18 +185,27 @@ class Component:
                     k_H=self.fluid.Solubility,
                 )
             else:
-                self.H = LM.partition_param(
+                self.H = LM.W(
+                    k_r=self.membrane.k_r,
+                    D=self.membrane.D,
+                    thick=self.membrane.thick,
+                    K_S=self.membrane.K_S,
+                    c0=self.c_in,
+                    K_S_L=self.fluid.Solubility,
+                ) /LM.partition_param(
                     D=self.membrane.D,
                     k_t=self.fluid.k_t,
                     K_S_S=self.membrane.K_S,
                     K_S_L=self.fluid.Solubility,
                     t=self.membrane.thick,
-                )
+                )  ##TODO: Check if this is correct
                 self.W = LM.W(
                     k_r=self.membrane.k_r,
                     D=self.membrane.D,
                     thick=self.membrane.thick,
                     K_S=self.membrane.K_S,
+                    c0=self.c_in,
+                    K_S_L=self.fluid.Solubility,
                 )
 
     def get_efficiency(self, L, plotvar: bool = False, c_guess: float = None):
@@ -328,7 +337,7 @@ class Component:
                 # DIFFUSION LIMITED
                 if self.H / self.W > 1000:
                     # Mass transport limited
-                    self.J_perm = -2 * self.fluid.k_t * c ## MS factor
+                    self.J_perm = -2 * self.fluid.k_t * c  ## MS factor
                 elif self.H / self.W < 0.0001:
                     # Diffusion limited
                     self.J_perm = -(
@@ -400,7 +409,9 @@ class Component:
                             * (solution.x[0] / self.fluid.Solubility) ** 0.5
                         )
                     )
-                    self.J_perm = -2 * self.fluid.k_t * (c - solution.x[0])  ## MS factor
+                    self.J_perm = (
+                        -2 * self.fluid.k_t * (c - solution.x[0])
+                    )  ## MS factor
                     return float(solution.x[0])
             elif self.W < 0.1:
                 # Surface limited
@@ -544,6 +555,216 @@ class Component:
                     )
                     c_wl = solution.x[0]
                     self.J_perm = 2 * self.fluid.k_t * (c - c_wl)
+                    return float(solution.x[0])
+        else:
+            if self.W > 10:
+                # DIFFUSION LIMITED
+                if self.H / self.W > 1000:
+                    # Mass transport limited
+                    self.J_perm = -self.fluid.k_t * c  ## LM factor
+                elif self.H / self.W < 0.0001:
+                    # Diffusion limited
+                    self.J_perm = -(
+                        self.membrane.D
+                        / (
+                            self.fluid.d_Hyd
+                            / 2
+                            * np.log(
+                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
+                                / (self.fluid.d_Hyd / 2)
+                            )
+                        )
+                        * self.membrane.K_S
+                        * (c / self.fluid.Solubility)
+                    )
+                else:
+                    # Mixed regime mass transport diffusion
+                    def equations(vars):
+                        c_wl = vars
+                        J_mt = self.fluid.k_t * (c - c_wl)
+                        J_diff = (
+                            self.membrane.D
+                            / (
+                                self.fluid.d_Hyd
+                                / 2
+                                * np.log(
+                                    (self.fluid.d_Hyd / 2 + self.membrane.thick)
+                                    / (self.fluid.d_Hyd / 2)
+                                )
+                            )
+                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility))
+                        )
+                        return abs((J_diff - J_mt))
+
+                    if c_guess is None:
+                        initial_guess = [(c * 1e-2)]
+                    else:
+                        initial_guess = c_guess
+                    solution = minimize(
+                        equations,
+                        initial_guess,
+                        method="Powell",
+                        bounds=[
+                            (0, c),
+                        ],
+                        tol=1e-15,
+                        options={
+                            "maxiter": int(1e6),
+                        },
+                    )
+                    J_diff = (
+                        self.membrane.D
+                        / (
+                            self.fluid.d_Hyd
+                            / 2
+                            * np.log(
+                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
+                                / (self.fluid.d_Hyd / 2)
+                            )
+                        )
+                        * (self.membrane.K_S * (solution.x[0] / self.fluid.Solubility))
+                    )
+                    self.J_perm = -self.fluid.k_t * (c - solution.x[0])  ## LM factor
+                    return float(solution.x[0])
+            elif self.W < 0.1:
+                # Surface limited
+                if self.H > 100:
+                    # Mass transport limited
+                    self.J_perm = -self.fluid.k_t * c  ## LM factor
+                elif self.H < 0.01:
+                    # Surface limited
+                    self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
+                else:
+                    # Mixed regime mass transfer surface
+                    def equations(vars):
+                        c_wl = vars
+                        c_bl = c
+                        J_mt = self.fluid.k_t * (c_bl - c_wl)  ## LM factor
+                        J_surf = (
+                            self.membrane.k_d * (c_bl / self.fluid.Solubility)
+                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
+                        )
+
+                        return abs(J_mt - J_surf)
+
+                    initial_guess = [(c * 1e-1)]
+                    solution = minimize(
+                        equations,
+                        initial_guess,
+                        method="Powell",
+                        bounds=[
+                            (0, c),
+                        ],
+                        tol=1e-15,
+                        options={
+                            "maxiter": int(1e6),
+                        },
+                    )
+                    c_bl = c
+                    c_wl = solution.x[0]
+                    self.J_perm = self.fluid.k_t * (c_bl - c_wl)  ## LM factor
+                    return float(solution.x[0])
+            else:
+                if self.H / self.W < 0.0001:
+                    # Mass transport limited
+                    self.J_perm = -self.fluid.k_t * c  ## LM factor
+                elif self.H / self.W > 1000:
+                    # Mixed Diffusion Surface
+                    def equations(vars):
+                        c_wl = vars
+                        c_bl = c
+                        J_surf = (
+                            self.membrane.k_d * (c_bl / self.fluid.Solubility)
+                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
+                        )
+                        J_diff = (
+                            self.membrane.D
+                            / (
+                                self.fluid.d_Hyd
+                                / 2
+                                * np.log(
+                                    (self.fluid.d_Hyd / 2 + self.membrane.thick)
+                                    / (self.fluid.d_Hyd / 2)
+                                )
+                            )
+                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility))
+                        )
+
+                        return abs(J_diff - J_surf)
+
+                    if c_guess is None:
+                        initial_guess = [(c / 2)]
+                    else:
+                        initial_guess = c_guess
+                    solution = minimize(
+                        equations,
+                        initial_guess,
+                        method="Powell",
+                        bounds=[
+                            (1e-14, c),
+                        ],
+                        tol=1e-15,
+                        options={
+                            "maxiter": int(1e6),
+                        },
+                    )
+                    c_wall = solution.x[0]
+                    self.J_perm = (
+                        self.membrane.D
+                        / (
+                            self.fluid.d_Hyd
+                            / 2
+                            * np.log(
+                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
+                                / (self.fluid.d_Hyd / 2)
+                            )
+                        )
+                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility))
+                    )
+                    return float(solution.x[0])
+                else:
+                    # Mixed regime mass transport diffusion surface and diffusion
+                    def equations(vars):
+                        c_wl, c_ws = vars
+
+                        c_bl = c
+                        J_mt = self.fluid.k_t * (c_bl - c_wl)  ## LM factor
+
+                        J_d = self.membrane.k_d * (
+                            c_wl / self.membrane.K_S
+                        ) - self.membrane.k_d * self.membrane.K_S * (c_ws**2)
+                        J_diff = (
+                            self.membrane.D
+                            / (
+                                self.fluid.d_Hyd
+                                / 2
+                                * np.log(
+                                    (self.fluid.d_Hyd / 2 + self.membrane.thick)
+                                    / (self.fluid.d_Hyd / 2)
+                                )
+                            )
+                            * (self.membrane.K_S * c_ws)
+                        )
+                        eq1 = abs(J_mt / J_d - 1)
+                        eq2 = abs(J_mt / J_diff - 1)
+
+                        return [eq1, eq2]
+
+                    initial_guess = [(2 * c / 3), (c / 3)]
+                    solution = minimize(
+                        equations,
+                        initial_guess,
+                        method="Powell",
+                        bounds=[
+                            (0, c),
+                        ],
+                        tol=1e-15,
+                        options={
+                            "maxiter": int(1e6),
+                        },
+                    )
+                    c_wl = solution.x[0]
+                    self.J_perm = self.fluid.k_t * (c - c_wl)  # LM factor
                     return float(solution.x[0])
 
     def get_global_HX_coeff(self, R_conv_sec: float = 0):
