@@ -179,7 +179,7 @@ class Component:
                     k_r=self.membrane.k_r,
                     D=self.membrane.D,
                     thick=self.membrane.thick,
-                    K_S=self.membrane.K_S
+                    K_S=self.membrane.K_S,
                 )
 
     def get_efficiency(self, L, plotvar: bool = False, c_guess: float = None):
@@ -552,7 +552,6 @@ class Fluid:
         MS (bool): Indicates whether the fluid is a molten salt or a liquid metal.
         d_Hyd (float, optional): Hydraulic diameter of the fluid. Defaults to None.
         k_t (float, optional): Mass transport coefficient of the fluid. Defaults to None.
-        c0 (float, optional): Inlet Tritium Concentration of the fluid. Defaults to None.
         mu (float, optional): Viscosity of the fluid. Defaults to None.
         rho (float, optional): Density of the fluid. Defaults to None.
         U0 (float, optional): Velocity of the fluid. Defaults to None.
@@ -564,7 +563,6 @@ class Fluid:
         D: float,
         Solubility: float,
         MS: bool,
-        c0: float,
         d_Hyd: float = None,
         k_t: float = None,
         mu: float = None,
@@ -583,7 +581,6 @@ class Fluid:
             MS (bool): Indicates whether the fluid is a molten salt or a liquid metal.
             d_Hyd (float, optional): Hydraulic diameter of the fluid. Defaults to None.
             k_t (float, optional): Mass transport coefficient of the fluid. Defaults to None.
-            c0 (float, optional): Inlet Concentration of the fluid. Defaults to None.
             mu (float, optional): Viscosity of the fluid. Defaults to None.
             rho (float, optional): Density of the fluid. Defaults to None.
             U0 (float, optional): Velocity of the fluid. Defaults to None.
@@ -594,7 +591,6 @@ class Fluid:
         self.MS = MS
         self.D = D
         self.k_t = k_t
-        self.c0 = c0
         self.d_Hyd = d_Hyd
         self.mu = mu
         self.rho = rho
