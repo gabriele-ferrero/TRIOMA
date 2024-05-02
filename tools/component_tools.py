@@ -166,6 +166,8 @@ class Component:
                     D=self.membrane.D,
                     thick=self.membrane.thick,
                     K_S=self.membrane.K_S,
+                    c0=self.c_in,
+                    k_H=self.fluid.Solubility,
                 )
             else:
                 self.H = LM.partition_param(
