@@ -20,9 +20,10 @@ def print_class_variables(instance):
     Args:
         instance: The class instance.
     """
+    built_in_types = [Component, Fluid, Membrane, GLC_Gas, GLC, FluidMaterial, SolidMaterial, BreedingBlanket]
     for attr_name, attr_value in instance.__dict__.items():
-        if isinstance(attr_value, type(instance)):
-            print(f"{attr_name} is a class, printing its variables:")
+        if type(attr_value) in built_in_types:
+            print(f"{attr_name} is a {type(attr_value)} class, printing its variables:")
             print_class_variables(attr_value)
         else:
             print(f"{attr_name}: {attr_value}")
