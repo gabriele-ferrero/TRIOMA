@@ -1,6 +1,6 @@
 def W(k_r, D, thick, K_S, c0, K_S_L):
     """
-    Calculates the value of W using the given parameters.
+    Calculates the value of W (surface/diffusion) using the given parameters.
 
     Parameters:
     k_r (float): The value of recombination coefficient.
@@ -20,7 +20,7 @@ def W(k_r, D, thick, K_S, c0, K_S_L):
 
 def partition_param(D, k_t, K_S_S, K_S_L, t):
     """
-    Calculate the partition parameter.
+    Calculate the partition parameter Diffusion/mass transfer.
 
     Parameters:
     D (float): Diffusion coefficient.

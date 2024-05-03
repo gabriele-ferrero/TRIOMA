@@ -192,13 +192,13 @@ class Component:
                     K_S=self.membrane.K_S,
                     c0=self.c_in,
                     K_S_L=self.fluid.Solubility,
-                ) /LM.partition_param(
+                ) * LM.partition_param(
                     D=self.membrane.D,
                     k_t=self.fluid.k_t,
                     K_S_S=self.membrane.K_S,
                     K_S_L=self.fluid.Solubility,
                     t=self.membrane.thick,
-                )  ##TODO: Check if this is correct
+                )
                 self.W = LM.W(
                     k_r=self.membrane.k_r,
                     D=self.membrane.D,
@@ -207,6 +207,17 @@ class Component:
                     c0=self.c_in,
                     K_S_L=self.fluid.Solubility,
                 )
+
+    def use_analytical_efficiency(self, L):
+        """Evaluates the analytical efficiency and substitutes it in the efficiency attribute of the component.
+
+        Args:
+            L (float): the length of the pipe component
+        Returns:
+            None
+        """
+        self.analytical_efficiency(L)
+        self.eff = self.eff_an
 
     def get_efficiency(self, L, plotvar: bool = False, c_guess: float = None):
         """
@@ -274,12 +285,6 @@ class Component:
         """
 
         self.get_adimensionals()
-        self.zeta = (2 * self.membrane.K_S * self.membrane.D) / (
-            self.fluid.k_t
-            * self.fluid.Solubility
-            * self.fluid.d_Hyd
-            * np.log((self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd)
-        )
         self.tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
         if self.fluid.MS:
             epsilon = (
@@ -317,6 +322,14 @@ class Component:
             else:
                 self.eff_an = self.eff_an.real  # get rid of 0*j
         else:
+            self.zeta = (2 * self.membrane.K_S * self.membrane.D) / (
+                self.fluid.k_t
+                * self.fluid.Solubility
+                * self.fluid.d_Hyd
+                * np.log(
+                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
+                )
+            )
             self.eff_an = 1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
 
     def get_flux(self, c, c_guess=None):
@@ -373,9 +386,6 @@ class Component:
                                 * (c_wl / self.fluid.Solubility) ** 0.5
                             )
                         )
-
-                        # eq1 = abs((J_diff - J_mt))
-
                         return abs((J_diff - J_mt))
 
                     if c_guess is None:
@@ -393,21 +403,6 @@ class Component:
                         options={
                             "maxiter": int(1e6),
                         },
-                    )
-                    J_diff = (
-                        self.membrane.D
-                        / (
-                            self.fluid.d_Hyd
-                            / 2
-                            * np.log(
-                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                / (self.fluid.d_Hyd / 2)
-                            )
-                        )
-                        * (
-                            self.membrane.K_S
-                            * (solution.x[0] / self.fluid.Solubility) ** 0.5
-                        )
                     )
                     self.J_perm = (
                         -2 * self.fluid.k_t * (c - solution.x[0])
@@ -611,18 +606,6 @@ class Component:
                         options={
                             "maxiter": int(1e6),
                         },
-                    )
-                    J_diff = (
-                        self.membrane.D
-                        / (
-                            self.fluid.d_Hyd
-                            / 2
-                            * np.log(
-                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                / (self.fluid.d_Hyd / 2)
-                            )
-                        )
-                        * (self.membrane.K_S * (solution.x[0] / self.fluid.Solubility))
                     )
                     self.J_perm = -self.fluid.k_t * (c - solution.x[0])  ## LM factor
                     return float(solution.x[0])
