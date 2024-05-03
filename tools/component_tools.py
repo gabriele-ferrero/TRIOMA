@@ -198,7 +198,7 @@ class Component:
                     K_S_S=self.membrane.K_S,
                     K_S_L=self.fluid.Solubility,
                     t=self.membrane.thick,
-                )  ##TODO: Check if this is correct
+                )
                 self.W = LM.W(
                     k_r=self.membrane.k_r,
                     D=self.membrane.D,
@@ -212,7 +212,9 @@ class Component:
         """Evaluates the analytical efficiency and substitutes it in the efficiency attribute of the component.
 
         Args:
-            L (float): the lentgh of the pipe component
+            L (float): the length of the pipe component
+        Returns:
+            None
         """
         self.analytical_efficiency(L)
         self.eff = self.eff_an
