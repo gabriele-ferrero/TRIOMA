@@ -208,6 +208,15 @@ class Component:
                     K_S_L=self.fluid.Solubility,
                 )
 
+    def use_analytical_efficiency(self, L):
+        """Evaluates the analytical efficiency and substitutes it in the efficiency attribute of the component.
+
+        Args:
+            L (float): the lentgh of the pipe component
+        """
+        self.analytical_efficiency(L)
+        self.eff = self.eff_an
+
     def get_efficiency(self, L, plotvar: bool = False, c_guess: float = None):
         """
         Calculates the efficiency of the component.
