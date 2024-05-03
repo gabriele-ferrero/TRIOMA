@@ -54,6 +54,10 @@ def set_attribute(instance, attr_name, new_value):
     if hasattr(instance, attr_name):
         setattr(instance, attr_name, new_value)
     else:
+        for attr, value in instance.__dict__.items():
+            if isinstance(value, object) and hasattr(value, attr_name):
+                setattr(value, attr_name, new_value)
+                return
         raise ValueError(
             f"'{attr_name}' is not an attribute of {instance.__class__.__name__}"
         )
