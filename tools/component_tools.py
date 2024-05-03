@@ -386,9 +386,6 @@ class Component:
                                 * (c_wl / self.fluid.Solubility) ** 0.5
                             )
                         )
-
-                        # eq1 = abs((J_diff - J_mt))
-
                         return abs((J_diff - J_mt))
 
                     if c_guess is None:
@@ -406,21 +403,6 @@ class Component:
                         options={
                             "maxiter": int(1e6),
                         },
-                    )
-                    J_diff = (
-                        self.membrane.D
-                        / (
-                            self.fluid.d_Hyd
-                            / 2
-                            * np.log(
-                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                / (self.fluid.d_Hyd / 2)
-                            )
-                        )
-                        * (
-                            self.membrane.K_S
-                            * (solution.x[0] / self.fluid.Solubility) ** 0.5
-                        )
                     )
                     self.J_perm = (
                         -2 * self.fluid.k_t * (c - solution.x[0])
@@ -624,18 +606,6 @@ class Component:
                         options={
                             "maxiter": int(1e6),
                         },
-                    )
-                    J_diff = (
-                        self.membrane.D
-                        / (
-                            self.fluid.d_Hyd
-                            / 2
-                            * np.log(
-                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                / (self.fluid.d_Hyd / 2)
-                            )
-                        )
-                        * (self.membrane.K_S * (solution.x[0] / self.fluid.Solubility))
                     )
                     self.J_perm = -self.fluid.k_t * (c - solution.x[0])  ## LM factor
                     return float(solution.x[0])
