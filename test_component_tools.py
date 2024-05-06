@@ -1,5 +1,7 @@
 import unittest
-from tools.component_tools import Component, Fluid, Membrane
+from tools.component_tools import Component, Fluid, Membrane, FluidMaterial
+from io import StringIO
+from unittest.mock import patch
 
 
 class TestMSComponent(unittest.TestCase):
@@ -39,6 +41,11 @@ class TestMSComponent(unittest.TestCase):
         # Test the get_regime() method
         regime = self.component2.get_regime()
         self.assertEqual(regime, "No membrane selected")
+        self.component2.membrane = Membrane(
+            k_d=1e7, D=0.4, thick=0.5, K_S=0.6, T=300, k_r=1e7, k=0.8
+        )
+        regime = self.component2.get_regime()
+        self.assertEqual(regime, "Mixed regime")
 
     def test_get_adimensionals(self):
         # Test the get_adimensionals() method
@@ -83,6 +90,12 @@ class TestMSComponent(unittest.TestCase):
             places=2,
         )
 
+    # def test_inspect(self):
+    #     expected_output = "c_in: 0.5\neff: 0.8\n"
+    #     with patch("sys.stdout", new=StringIO()) as fake_out:
+    #         self.component.inspect()
+    #         self.assertEqual(fake_out.getvalue().strip(), expected_output.strip())
+
 
 class TestLMComponent(unittest.TestCase):
     def setUp(self):
@@ -121,6 +134,11 @@ class TestLMComponent(unittest.TestCase):
         # Test the get_regime() method
         regime = self.component2.get_regime()
         self.assertEqual(regime, "No membrane selected")
+        self.component2.membrane = Membrane(
+            k_d=1e7, D=0.4, thick=0.5, K_S=0.6, T=300, k_r=1e7, k=0.8
+        )
+        regime = self.component2.get_regime()
+        self.assertEqual(regime, "Mixed regime")
 
     def test_get_adimensionals(self):
         # Test the get_adimensionals() method
@@ -164,6 +182,29 @@ class TestLMComponent(unittest.TestCase):
             0,
             places=2,
         )
+
+
+class TestFluidMaterial(unittest.TestCase):
+    def setUp(self):
+        self.fluid_material = FluidMaterial(
+            T=300, D=1e-9, Solubility=0.5, MS=True, mu=1e-3, rho=1000, k=0.5, cp=1.0
+        )
+
+    def test_attributes(self):
+        self.assertEqual(self.fluid_material.T, 300)
+        self.assertEqual(self.fluid_material.D, 1e-9)
+        self.assertEqual(self.fluid_material.Solubility, 0.5)
+        self.assertEqual(self.fluid_material.MS, True)
+        self.assertEqual(self.fluid_material.mu, 1e-3)
+        self.assertEqual(self.fluid_material.rho, 1000)
+        self.assertEqual(self.fluid_material.k, 0.5)
+        self.assertEqual(self.fluid_material.cp, 1.0)
+
+    def test_inspect(self):
+        expected_output = "T: 300\nD: 1e-09\nSolubility: 0.5\nMS: True\nmu: 0.001\nrho: 1000\nk: 0.5\ncp: 1.0\n"
+        with patch("sys.stdout", new=StringIO()) as fake_out:
+            self.fluid_material.inspect()
+            self.assertEqual(fake_out.getvalue().strip(), expected_output.strip())
 
 
 if __name__ == "__main__":
