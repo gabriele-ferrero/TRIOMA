@@ -12,13 +12,15 @@ from scipy.optimize import minimize
 from scipy.special import lambertw
 
 
-def print_class_variables(instance):
+def print_class_variables(instance, variable_names=None):
     """
-    Prints all variables of a class. If a variable is a class itself,
-    calls this function recursively for the internal class.
+    Prints specified variables of a class. If a variable is a class itself,
+    calls this function recursively for the internal class. If variable_names is None,
+    prints all variables.
 
     Args:
         instance: The class instance.
+        variable_names (list of str, optional): Names of the variables to print. Prints all if None.
     """
     built_in_types = [
         Component,
@@ -31,11 +33,14 @@ def print_class_variables(instance):
         BreedingBlanket,
     ]
     for attr_name, attr_value in instance.__dict__.items():
-        if type(attr_value) in built_in_types:
-            print(f"{attr_name} is a {type(attr_value)} class, printing its variables:")
-            print_class_variables(attr_value)
-        else:
-            print(f"{attr_name}: {attr_value}")
+        if variable_names is None or attr_name in variable_names:
+            if type(attr_value) in built_in_types:
+                print(
+                    f"{attr_name} is a {type(attr_value)} class, printing its variables:"
+                )
+                print_class_variables(attr_value, variable_names)
+            else:
+                print(f"{attr_name}: {attr_value}")
 
 
 def calculate_p_H2_from_c0(instance, c0):
@@ -108,11 +113,11 @@ class Component:
         """
         set_attribute(self, attr_name, new_value)
 
-    def inspect(self):
+    def inspect(self, variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self)
+        print_class_variables(self, variable_names)
 
     def outlet_c_comp(self) -> float:
         """
@@ -794,10 +799,10 @@ class Fluid:
 
     def __init__(
         self,
-        T: float,
-        D: float,
-        Solubility: float,
-        MS: bool,
+        T: float = None,
+        D: float = None,
+        Solubility: float = None,
+        MS: bool = True,
         d_Hyd: float = None,
         k_t: float = None,
         mu: float = None,
@@ -843,11 +848,28 @@ class Fluid:
         """
         set_attribute(self, attr_name, new_value)
 
-    def inspect(self):
+    def inspect(self,variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self)
+        print_class_variables(self,variable_names)
+
+    def set_properties_from_fluid_material(
+        self, fluid_material: "FluidMaterial" = None
+    ):
+        """
+        Sets the properties of the fluid from a FluidMaterial object.
+
+        Args:
+            fluid_material (FluidMaterial): The FluidMaterial object to set the properties from.
+        """
+        self.T = fluid_material.T
+        self.D = fluid_material.D
+        self.Solubility = fluid_material.Solubility
+        self.mu = fluid_material.mu
+        self.rho = fluid_material.rho
+        self.cp = fluid_material.cp
+        self.k = fluid_material.k
 
     def get_kt(self):
         """
@@ -897,12 +919,12 @@ class Membrane:
 
     def __init__(
         self,
-        T: float,
-        D: float,
-        thick: float,
-        K_S: float,
-        k_d: float = 1e6,
-        k_r: float = 1e6,
+        T: float = None,
+        D: float = None,
+        thick: float = None,
+        K_S: float = None,
+        k_d: float = None,
+        k_r: float = None,
         k: float = None,
     ):
         """
@@ -934,11 +956,26 @@ class Membrane:
         """
         set_attribute(self, attr_name, new_value)
 
-    def inspect(self):
+    def inspect(self,variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self)
+        print_class_variables(self,variable_names)
+
+    def set_properties_from_solid_material(
+        self, solid_material: "SolidMaterial" = None
+    ):
+        """
+        Sets the properties of the membrane from a SolidMaterial object.
+
+        Args:
+            solid_material (SolidMaterial): The SolidMaterial object to set the properties from.
+        """
+        self.T = solid_material.T
+        self.D = solid_material.D
+        self.K_S = solid_material.K_S
+        self.k_d = solid_material.k_d
+        self.k_r = solid_material.k_r
 
 
 class GLC_Gas:
@@ -979,11 +1016,11 @@ class GLC_Gas:
         """
         set_attribute(self, attr_name, new_value)
 
-    def inspect(self):
+    def inspect(self,variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self)
+        print_class_variables(self,variable_names)
 
 
 class GLC(Component):
@@ -1063,11 +1100,11 @@ class GLC(Component):
             D=self.fluid.D,
         )
 
-    def inspect(self):
+    def inspect(self,variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self)
+        print_class_variables(self,variable_names)
 
 
 class FluidMaterial:
@@ -1095,11 +1132,11 @@ class FluidMaterial:
         self.k = k
         self.cp = cp
 
-    def inspect(self):
+    def inspect(self,variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self)
+        print_class_variables(self,variable_names)
 
 
 class SolidMaterial:
@@ -1113,17 +1150,18 @@ class SolidMaterial:
         k_r (float): The Recombination constant of the solid material.
     """
 
-    def __init__(self, D, K_S, k_d, k_r):
+    def __init__(self, T, D, K_S, k_d, k_r):
+        self.T = T
         self.D = D
         self.K_S = K_S
         self.k_d = k_d
         self.k_r = k_r
 
-    def inspect(self):
+    def inspect(self,variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self)
+        print_class_variables(self,variable_names)
 
 
 class BreedingBlanket:
@@ -1155,11 +1193,11 @@ class BreedingBlanket:
         self.T_in = T_in
         self.fluid = fluid
 
-    def inspect(self):
+    def inspect(self,variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self)
+        print_class_variables(self,variable_names)
 
     def update_attribute(self, attr_name, new_value):
         """
