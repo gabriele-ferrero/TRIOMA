@@ -52,7 +52,7 @@ def get_regime(k_d, D, thick, K_S, c0, k_t, k_H, print_var: bool = False):
     if print_var is True, it will print the regime based on the value of H and W.
     str: The regime based on the value of H and W.
     """
-    W = ms.W(k_d, D, thick, K_S, c=c0, k_H=k_H)
+    W = ms.W(k_d, D, thick, K_S, c0=c0, k_H=k_H)
     H = ms.H(k_t, k_H, k_d)
     if print_var:
         print("H is equal to", H)
