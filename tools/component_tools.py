@@ -103,8 +103,7 @@ class Component:
         self.membrane = membrane
         self.H = None
         self.W = None
-        if self.fluid.k_t is None:
-            self.fluid.get_kt()
+        ##Todo initialize k_t
 
     def update_attribute(self, attr_name, new_value):
         """
@@ -174,8 +173,8 @@ class Component:
                         thick=self.membrane.thick,
                         c0=self.c_in,
                     )
-                else:
-                    return "No membrane selected"
+        else:
+            return "No fluid selected"
 
     def get_adimensionals(self):
         """
