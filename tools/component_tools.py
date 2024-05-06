@@ -347,7 +347,7 @@ class Component:
             )
             self.eff_an = 1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
 
-    def get_flux(self, c, c_guess: float = 0):
+    def get_flux(self, c, c_guess: float = 1e-9):
         """
         Calculates the Tritium flux of the component.
         It can make some approximations based on W and H to make the solver faster
@@ -412,7 +412,7 @@ class Component:
                         initial_guess,
                         method="Powell",
                         bounds=[
-                            (0, c),
+                            (0, c * (1 + 1e-4)),
                         ],
                         tol=1e-15,
                         options={
@@ -450,7 +450,7 @@ class Component:
                         initial_guess,
                         method="Powell",
                         bounds=[
-                            (0, c),
+                            (0, c * (1 + 1e-4)),
                         ],
                         tol=1e-15,
                         options={
@@ -617,7 +617,7 @@ class Component:
                         initial_guess,
                         method="Powell",
                         bounds=[
-                            (0, c),
+                            (0, c * (1 + 1e-4)),
                         ],
                         tol=1e-15,
                         options={
@@ -653,7 +653,7 @@ class Component:
                         initial_guess,
                         method="Powell",
                         bounds=[
-                            (0, c),
+                            (0, c * (1 + 1e-4)),
                         ],
                         tol=1e-15,
                         options={
@@ -757,7 +757,7 @@ class Component:
                         initial_guess,
                         method="Powell",
                         bounds=[
-                            (0, c),
+                            (0, c * (1 + 1e-4)),
                         ],
                         tol=1e-15,
                         options={
