@@ -983,8 +983,6 @@ class Membrane:
         self.T = solid_material.T
         self.D = solid_material.D
         self.K_S = solid_material.K_S
-        self.k_d = solid_material.k_d
-        self.k_r = solid_material.k_r
 
 
 class GLC_Gas:
@@ -1157,7 +1155,7 @@ class SolidMaterial:
         K_S (float): The Sievert constant of the solid material.
     """
 
-    def __init__(self, T, D, K_S, k_d, k_r):
+    def __init__(self, T, D, K_S):
         self.T = T
         self.D = D
         self.K_S = K_S
