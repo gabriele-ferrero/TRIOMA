@@ -44,7 +44,6 @@ def print_class_variables(instance, variable_names=None, tab: int = 0):
                 tab -= 1
             else:
                 print(f"{indent}{attr_name}: {attr_value}")
-    
 
 
 def calculate_p_H2_from_c0(instance, c0):
@@ -255,10 +254,13 @@ class Component:
 
                 c_vec[i] = self.c_in
 
-                if c_guess is float:
+                if isinstance(c_guess, float):
                     c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
                 else:
-                    c_guess = self.get_flux(c_vec[i], c_guess=None)
+                    print(i)
+                    print(c_guess)
+                    print(c_guess.type)
+                    c_guess = self.get_flux(c_vec[i], c_guess=self.c_in)
             else:
                 c_vec[i] = c_vec[
                     i - 1
@@ -268,7 +270,7 @@ class Component:
                 if c_guess is float:
                     c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
                 else:
-                    c_guess = self.get_flux(c_vec[i], c_guess=None)
+                    c_guess = self.get_flux(c_vec[i], c_guess=self.c_in)
         if plotvar:
             plt.plot(L_vec, c_vec)
         self.eff = (self.c_in - c_vec[-1]) / self.c_in
@@ -345,7 +347,7 @@ class Component:
             )
             self.eff_an = 1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
 
-    def get_flux(self, c, c_guess=None):
+    def get_flux(self, c, c_guess: float = 0):
         """
         Calculates the Tritium flux of the component.
         It can make some approximations based on W and H to make the solver faster
@@ -530,7 +532,7 @@ class Component:
 
                         J_d = self.membrane.k_d * (
                             c_wl / self.membrane.K_S
-                        ) - self.membrane.k_d * self.membrane.K_S * (c_ws**2)
+                        ) - self.membrane.k_d * self.membrane.K_S**2 * (c_ws**2)
                         J_diff = (
                             self.membrane.D
                             / (
@@ -543,19 +545,18 @@ class Component:
                             )
                             * (self.membrane.K_S * c_ws)
                         )
-                        eq1 = abs(J_mt / J_d - 1)
-                        eq2 = abs(J_mt / J_diff - 1)
+                        eq1 = abs(J_mt - J_d)
+                        eq2 = abs(J_mt - J_diff)
+                        eq3 = abs(J_d - J_diff)
 
-                        return [eq1, eq2]
+                        return eq1 + eq2 + eq3
 
                     initial_guess = [(2 * c / 3), (c / 3)]
                     solution = minimize(
                         equations,
                         initial_guess,
                         method="Powell",
-                        bounds=[
-                            (0, c),
-                        ],
+                        bounds=[(0, c), (0, c)],
                         tol=1e-15,
                         options={
                             "maxiter": int(1e6),
@@ -563,7 +564,10 @@ class Component:
                     )
                     c_wl = solution.x[0]
                     self.J_perm = 2 * self.fluid.k_t * (c - c_wl)
-                    return float(solution.x[0])
+                    result = float(solution.x[0])
+                    if np.isscalar(result):
+                        return result
+
         else:
             if self.W > 10:
                 # DIFFUSION LIMITED
@@ -741,10 +745,11 @@ class Component:
                             )
                             * (self.membrane.K_S * c_ws)
                         )
-                        eq1 = abs(J_mt / J_d - 1)
-                        eq2 = abs(J_mt / J_diff - 1)
+                        eq1 = abs(J_mt - J_d)
+                        eq2 = abs(J_mt - J_diff)
+                        eq3 = abs(J_d - J_diff)
 
-                        return [eq1, eq2]
+                        return eq1 + eq2 + eq3
 
                     initial_guess = [(2 * c / 3), (c / 3)]
                     solution = minimize(
