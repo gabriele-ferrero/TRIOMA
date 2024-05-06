@@ -133,10 +133,6 @@ def LiPb(T):
 def Steel(T):
     # Define the solid material
 
-    def k_d(T):
-        # return 8.67e17 / N_A * np.exp(-0.31 / (k_b * T))
-        return 1e6
-
     def H_diff(T):
         D_met = 5.81e-7 * np.exp(-66.3e3 / (R_const * T))
         return D_met
@@ -144,9 +140,6 @@ def Steel(T):
     def K_S(T):
         return 1
 
-    def k_r(T):
-        return 1e6
-
-    Steel = SolidMaterial(T=T, D=H_diff(T), K_S=K_S(T), k_d=k_d(T), k_r=k_r(T))
+    Steel = SolidMaterial(T=T, D=H_diff(T), K_S=K_S(T))
 
     return Steel

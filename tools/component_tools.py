@@ -1155,16 +1155,12 @@ class SolidMaterial:
     Attributes:
         D (float): The Diffusivity of the solid material.
         K_S (float): The Sievert constant of the solid material.
-        k_d (float): Dissociation constant of the solid material.
-        k_r (float): The Recombination constant of the solid material.
     """
 
     def __init__(self, T, D, K_S, k_d, k_r):
         self.T = T
         self.D = D
         self.K_S = K_S
-        self.k_d = k_d
-        self.k_r = k_r
 
     def inspect(self, variable_names=None):
         """
