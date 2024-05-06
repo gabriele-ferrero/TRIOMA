@@ -12,7 +12,7 @@ from scipy.optimize import minimize
 from scipy.special import lambertw
 
 
-def print_class_variables(instance, variable_names=None):
+def print_class_variables(instance, variable_names=None, tab: int = 0):
     """
     Prints specified variables of a class. If a variable is a class itself,
     calls this function recursively for the internal class. If variable_names is None,
@@ -32,15 +32,19 @@ def print_class_variables(instance, variable_names=None):
         SolidMaterial,
         BreedingBlanket,
     ]
+    indent = "    " * tab  # Define the indentation as four spaces per tab level
     for attr_name, attr_value in instance.__dict__.items():
         if variable_names is None or attr_name in variable_names:
             if type(attr_value) in built_in_types:
+                tab += 1
                 print(
-                    f"{attr_name} is a {type(attr_value)} class, printing its variables:"
+                    f"{indent}{attr_name} is a {type(attr_value)} class, printing its variables:"
                 )
-                print_class_variables(attr_value, variable_names)
+                print_class_variables(attr_value, variable_names, tab=tab)
+                tab -= 1
             else:
-                print(f"{attr_name}: {attr_value}")
+                print(f"{indent}{attr_name}: {attr_value}")
+    
 
 
 def calculate_p_H2_from_c0(instance, c0):
@@ -848,11 +852,11 @@ class Fluid:
         """
         set_attribute(self, attr_name, new_value)
 
-    def inspect(self,variable_names=None):
+    def inspect(self, variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self,variable_names)
+        print_class_variables(self, variable_names)
 
     def set_properties_from_fluid_material(
         self, fluid_material: "FluidMaterial" = None
@@ -956,11 +960,11 @@ class Membrane:
         """
         set_attribute(self, attr_name, new_value)
 
-    def inspect(self,variable_names=None):
+    def inspect(self, variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self,variable_names)
+        print_class_variables(self, variable_names)
 
     def set_properties_from_solid_material(
         self, solid_material: "SolidMaterial" = None
@@ -1016,11 +1020,11 @@ class GLC_Gas:
         """
         set_attribute(self, attr_name, new_value)
 
-    def inspect(self,variable_names=None):
+    def inspect(self, variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self,variable_names)
+        print_class_variables(self, variable_names)
 
 
 class GLC(Component):
@@ -1100,11 +1104,11 @@ class GLC(Component):
             D=self.fluid.D,
         )
 
-    def inspect(self,variable_names=None):
+    def inspect(self, variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self,variable_names)
+        print_class_variables(self, variable_names)
 
 
 class FluidMaterial:
@@ -1132,11 +1136,11 @@ class FluidMaterial:
         self.k = k
         self.cp = cp
 
-    def inspect(self,variable_names=None):
+    def inspect(self, variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self,variable_names)
+        print_class_variables(self, variable_names)
 
 
 class SolidMaterial:
@@ -1157,11 +1161,11 @@ class SolidMaterial:
         self.k_d = k_d
         self.k_r = k_r
 
-    def inspect(self,variable_names=None):
+    def inspect(self, variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self,variable_names)
+        print_class_variables(self, variable_names)
 
 
 class BreedingBlanket:
@@ -1193,11 +1197,11 @@ class BreedingBlanket:
         self.T_in = T_in
         self.fluid = fluid
 
-    def inspect(self,variable_names=None):
+    def inspect(self, variable_names=None):
         """
         Prints the attributes of the component.
         """
-        print_class_variables(self,variable_names)
+        print_class_variables(self, variable_names)
 
     def update_attribute(self, attr_name, new_value):
         """
