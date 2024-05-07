@@ -1,7 +1,10 @@
 import unittest
 from tools.component_tools import Component, Fluid, Membrane, FluidMaterial
+from tools.materials import Flibe, Steel
 from io import StringIO
 from unittest.mock import patch
+
+from tools.materials import Flibe
 
 
 class TestMSComponent(unittest.TestCase):
@@ -200,6 +203,15 @@ class TestLMComponent(unittest.TestCase):
         ##test internal attribute
         self.component.update_attribute("U0", 0.3)
         self.assertEqual(self.component.fluid.U0, 0.3)
+
+    def test_set_material_properties(self):
+        T = 800
+        fluid_material = Flibe(T)
+        self.component.fluid.set_properties_from_fluid_material(fluid_material)
+        self.assertEqual(self.component.fluid.rho, fluid_material.rho)
+        solid_material = Steel(T)
+        self.component.membrane.set_properties_from_solid_material(solid_material)
+        self.assertEqual(self.component.membrane.K_S, solid_material.K_S)
 
 
 class TestFluidMaterial(unittest.TestCase):
