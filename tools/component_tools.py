@@ -10,6 +10,7 @@ from scipy.constants import N_A
 from scipy.constants import physical_constants
 from scipy.optimize import minimize
 from scipy.special import lambertw
+from typing import Union
 
 
 def print_class_variables(instance, variable_names=None, tab: int = 0):
@@ -105,7 +106,9 @@ class Component:
         self.W = None
         ##Todo initialize k_t
 
-    def update_attribute(self, attr_name, new_value):
+    def update_attribute(
+        self, attr_name: str = None, new_value: Union[float, "Fluid", "Membrane"] = None
+    ):
         """
         Updates the value of the specified attribute.
 
@@ -223,7 +226,7 @@ class Component:
                     K_S_L=self.fluid.Solubility,
                 )
 
-    def use_analytical_efficiency(self, L):
+    def use_analytical_efficiency(self, L: float = None):
         """Evaluates the analytical efficiency and substitutes it in the efficiency attribute of the component.
 
         Args:
@@ -234,7 +237,9 @@ class Component:
         self.analytical_efficiency(L)
         self.eff = self.eff_an
 
-    def get_efficiency(self, L, plotvar: bool = False, c_guess: float = None):
+    def get_efficiency(
+        self, L: float = None, plotvar: bool = False, c_guess: float = None
+    ):
         """
         Calculates the efficiency of the component.
 
@@ -275,7 +280,7 @@ class Component:
             plt.plot(L_vec, c_vec)
         self.eff = (self.c_in - c_vec[-1]) / self.c_in
 
-    def analytical_efficiency(self, L):
+    def analytical_efficiency(self, L: float = None):
         """
         Calculate the analytical efficiency of a component.
 
@@ -347,7 +352,7 @@ class Component:
             )
             self.eff_an = 1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
 
-    def get_flux(self, c, c_guess: float = 1e-9):
+    def get_flux(self, c: float = None, c_guess: float = 1e-9):
         """
         Calculates the Tritium flux of the component.
         It can make some approximations based on W and H to make the solver faster
@@ -847,7 +852,9 @@ class Fluid:
         self.k = k
         self.cp = cp
 
-    def update_attribute(self, attr_name, new_value):
+    def update_attribute(
+        self, attr_name: str = None, new_value: Union[float, "FluidMaterial"] = None
+    ):
         """
         Updates the value of the specified attribute.
 
@@ -922,8 +929,9 @@ class Membrane:
         D (float): Diffusion coefficient of the membrane.
         thick (float): Thickness of the membrane.
         K_S (float): Solubility coefficient of the membrane.
-        k_d (float, optional): Dissociation rate constant of the membrane. Defaults to 1e6.
-        k_r (float, optional): Recombination rate constant of the membrane. Defaults to 1e6.
+        k_d (float, optional): Dissociation rate constant of the membrane. Defaults to None.
+        k_r (float, optional): Recombination rate constant of the membrane. Defaults to None.
+        k (float, optional): Thermal conductivity of the membrane. Defaults to None.
     """
 
     def __init__(
@@ -955,7 +963,9 @@ class Membrane:
         self.k_r = k_r
         self.k = k
 
-    def update_attribute(self, attr_name, new_value):
+    def update_attribute(
+        self, attr_name: str = None, new_value: Union[float, "SolidMaterial"] = None
+    ):
         """
         Updates the value of the specified attribute.
 
@@ -997,7 +1007,11 @@ class GLC_Gas:
     """
 
     def __init__(
-        self, G_gas: float, pg_in: float = 0, p_tot: float = 100000, kla: float = 0
+        self,
+        G_gas: float = None,
+        pg_in: float = 0,
+        p_tot: float = 100000,
+        kla: float = 0,
     ):
         """
         Initializes a new instance of the GLC_Gas class.
@@ -1013,7 +1027,7 @@ class GLC_Gas:
         self.p_tot = p_tot
         self.kla = kla
 
-    def update_attribute(self, attr_name, new_value):
+    def update_attribute(self, attr_name: str, new_value: float):
         """
         Updates the value of the specified attribute.
 
@@ -1056,10 +1070,10 @@ class GLC(Component):
 
     def __init__(
         self,
-        H: float,
-        R: float,
-        L: float,
-        c_in: float,
+        H: float = None,
+        R: float = None,
+        L: float = None,
+        c_in: float = None,
         eff: float = None,
         fluid: "Fluid" = None,
         membrane: "Membrane" = None,
@@ -1129,7 +1143,17 @@ class FluidMaterial:
         cp (float): Specific heat capacity of the fluid material.
     """
 
-    def __init__(self, T, D, Solubility, MS, mu, rho, k, cp):
+    def __init__(
+        self,
+        T: float = None,
+        D: float = None,
+        Solubility: float = None,
+        MS: bool = None,
+        mu: float = None,
+        rho: float = None,
+        k: float = None,
+        cp: float = None,
+    ):
         self.T = T
         self.D = D
         self.Solubility = Solubility
@@ -1155,10 +1179,13 @@ class SolidMaterial:
         K_S (float): The Sievert constant of the solid material.
     """
 
-    def __init__(self, T, D, K_S):
+    def __init__(
+        self, T: float = None, D: float = None, K_S: float = None, k: float = None
+    ):
         self.T = T
         self.D = D
         self.K_S = K_S
+        self.k = k
 
     def inspect(self, variable_names=None):
         """
@@ -1202,7 +1229,7 @@ class BreedingBlanket:
         """
         print_class_variables(self, variable_names)
 
-    def update_attribute(self, attr_name, new_value):
+    def update_attribute(self, attr_name: str, new_value: float):
         """
         Updates the value of the specified attribute.
 
