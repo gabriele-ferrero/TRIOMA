@@ -267,7 +267,7 @@ class Component:
                 ] + f_H2 * self.J_perm * self.fluid.d_Hyd * np.pi * dl**2 / self.fluid.U0 / (
                     np.pi * self.fluid.d_Hyd**2 / 4 * dl
                 )
-                if c_guess is float:
+                if isinstance(c_guess, float):
                     c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
                 else:
                     c_guess = self.get_flux(c_vec[i], c_guess=self.c_in)
