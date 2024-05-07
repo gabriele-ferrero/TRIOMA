@@ -90,11 +90,15 @@ class TestMSComponent(unittest.TestCase):
             places=2,
         )
 
-    # def test_inspect(self):
-    #     expected_output = "c_in: 0.5\neff: 0.8\n"
-    #     with patch("sys.stdout", new=StringIO()) as fake_out:
-    #         self.component.inspect()
-    #         self.assertEqual(fake_out.getvalue().strip(), expected_output.strip())
+    def test_inspect(self):
+        result = "c_in: 0.5\neff: 0.8\nfluid is a <class 'tools.component_tools.Fluid'> class, printing its variables:\n    T: 300\n    Solubility: 0.5\n    MS: True\n    D: 1e-09\n    k_t: 0.1\n    d_Hyd: 0.3\n    mu: 0.001\n    rho: 1000\n    U0: 0.2\n    k: 0.5\n    cp: 1.0\nmembrane is a <class 'tools.component_tools.Membrane'> class, printing its variables:\n    T: 300\n    D: 0.4\n    thick: 0.5\n    k_d: 10000000.0\n    K_S: 0.6\n    k_r: 10000000.0\n    k: 0.8\nH: None\nW: None"
+        with patch("sys.stdout", new=StringIO()) as fake_out:
+            self.component.inspect()
+            self.assertEqual(fake_out.getvalue().strip(), result.strip())
+        result = ""
+        with patch("sys.stdout", new=StringIO()) as fake_out:
+            self.component.inspect("kjhgfd")
+            self.assertEqual(fake_out.getvalue().strip(), result.strip())
 
 
 class TestLMComponent(unittest.TestCase):
