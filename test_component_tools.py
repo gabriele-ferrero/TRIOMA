@@ -3,7 +3,7 @@ from tools.component_tools import Component, Fluid, Membrane, FluidMaterial
 from tools.materials import Flibe, Steel
 from io import StringIO
 from unittest.mock import patch
-
+import pytest
 from tools.materials import Flibe
 
 
@@ -203,6 +203,9 @@ class TestLMComponent(unittest.TestCase):
         ##test internal attribute
         self.component.update_attribute("U0", 0.3)
         self.assertEqual(self.component.fluid.U0, 0.3)
+        with pytest.raises(ValueError) as excinfo:
+            self.component.update_attribute("kghufh", 0.3)
+        assert str(excinfo.value) == "'kghufh' is not an attribute of Component"
 
     def test_set_material_properties(self):
         T = 800
