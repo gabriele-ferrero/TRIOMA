@@ -260,9 +260,6 @@ class Component:
                 if isinstance(c_guess, float):
                     c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
                 else:
-                    print(i)
-                    print(c_guess)
-                    print(c_guess.type)
                     c_guess = self.get_flux(c_vec[i], c_guess=self.c_in)
             else:
                 c_vec[i] = c_vec[
