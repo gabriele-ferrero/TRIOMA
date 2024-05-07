@@ -45,7 +45,7 @@ class TestMSComponent(unittest.TestCase):
 
     def test_get_regime(self):
         self.component2 = Component(c_in=0.5, eff=0.8)
-        regime = self.component2.get_regime()
+        regime = self.component2.get_regime(print_var=True)
         self.assertEqual(regime, "No fluid selected")
         self.component2.fluid = Fluid(k_t=0.1, Solubility=0.2, MS=True)
         # Test the get_regime() method
@@ -142,7 +142,7 @@ class TestLMComponent(unittest.TestCase):
 
     def test_get_regime(self):
         self.component2 = Component(c_in=0.5, eff=0.8)
-        regime = self.component2.get_regime()
+        regime = self.component2.get_regime(print_var=True)
         self.assertEqual(regime, "No fluid selected")
         self.component2.fluid = Fluid(k_t=0.1, Solubility=0.2, MS=True)
         # Test the get_regime() method

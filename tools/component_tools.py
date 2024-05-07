@@ -141,7 +141,7 @@ class Component:
         leak = self.c_in * self.eff
         return leak
 
-    def get_regime(self):
+    def get_regime(self, print_var: bool = False):
         """
         Gets the regime of the component.
 
@@ -160,6 +160,7 @@ class Component:
                         c0=self.c_in,
                         k_t=self.fluid.k_t,
                         k_H=self.fluid.Solubility,
+                        print_var=print_var,
                     )
                     return result
                 else:
@@ -174,6 +175,7 @@ class Component:
                         k_r=self.membrane.k_r,
                         thick=self.membrane.thick,
                         c0=self.c_in,
+                        print_var=print_var,
                     )
                     return result
         else:
