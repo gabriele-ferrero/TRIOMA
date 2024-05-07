@@ -184,6 +184,8 @@ class Component:
 
         Updates the H and W attributes of the Component object.
         """
+        if self.fluid.k_t is None:
+            self.fluid.get_kt()
         if self.fluid is not None:
             if self.fluid.MS:
                 self.H = MS.H(
