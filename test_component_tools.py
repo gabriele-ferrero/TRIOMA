@@ -194,6 +194,13 @@ class TestLMComponent(unittest.TestCase):
             self.component.inspect()
             self.assertEqual(fake_out.getvalue().strip(), expected_output.strip())
 
+    def test_set_attribute(self):
+        self.component.update_attribute("c_in", 0.6)
+        self.assertEqual(self.component.c_in, 0.6)
+        ##test internal attribute
+        self.component.update_attribute("U0", 0.3)
+        self.assertEqual(self.component.fluid.U0, 0.3)
+
 
 class TestFluidMaterial(unittest.TestCase):
     def setUp(self):
