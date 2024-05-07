@@ -52,21 +52,21 @@ def get_regime(k_d, D, thick, K_S, c0, k_t, k_H, print_var: bool = False):
     if print_var is True, it will print the regime based on the value of H and W.
     str: The regime based on the value of H and W.
     """
-    W = ms.W(k_d, D, thick, K_S, c=c0, k_H=k_H)
+    W = ms.W(k_d, D, thick, K_S, c0=c0, k_H=k_H)
     H = ms.H(k_t, k_H, k_d)
     if print_var:
         print("H is equal to", H)
         print("W is equal to", W)
         print("H/W is equal to", H / W)
-        if H > 10 and H / W > 10:
-            print("Mass transport limited")
-            return
-        elif H < 0.1 and W < 0.1:
-            print("Surface limited")
-            return
-        elif W > 10 and H / W < 0.1:
-            print("Diffusion Limited")
-            return
-        else:
-            print("Mixed regime")
-            return
+    if H > 10 and H / W > 10:
+        print("Mass transport limited")
+        return "Mass transport limited"
+    elif H < 0.1 and W < 0.1:
+        print("Surface limited")
+        return "Surface limited"
+    elif W > 10 and H / W < 0.1:
+        print("Diffusion Limited")
+        return "Diffusion Limited"
+    else:
+        print("Mixed regime")
+        return "Mixed regime"

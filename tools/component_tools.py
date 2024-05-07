@@ -103,8 +103,7 @@ class Component:
         self.membrane = membrane
         self.H = None
         self.W = None
-        if self.fluid.k_t is None:
-            self.fluid.get_kt()
+        ##Todo initialize k_t
 
     def update_attribute(self, attr_name, new_value):
         """
@@ -152,7 +151,7 @@ class Component:
 
             if self.fluid.MS:
                 if self.membrane is not None:
-                    return MS.get_regime(
+                    result = MS.get_regime(
                         k_d=self.membrane.k_d,
                         D=self.membrane.D,
                         thick=self.membrane.thick,
@@ -161,11 +160,12 @@ class Component:
                         k_t=self.fluid.k_t,
                         k_H=self.fluid.Solubility,
                     )
+                    return result
                 else:
                     return "No membrane selected"
             else:
                 if self.membrane is not None:
-                    return LM.get_regime(
+                    result = LM.get_regime(
                         D=self.membrane.D,
                         k_t=self.fluid.k_t,
                         K_S_S=self.membrane.K_S,
@@ -174,8 +174,9 @@ class Component:
                         thick=self.membrane.thick,
                         c0=self.c_in,
                     )
-                else:
-                    return "No membrane selected"
+                    return result
+        else:
+            return "No fluid selected"
 
     def get_adimensionals(self):
         """
