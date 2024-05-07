@@ -150,7 +150,7 @@ class Component:
         """
         if self.fluid is not None:
 
-            if self.fluid.MS:
+            if self.fluid.MS == True:
                 if self.membrane is not None:
                     result = MS.get_regime(
                         k_d=self.membrane.k_d,
@@ -178,6 +178,8 @@ class Component:
                         print_var=print_var,
                     )
                     return result
+                else:
+                    return "No membrane selected"
         else:
             return "No fluid selected"
 

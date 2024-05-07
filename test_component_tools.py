@@ -144,15 +144,15 @@ class TestLMComponent(unittest.TestCase):
         self.component2 = Component(c_in=0.5, eff=0.8)
         regime = self.component2.get_regime(print_var=True)
         self.assertEqual(regime, "No fluid selected")
-        self.component2.fluid = Fluid(k_t=0.1, Solubility=0.2, MS=True)
+        self.component2.fluid = Fluid(k_t=0.1, Solubility=0.2, MS=False)
         # Test the get_regime() method
         regime = self.component2.get_regime()
         self.assertEqual(regime, "No membrane selected")
         self.component2.membrane = Membrane(
             k_d=1e7, D=0.4, thick=0.5, K_S=0.6, T=300, k_r=1e7, k=0.8
         )
-        regime = self.component2.get_regime()
-        self.assertEqual(regime, "Mixed regime")
+        regime = self.component2.get_regime(print_var=True)
+        self.assertEqual(regime, "Mass transport limited")
 
     def test_get_adimensionals(self):
         # Test the get_adimensionals() method
