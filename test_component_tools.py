@@ -61,7 +61,7 @@ class TestMSComponent(unittest.TestCase):
 
     def test_get_efficiency(self):
         # Test the get_efficiency() method
-        self.component.get_efficiency(L=1.0, c_guess=self.component.c_in / 2)
+        self.component.get_efficiency(L=1.0)
 
         self.assertAlmostEqual(self.component.eff, 0.998984924629, places=2)
 
@@ -187,6 +187,13 @@ class TestLMComponent(unittest.TestCase):
             places=2,
         )
 
+    def test_inspect(self):
+        result = "c_in: 0.5\neff: 0.8\nfluid is a <class 'tools.component_tools.Fluid'> class, printing its variables:\n    T: 300\n    Solubility: 0.5\n    MS: False\n    D: 1e-09\n    k_t: 0.1\n    d_Hyd: 0.3\n    mu: 0.001\n    rho: 1000\n    U0: 0.2\n    k: 0.5\n    cp: 1.0\nmembrane is a <class 'tools.component_tools.Membrane'> class, printing its variables:\n    T: 300\n    D: 0.4\n    thick: 0.5\n    k_d: 10000000.0\n    K_S: 0.6\n    k_r: 10000000.0\n    k: 0.8\nH: None\nW: None"
+        expected_output = result
+        with patch("sys.stdout", new=StringIO()) as fake_out:
+            self.component.inspect()
+            self.assertEqual(fake_out.getvalue().strip(), expected_output.strip())
+
 
 class TestFluidMaterial(unittest.TestCase):
     def setUp(self):
@@ -205,7 +212,8 @@ class TestFluidMaterial(unittest.TestCase):
         self.assertEqual(self.fluid_material.cp, 1.0)
 
     def test_inspect(self):
-        expected_output = "T: 300\nD: 1e-09\nSolubility: 0.5\nMS: True\nmu: 0.001\nrho: 1000\nk: 0.5\ncp: 1.0\n"
+        result = "T: 300\nD: 1e-09\nSolubility: 0.5\nMS: True\nmu: 0.001\nrho: 1000\nk: 0.5\ncp: 1.0"
+        expected_output = result
         with patch("sys.stdout", new=StringIO()) as fake_out:
             self.fluid_material.inspect()
             self.assertEqual(fake_out.getvalue().strip(), expected_output.strip())
