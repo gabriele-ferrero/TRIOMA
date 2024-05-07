@@ -371,19 +371,32 @@ class TestFluid(unittest.TestCase):
         assert str(excinfo.value) == "'kghufh' is not an attribute of Fluid"
 
     def test_get_kt(self):
+        # Test no d_hyd defined
         self.component.update_attribute("d_Hyd", None)
         result = "Hydraulic Diameter is not defined"
         with patch("sys.stdout", new=StringIO()) as fake_out:
             self.component.get_kt()
             self.assertEqual(fake_out.getvalue().strip(), result.strip())
+        # test get_kt
         self.component.update_attribute("d_Hyd", 0.3)
         self.component.update_attribute("k_t", None)
         self.component.get_kt()
         self.assertEqual(self.component.k_t, 8.046408367835323e-06)
+        # test when k_t is already defined
         result = "k_t is already defined"
         with patch("sys.stdout", new=StringIO()) as fake_out:
             self.component.get_kt()
             self.assertEqual(fake_out.getvalue().strip(), result.strip())
+        # test when Reynolds number is too low
+        self.component.update_attribute("U0", 0)
+        self.component.update_attribute("k_t", None)
+        with pytest.raises(ValueError) as excinfo:
+            self.component.get_kt()
+        assert str(excinfo.value) == "Reynolds number is too low"
+        self.component.update_attribute("U0", 0.008)
+        # test when Reynolds number is in a different correlation range
+        self.component.get_kt()
+        self.assertAlmostEqual(self.component.k_t, 5.814941299143e-07)
 
 
 if __name__ == "__main__":
