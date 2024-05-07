@@ -5,6 +5,7 @@ from tools.component_tools import (
     Membrane,
     FluidMaterial,
     BreedingBlanket,
+    SolidMaterial,
 )
 from tools.materials import Flibe, Steel
 from io import StringIO
@@ -256,14 +257,14 @@ class TestFluidMaterial(unittest.TestCase):
 
 class Test_SolidMaterial(unittest.TestCase):
     def setUp(self):
-        self.solid_material = Steel(T=300)
+        self.solid_material = SolidMaterial(T=300, K_S=1, D=1e-7)
 
     def test_attributes(self):
         self.assertEqual(self.solid_material.T, 300)
         self.assertEqual(self.solid_material.K_S, 1)
 
     def test_inspect(self):
-        result = "T: 300\nD: 1.6592191839927202e-18\nK_S: 1\nk: None"
+        result = "T: 300\nD: 1e-07\nK_S: 1\nk: None"
         expected_output = result
         with patch("sys.stdout", new=StringIO()) as fake_out:
             self.solid_material.inspect()
