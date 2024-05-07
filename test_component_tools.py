@@ -73,22 +73,22 @@ class TestMSComponent(unittest.TestCase):
         # Test the get_efficiency() method
         self.component.get_efficiency(L=1.0)
 
-        self.assertAlmostEqual(self.component.eff, 0.998984924629, places=2)
+        self.assertAlmostEqual(self.component.eff, 0.998984924629)
 
     def test_analytical_efficiency(self):
         # Test the analytical_efficiency() method
         self.component.analytical_efficiency(L=1.0)
-        self.assertAlmostEqual(self.component.eff_an, 0.9987166909303, places=2)
+        self.assertAlmostEqual(self.component.eff_an, 0.9987166909303)
 
     def test_get_flux(self):
         # Test the get_flux() method
         flux = self.component.get_flux(c=0.3)
-        self.assertAlmostEqual(flux, 0.0015, places=2)
+        self.assertAlmostEqual(flux, 0.0014967, places=5)
 
     def test_get_global_HX_coeff(self):
         # Test the get_global_HX_coeff() method
         U = self.component.get_global_HX_coeff(R_conv_sec=0.1)
-        self.assertAlmostEqual(self.component.U, 2.9215784663, places=4)
+        self.assertAlmostEqual(self.component.U, 2.9215784663)
 
     def test_efficiency_vs_analytical(self):
         # Test the efficiency_vs_analytical() method
@@ -168,24 +168,27 @@ class TestLMComponent(unittest.TestCase):
 
     def test_get_efficiency(self):
         # Test the get_efficiency() method
-        self.component.get_efficiency(L=1.0, c_guess=self.component.c_in / 2)
+        self.component.get_efficiency(
+            L=1.0, c_guess=self.component.c_in / 2, plotvar=True
+        )
 
-        self.assertAlmostEqual(self.component.eff, 0.998295638580, places=2)
+        self.assertAlmostEqual(self.component.eff, 0.9986246, places=5)
 
     def test_analytical_efficiency(self):
         # Test the analytical_efficiency() method
+        self.component.fluid.update_attribute("k_t", None)
         self.component.analytical_efficiency(L=1.0)
-        self.assertAlmostEqual(self.component.eff_an, 0.998295638580, places=2)
+        self.assertAlmostEqual(self.component.eff_an, 0.00053628139636452)
 
     def test_get_flux(self):
         # Test the get_flux() method
         flux = self.component.get_flux(c=0.3)
-        self.assertAlmostEqual(flux, 0.01314458525095, places=2)
+        self.assertAlmostEqual(flux, 0.01314458525095)
 
     def test_get_global_HX_coeff(self):
         # Test the get_global_HX_coeff() method
         U = self.component.get_global_HX_coeff(R_conv_sec=0.1)
-        self.assertAlmostEqual(self.component.U, 2.9215784663, places=4)
+        self.assertAlmostEqual(self.component.U, 2.9215784663)
 
     def test_efficiency_vs_analytical(self):
         # Test the efficiency_vs_analytical() method
