@@ -8,7 +8,7 @@ plantParametric.ipynb
 # C extensions
 *.so
 *.mph
-
+*debug.ipynb
 # Distribution / packaging
 .Python
 build/
