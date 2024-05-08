@@ -149,9 +149,11 @@ class Component:
             str: The regime of the component.
         """
         if self.fluid is not None:
-
+            if self.fluid.k_t is None:
+                self.fluid.get_kt()
             if self.fluid.MS == True:
                 if self.membrane is not None:
+
                     result = MS.get_regime(
                         k_d=self.membrane.k_d,
                         D=self.membrane.D,
@@ -305,11 +307,11 @@ class Component:
 
         The output of the function is the analytical efficiency of the component as Component.eff_an.
         """
-
-        self.get_adimensionals()
+        if self.fluid.k_t is None:
+            self.fluid.get_kt()
         self.tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
         if self.fluid.MS:
-            epsilon = (
+            self.epsilon = (
                 1
                 / self.c_in
                 / self.fluid.Solubility
@@ -328,21 +330,44 @@ class Component:
                 )
                 ** 2
             )
-            beta = (1 / epsilon + 1) ** 0.5 + np.log((1 / epsilon + 1) ** 0.5 - 1)
-            max_exp = np.log(np.finfo(np.float64).max)
-            beta_tau = beta - self.tau - 1
-            if beta_tau > max_exp:
-                print("Warning: Overflow encountered in exp, input too large.")
-                # Handle the overflow case here, e.g., by setting a maximum value
-                z = np.finfo(np.float64).max
+
+            if self.epsilon > 1e5:
+                self.eff_an = 1 - np.exp(-self.tau)
+            elif self.epsilon**0.5 < 1e-4 and self.tau < 1 / self.epsilon**0.5:
+                self.eff_an = 1 - (1 - self.tau * self.epsilon**0.5) ** 2
             else:
-                z = np.exp(beta_tau)
-            w = lambertw(z, tol=1e-10)
-            self.eff_an = 1 - epsilon * (w**2 + 2 * w)
-            if self.eff_an.imag != 0:
-                raise ValueError("self.eff_an has a non-zero imaginary part")
-            else:
-                self.eff_an = self.eff_an.real  # get rid of 0*j
+                beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
+                    (1 / self.epsilon + 1) ** 0.5 - 1
+                )
+                beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
+                    (1 / self.epsilon + 1) ** 0.5 - 1
+                )
+
+            def eq(var):
+                cl = var
+                alpha = self.epsilon / self.c_in
+                left = (cl / alpha + 1) ** 0.5 + np.log((cl / alpha + 1) ** 0.5 - 1)
+                right = beta - self.tau
+
+                return abs(left - right)
+
+            cl = minimize(eq, self.c_in / 2, bounds=[(0, self.c_in)]).x[0]
+            self.eff_an = 1 - (cl / self.c_in)
+
+            # max_exp = np.log(np.finfo(np.float64).max)
+            # beta_tau = beta - self.tau - 1
+            # if beta_tau > max_exp:
+            #     print("Warning: Overflow encountered in exp, input too large.")
+            #     # Handle the overflow case here, e.g., by setting a maximum value
+            #     z = np.finfo(np.float64).max
+            # else:
+            #     z = np.exp(beta_tau)
+            # w = lambertw(z, tol=1e-10)
+            # self.eff_an = 1 - self.epsilon * (w**2 + 2 * w)
+            # if self.eff_an.imag != 0:
+            #     raise ValueError("self.eff_an has a non-zero imaginary part")
+            # else:
+            #     self.eff_an = self.eff_an.real  # get rid of 0*j
         else:
             self.zeta = (2 * self.membrane.K_S * self.membrane.D) / (
                 self.fluid.k_t
@@ -391,6 +416,8 @@ class Component:
                 else:
                     # Mixed regime mass transport diffusion
                     def equations(vars):
+                        if vars.size == 0:
+                            return upper_bound
                         c_wl = vars
                         J_mt = 2 * self.fluid.k_t * (c - c_wl)
                         J_diff = (
@@ -408,18 +435,21 @@ class Component:
                                 * (c_wl / self.fluid.Solubility) ** 0.5
                             )
                         )
-                        return abs((J_diff - J_mt))
+                        return abs(J_diff - J_mt)
 
-                    if c_guess is None:
-                        initial_guess = [(c * 1e-2)]
-                    else:
+                    if isinstance(c_guess, float):
+
                         initial_guess = c_guess
+                    else:
+                        initial_guess = [(c * 1e-2)]
+                    min_upper_bound = 1e-4  # Set a minimum value for the upper bound
+                    upper_bound = max(c * (1 + 1e-4), min_upper_bound)
                     solution = minimize(
                         equations,
                         initial_guess,
                         method="Powell",
                         bounds=[
-                            (0, c * (1 + 1e-4)),
+                            (0, upper_bound),
                         ],
                         tol=1e-15,
                         options={
