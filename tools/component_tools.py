@@ -495,7 +495,7 @@ class Component:
                         bounds=[
                             (0, c * (1 + 1e-4)),
                         ],
-                        tol=1e-15,
+                        tol=1e-8,
                         options={
                             "maxiter": int(1e6),
                         },
@@ -546,7 +546,7 @@ class Component:
                         bounds=[
                             (1e-14, c),
                         ],
-                        tol=1e-15,
+                        tol=1e-8,
                         options={
                             "maxiter": int(1e6),
                         },
@@ -600,7 +600,7 @@ class Component:
                         initial_guess,
                         method="Powell",
                         bounds=[(0, c), (0, c)],
-                        tol=1e-15,
+                        tol=1e-8,
                         options={
                             "maxiter": int(1e6),
                         },
@@ -662,7 +662,7 @@ class Component:
                         bounds=[
                             (0, c * (1 + 1e-4)),
                         ],
-                        tol=1e-15,
+                        tol=1e-8,
                         options={
                             "maxiter": int(1e6),
                         },
@@ -698,7 +698,7 @@ class Component:
                         bounds=[
                             (0, c * (1 + 1e-4)),
                         ],
-                        tol=1e-15,
+                        tol=1e-8,
                         options={
                             "maxiter": int(1e6),
                         },
@@ -746,7 +746,7 @@ class Component:
                         bounds=[
                             (1e-14, c),
                         ],
-                        tol=1e-15,
+                        tol=1e-8,
                         options={
                             "maxiter": int(1e6),
                         },
@@ -802,7 +802,7 @@ class Component:
                         bounds=[
                             (0, c * (1 + 1e-4)),
                         ],
-                        tol=1e-15,
+                        tol=1e-8,
                         options={
                             "maxiter": int(1e6),
                         },
