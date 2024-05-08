@@ -333,7 +333,7 @@ class Component:
 
             if self.epsilon > 1e5:
                 self.eff_an = 1 - np.exp(-self.tau)
-            elif self.epsilon**0.5 < 1e-4 and self.tau < 1 / self.epsilon**0.5:
+            elif self.epsilon**0.5 < 1e-3 and self.tau < 1 / self.epsilon**0.5:
                 self.eff_an = 1 - (1 - self.tau * self.epsilon**0.5) ** 2
             else:
                 beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
@@ -390,7 +390,7 @@ class Component:
             float: The permeation flux.
 
         """
-        if not isinstance(c, float) or c.size == 0:
+        if not isinstance(c, float):
             print(c)
             raise ValueError("Input 'c' must be a non-empty numpy array")
 
