@@ -264,12 +264,12 @@ class Component:
                 f_H2 = 1
             if i == 0:
 
-                c_vec[i] = self.c_in
+                c_vec[i] = float(self.c_in)
 
                 if isinstance(c_guess, float):
                     c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
                 else:
-                    c_guess = self.get_flux(c_vec[i], c_guess=self.c_in)
+                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in))
             else:
                 c_vec[i] = c_vec[
                     i - 1
@@ -279,7 +279,7 @@ class Component:
                 if isinstance(c_guess, float):
                     c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
                 else:
-                    c_guess = self.get_flux(c_vec[i], c_guess=self.c_in)
+                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in))
         if plotvar:
             plt.plot(L_vec, c_vec)
         self.eff = (self.c_in - c_vec[-1]) / self.c_in
@@ -339,20 +339,19 @@ class Component:
                 beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
                     (1 / self.epsilon + 1) ** 0.5 - 1
                 )
-                beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
-                    (1 / self.epsilon + 1) ** 0.5 - 1
-                )
 
-            def eq(var):
-                cl = var
-                alpha = self.epsilon / self.c_in
-                left = (cl / alpha + 1) ** 0.5 + np.log((cl / alpha + 1) ** 0.5 - 1)
-                right = beta - self.tau
+                def eq(var):
+                    cl = var
+                    alpha = self.epsilon / self.c_in
+                    left = (cl / alpha + 1) ** 0.5 + np.log(
+                        (cl / alpha + 1) ** 0.5 - 1 + 1e-10
+                    )
+                    right = beta - self.tau
 
-                return abs(left - right)
+                    return abs(left - right)
 
-            cl = minimize(eq, self.c_in / 2, bounds=[(0, self.c_in)]).x[0]
-            self.eff_an = 1 - (cl / self.c_in)
+                cl = minimize(eq, self.c_in / 2, bounds=[(0, self.c_in)]).x[0]
+                self.eff_an = 1 - (cl / self.c_in)
 
             # max_exp = np.log(np.finfo(np.float64).max)
             # beta_tau = beta - self.tau - 1
@@ -391,6 +390,12 @@ class Component:
             float: The permeation flux.
 
         """
+        if not isinstance(c, float) or c.size == 0:
+            print(c)
+            raise ValueError("Input 'c' must be a non-empty numpy array")
+
+        if not isinstance(c_guess, float):
+            raise ValueError("c_guess must be a float")
         self.get_adimensionals()
         if self.fluid.MS:
             if self.W > 10:
@@ -441,7 +446,8 @@ class Component:
 
                         initial_guess = c_guess
                     else:
-                        initial_guess = [(c * 1e-2)]
+                        ValueError("c_guess must be a float")
+                    initial_guess = c_guess
                     min_upper_bound = 1e-4  # Set a minimum value for the upper bound
                     upper_bound = max(c * (1 + 1e-4), min_upper_bound)
                     solution = minimize(
@@ -451,9 +457,9 @@ class Component:
                         bounds=[
                             (0, upper_bound),
                         ],
-                        tol=1e-15,
+                        tol=1e-8,
                         options={
-                            "maxiter": int(1e6),
+                            "maxiter": int(1e7),
                         },
                     )
                     self.J_perm = (
