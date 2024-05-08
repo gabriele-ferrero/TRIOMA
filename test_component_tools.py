@@ -67,7 +67,7 @@ class TestMSComponent(unittest.TestCase):
     def test_use_analytical_efficiency(self):
         # Test the use_analytical_efficiency() method
         self.component.use_analytical_efficiency(L=1.0)
-        self.assertAlmostEqual(self.component.eff, 0.99486679330018)
+        self.assertAlmostEqual(self.component.eff, 0.99871670123992)
 
     def test_get_efficiency(self):
         # Test the get_efficiency() method
@@ -78,7 +78,7 @@ class TestMSComponent(unittest.TestCase):
     def test_analytical_efficiency(self):
         # Test the analytical_efficiency() method
         self.component.analytical_efficiency(L=1.0)
-        self.assertAlmostEqual(self.component.eff_an, 0.99486679330018)
+        self.assertAlmostEqual(self.component.eff_an, 0.99871670123992)
 
     def test_get_flux(self):
         # Test the get_flux() method

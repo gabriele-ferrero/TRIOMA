@@ -333,24 +333,28 @@ class Component:
 
             if self.epsilon > 1e5:
                 self.eff_an = 1 - np.exp(-self.tau)
-            elif self.epsilon**0.5 < 1e-3 and self.tau < 1 / self.epsilon**0.5:
+            elif self.epsilon**0.5 < 1e-2 and self.tau < 1 / self.epsilon**0.5:
                 self.eff_an = 1 - (1 - self.tau * self.epsilon**0.5) ** 2
-            else:
+            else:  
                 beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
                     (1 / self.epsilon + 1) ** 0.5 - 1
                 )
 
                 def eq(var):
                     cl = var
-                    alpha = self.epsilon / self.c_in
-                    left = (cl / alpha + 1) ** 0.5 + np.log(
-                        (cl / alpha + 1) ** 0.5 - 1 + 1e-10
-                    )
+                    alpha = self.epsilon * self.c_in
+                    left = (cl / alpha + 1) ** 0.5 + np.log((cl / alpha + 1) ** 0.5 - 1+1e-10)
                     right = beta - self.tau
 
                     return abs(left - right)
 
-                cl = minimize(eq, self.c_in / 2, bounds=[(0, self.c_in)]).x[0]
+                cl = minimize(
+                    eq,
+                    self.c_in / 2,
+                    method="Powell",
+                    bounds=[(0, self.c_in)],
+                    tol=1e-7,
+                ).x[0]
                 self.eff_an = 1 - (cl / self.c_in)
 
             # max_exp = np.log(np.finfo(np.float64).max)
