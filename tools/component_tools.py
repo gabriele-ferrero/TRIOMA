@@ -960,9 +960,9 @@ class Fluid:
             if self.k_t is None:
                 Re = corr.Re(rho=self.rho, u=self.U0, L=self.d_Hyd, mu=self.mu)
                 Sc = corr.Schmidt(D=self.D, mu=self.mu, rho=self.rho)
-                if Re < 1e4 and Re > 2030:
-                    Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157
-                elif Re > 1e4:
+                # if Re < 1e4 and Re > 2030:
+                #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
+                if Re > 2030:
                     Sh = 0.0096 * Re**0.913 * Sc**0.346  ##Getthem paper
                 else:
                     print(Re)
