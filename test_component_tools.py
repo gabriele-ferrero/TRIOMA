@@ -400,7 +400,7 @@ class TestFluid(unittest.TestCase):
         self.component.update_attribute("U0", 0.008)
         # test when Reynolds number is in a different correlation range
         self.component.get_kt()
-        self.assertAlmostEqual(self.component.k_t, 5.814941299143e-07)
+        self.assertAlmostEqual(self.component.k_t, 4.25875681945274e-07)
 
 
 class TestMSComponentDiffusionLimited(unittest.TestCase):
@@ -551,29 +551,29 @@ class TestMSComponentMassTransportLimited(unittest.TestCase):
     def test_get_adimensionals(self):
         # Test the get_adimensionals() method
         self.component.get_adimensionals()
-        self.assertAlmostEqual(self.component.H, 5019165848404.195, places=1)
+        self.assertAlmostEqual(self.component.H, 6240284261200.083, places=1)
         self.assertAlmostEqual(self.component.W, 235702260.39551586)
 
     def test_use_analytical_efficiency(self):
         # Test the use_analytical_efficiency() method
         self.component.use_analytical_efficiency(L=1.0)
-        self.assertAlmostEqual(self.component.eff, 0.180643738085997)
+        self.assertAlmostEqual(self.component.eff, 0.148068462270955)
 
     def test_get_efficiency(self):
         # Test the get_efficiency() method
         self.component.get_efficiency(L=1.0)
 
-        self.assertAlmostEqual(self.component.eff, 0.18080820709166678)
+        self.assertAlmostEqual(self.component.eff, 0.1481790664501431)
 
     def test_analytical_efficiency(self):
         # Test the analytical_efficiency() method
         self.component.analytical_efficiency(L=1.0)
-        self.assertAlmostEqual(self.component.eff_an, 0.1806437380859)
+        self.assertAlmostEqual(self.component.eff_an, 0.148068462270955)
 
     def test_get_flux(self):
         # Test the get_flux() method
         flux = self.component.get_flux(c=0.3, c_guess=0.3)
-        self.assertAlmostEqual(self.component.J_perm, -0.00011954177608830, places=5)
+        self.assertAlmostEqual(self.component.J_perm, -9.6149466095734e-05, places=5)
 
     def test_get_global_HX_coeff(self):
         # Test the get_global_HX_coeff() method
@@ -641,29 +641,29 @@ class TestLMComponentMassTransportLimited(unittest.TestCase):
     def test_get_adimensionals(self):
         # Test the get_adimensionals() method
         self.component.get_adimensionals()
-        self.assertAlmostEqual(self.component.H, 9034498527.127552, places=1)
+        self.assertAlmostEqual(self.component.H, 11232511670.1601, places=1)
         self.assertAlmostEqual(self.component.W, 30000.0)
 
     def test_use_analytical_efficiency(self):
         # Test the use_analytical_efficiency() method
         self.component.use_analytical_efficiency(L=1.0)
-        self.assertAlmostEqual(self.component.eff, 0.180643221435936)
+        self.assertAlmostEqual(self.component.eff, 0.1480681147484217)
 
     def test_get_efficiency(self):
         # Test the get_efficiency() method
         self.component.get_efficiency(L=1.0)
 
-        self.assertAlmostEqual(self.component.eff, 0.18080820709166678)
+        self.assertAlmostEqual(self.component.eff, 0.1481790664501431)
 
     def test_analytical_efficiency(self):
         # Test the analytical_efficiency() method
         self.component.analytical_efficiency(L=1.0)
-        self.assertAlmostEqual(self.component.eff_an, 0.180643221435936)
+        self.assertAlmostEqual(self.component.eff_an, 0.148068114748421)
 
     def test_get_flux(self):
         # Test the get_flux() method
         flux = self.component.get_flux(c=0.3, c_guess=0.3)
-        self.assertAlmostEqual(self.component.J_perm, -5.977088804415232e-05, places=5)
+        self.assertAlmostEqual(self.component.J_perm, -4.80747330478670e-05, places=5)
 
     def test_get_global_HX_coeff(self):
         # Test the get_global_HX_coeff() method
