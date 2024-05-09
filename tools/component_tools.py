@@ -335,27 +335,44 @@ class Component:
                 self.eff_an = 1 - np.exp(-self.tau)
             elif self.epsilon**0.5 < 1e-2 and self.tau < 1 / self.epsilon**0.5:
                 self.eff_an = 1 - (1 - self.tau * self.epsilon**0.5) ** 2
-            else:  
+            else:
                 beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
                     (1 / self.epsilon + 1) ** 0.5 - 1
                 )
+                max_exp = np.log(np.finfo(np.float64).max)
+                beta_tau = beta - self.tau - 1
+                if beta_tau > max_exp:
+                    print(
+                        "Warning: Overflow encountered in exp, input too large.Iterative solver triggered"
+                    )
+                    # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
 
-                def eq(var):
-                    cl = var
-                    alpha = self.epsilon * self.c_in
-                    left = (cl / alpha + 1) ** 0.5 + np.log((cl / alpha + 1) ** 0.5 - 1+1e-10)
-                    right = beta - self.tau
+                    def eq(var):
+                        cl = var
+                        alpha = self.epsilon * self.c_in
+                        left = (cl / alpha + 1) ** 0.5 + np.log(
+                            (cl / alpha + 1) ** 0.5 - 1 + 1e-10
+                        )
+                        right = beta - self.tau
 
-                    return abs(left - right)
+                        return abs(left - right)
 
-                cl = minimize(
-                    eq,
-                    self.c_in / 2,
-                    method="Powell",
-                    bounds=[(0, self.c_in)],
-                    tol=1e-7,
-                ).x[0]
-                self.eff_an = 1 - (cl / self.c_in)
+                    cl = minimize(
+                        eq,
+                        self.c_in / 2,
+                        method="Powell",
+                        bounds=[(0, self.c_in)],
+                        tol=1e-7,
+                    ).x[0]
+                    self.eff_an = 1 - (cl / self.c_in)
+                else:
+                    z = np.exp(beta_tau)
+                    w = lambertw(z, tol=1e-10)
+                    self.eff_an = 1 - self.epsilon * (w**2 + 2 * w)
+                    if self.eff_an.imag != 0:
+                        raise ValueError("self.eff_an has a non-zero imaginary part")
+                    else:
+                        self.eff_an = self.eff_an.real  # get rid of 0*j
 
             # max_exp = np.log(np.finfo(np.float64).max)
             # beta_tau = beta - self.tau - 1
