@@ -1,3 +1,5 @@
+from turtle import up
+from xml.etree.ElementTree import register_namespace
 import numpy as np
 
 # from example_simulation import TBR
@@ -11,6 +13,7 @@ from scipy.constants import physical_constants
 from scipy.optimize import minimize
 from scipy.special import lambertw
 from typing import Union
+from typing import List
 
 
 def print_class_variables(instance, variable_names=None, tab: int = 0):
@@ -68,6 +71,39 @@ def set_attribute(instance, attr_name, new_value):
         raise ValueError(
             f"'{attr_name}' is not an attribute of {instance.__class__.__name__}"
         )
+
+
+class Trap:
+
+    def __init__(
+        self,
+        n0: float = None,
+        k_0: float = None,
+        E_k: float = None,
+        p_0: float = None,
+        E_p: float = None,
+    ):
+        self.n0 = n0
+        self.k_0 = k_0
+        self.E_k = E_k
+        self.p_0 = p_0
+        self.E_p = E_p
+
+    def inspect(self, variable_names=None):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self, variable_names)
+
+    def update_attribute(self, attr_name: str, new_value: float):
+        """
+        Updates the value of the specified attribute.
+
+        Args:
+            attr_name (str): The name of the attribute to update.
+            new_value: The new value for the attribute.
+        """
+        set_attribute(self, attr_name, new_value)
 
 
 class Component:
@@ -832,6 +868,20 @@ class Component:
                     self.J_perm = self.fluid.k_t * (c - c_wl)  # LM factor
                     return float(solution.x[0])
 
+    # def get_trapped_inventory: #TODO
+    # get regime
+    # if MTL trap 0
+    # if surface limited get filling ratio, and cm is defined by surface limited
+    # if diffusion limited get filling ratio, and cm is defined by diffusion limited with distribution
+    # if mixed regime get filling ratio and cm is defined by diffusion with mixed regime  with distribution
+    # def get characteristic time #TODO
+    # if Peclet is useful time liquid = L/U0
+    # if MTL time solid=time liquid
+    # if diffusion
+    #     if trap get effective diffusivity
+    # use analitical solution
+    # if surface limited time solid = time of diffusivity to build up the concentration in the membrane with constant flux
+
     def get_global_HX_coeff(self, R_conv_sec: float = 0):
         """
         Calculates the global heat exchange coefficient of the component.
@@ -991,6 +1041,7 @@ class Membrane:
         k_d (float, optional): Dissociation rate constant of the membrane. Defaults to None.
         k_r (float, optional): Recombination rate constant of the membrane. Defaults to None.
         k (float, optional): Thermal conductivity of the membrane. Defaults to None.
+        traps(Trap,oprional): List of traps in the membrane. Defaults to None.
     """
 
     def __init__(
@@ -1002,6 +1053,7 @@ class Membrane:
         k_d: float = None,
         k_r: float = None,
         k: float = None,
+        traps: List[Trap] = None,
     ):
         """
         Initializes a new instance of the Membrane class.
