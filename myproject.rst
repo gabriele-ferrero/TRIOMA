@@ -1,4 +1,4 @@
-Tritone API Documentation
+TRIOMA API Documentation
 ===========================
 
 Below is the documentation for all modules in Tritone:
