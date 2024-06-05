@@ -16,7 +16,9 @@ from tools.correlations import (
     Sherwood_bubbles,
 )
 import numpy as np
-
+import sys
+import os
+sys.path.append(os.path.abspath('.'))
 
 def test_get_deltaTML():
     T_in_hot = 100.0

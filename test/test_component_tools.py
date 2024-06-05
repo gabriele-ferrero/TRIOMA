@@ -1,4 +1,7 @@
 import unittest
+import sys
+import os
+sys.path.append(os.path.abspath('.'))
 from tools.component_tools import (
     Component,
     Fluid,
@@ -12,6 +15,7 @@ from io import StringIO
 from unittest.mock import patch
 import pytest
 from tools.materials import Flibe
+
 
 
 class TestMSComponent(unittest.TestCase):
