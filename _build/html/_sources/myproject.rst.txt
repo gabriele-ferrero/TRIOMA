@@ -40,7 +40,7 @@ Fluid Material Class
    :members:
 
 Breeding Blanket Class
---------------------
+----------------------
 
 .. autoclass:: tools.component_tools.BreedingBlanket
    :members:

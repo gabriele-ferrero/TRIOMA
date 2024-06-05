@@ -1,5 +1,3 @@
-from turtle import up
-from xml.etree.ElementTree import register_namespace
 import numpy as np
 
 # from example_simulation import TBR
@@ -13,7 +11,6 @@ from scipy.constants import physical_constants
 from scipy.optimize import minimize
 from scipy.special import lambertw
 from typing import Union
-from typing import List
 
 
 def print_class_variables(instance, variable_names=None, tab: int = 0):
@@ -33,6 +30,7 @@ def print_class_variables(instance, variable_names=None, tab: int = 0):
         FluidMaterial,
         SolidMaterial,
         BreedingBlanket,
+        Geometry,
     ]
     indent = "    " * tab  # Define the indentation as four spaces per tab level
     for attr_name, attr_value in instance.__dict__.items():
@@ -73,27 +71,25 @@ def set_attribute(instance, attr_name, new_value):
         )
 
 
-class Trap:
+class Geometry:
+    """
+    Represents the geometry of a component.
+
+    Args:
+        L (float): Length of the component.
+        D (float): Diameter of the component.
+        thick (float): Thickness of the component.
+        n_pipes (int, optional): The number of pipes in the component. Defaults to 1.
+
+    """
 
     def __init__(
-        self,
-        n0: float = None,
-        k_0: float = None,
-        E_k: float = None,
-        p_0: float = None,
-        E_p: float = None,
+        self, L: float = None, D: float = None, thick: float = None, n_pipes: int = 1
     ):
-        self.n0 = n0
-        self.k_0 = k_0
-        self.E_k = E_k
-        self.p_0 = p_0
-        self.E_p = E_p
-
-    def inspect(self, variable_names=None):
-        """
-        Prints the attributes of the component.
-        """
-        print_class_variables(self, variable_names)
+        self.L = L
+        self.D = D
+        self.thick = thick
+        self.n_pipes = n_pipes
 
     def update_attribute(self, attr_name: str, new_value: float):
         """
@@ -105,21 +101,49 @@ class Trap:
         """
         set_attribute(self, attr_name, new_value)
 
+    def inspect(self):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self)
+
+    def get_fluid_volume(self):
+        """
+        Calculates the volume of the fluid component.
+        """
+
+        return np.pi * (self.D / 2) ** 2 * self.L
+
+    def get_solid_volume(self):
+        """
+        Calculates the volume of the solid component.
+        """
+        return np.pi * ((self.D / 2) ** 2 - (self.D / 2 - self.thick) ** 2) * self.L
+
+    def get_total_volume(self):
+        """
+        Calculates the total volume of the component.
+        """
+        return self.get_fluid_volume() + self.get_solid_volume()
+
 
 class Component:
     """
     Represents a component in a plant to make a high level T transport analysis.
 
     Args:
+        Geometry (Geometry): The geometry of the component.
         c_in (float): The concentration of the component at the inlet.
-        fluid (Fluid, optional): The fluid associated with the component. Defaults to None.
-        membrane (Membrane, optional): The membrane associated with the component. Defaults to None.
+        fluid (Fluid): The fluid associated with the component. Defaults to None.
+        membrane (Membrane): The membrane associated with the component. Defaults to None.
     """
 
     def __init__(
         self,
+        geometry: "Geometry" = None,
         c_in: float = None,
         eff: float = None,
+        n_pipes: int = 1,
         fluid: "Fluid" = None,
         membrane: "Membrane" = None,
     ):
@@ -129,19 +153,34 @@ class Component:
         Args:
             c_in (float): The concentration of the component at the inlet.
             eff (float, optional): The efficiency of the component. Defaults to None.
+            L (float, optional): The length of the component. Defaults to None.
             fluid (Fluid, optional): The fluid associated with the component. Defaults to None.
             membrane (Membrane, optional): The membrane associated with the component. Defaults to None.
         """
         self.c_in = c_in
+        self.geometry = geometry
         self.eff = eff
+        self.n_pipes = (n_pipes,)
         self.fluid = fluid
         self.membrane = membrane
-        self.H = None
-        self.W = None
+        # if (
+        #     isinstance(self.fluid, Fluid)
+        #     and isinstance(self.membrane, Membrane)
+        #     and isinstance(self.geometry, Geometry)
+        # ):
+        #     if self.membrane.thick != self.geometry.thick:
+        #         print("overwriting Membrane thickness with Geometry thickness")
+        #     if self.fluid.d_Hyd != self.geometry.D:
+        #         print("overwriting Fluid Hydraulic diameter with Geometry Diameter")
+        # self.membrane.thick = self.geometry.thick
+        # self.fluid.d_Hyd = self.geometry.D
+
         ##Todo initialize k_t
 
     def update_attribute(
-        self, attr_name: str = None, new_value: Union[float, "Fluid", "Membrane"] = None
+        self,
+        attr_name: str = None,
+        new_value: Union[float, "Fluid", "Membrane", "Geometry"] = None,
     ):
         """
         Updates the value of the specified attribute.
@@ -174,7 +213,8 @@ class Component:
         Returns:
             float: The leakage of the component.
         """
-        leak = self.c_in * self.eff
+        leak = self.c_in * self.eff * self.get_pipe_flowrate()
+
         return leak
 
     def get_regime(self, print_var: bool = False):
@@ -221,6 +261,32 @@ class Component:
         else:
             return "No fluid selected"
 
+    def get_pipe_flowrate(self):
+        """
+        Calculates the volumetric flow rate of the component [m^3/s].
+
+        Returns:
+            float: The flow rate of the component.
+        """
+        self.pipe_flowrate = self.fluid.U0 * np.pi * self.fluid.d_Hyd**2 / 4
+        return self.fluid.U0 * np.pi * self.fluid.d_Hyd**2 / 4
+
+    def get_total_flowrate(self):
+        """
+        Calculates the total flow rate of the component.
+        """
+        self.get_pipe_flowrate()
+        self.flowrate = self.pipe_flowrate * self.geometry.n_pipes
+        return self.flowrate * self.geometry.n_pipes
+
+    def define_component_volumes(self):
+        """
+        Calculates the volumes of the component.
+        """
+        self.fluid.V = self.geometry.get_fluid_volume()
+        self.membrane.V = self.geometry.get_solid_volume()
+        self.V = self.fluid.V + self.membrane.V
+
     def get_adimensionals(self):
         """
         Calculates the adimensional parameters H and W.
@@ -266,7 +332,7 @@ class Component:
                     K_S_L=self.fluid.Solubility,
                 )
 
-    def use_analytical_efficiency(self, L: float = None):
+    def use_analytical_efficiency(self):
         """Evaluates the analytical efficiency and substitutes it in the efficiency attribute of the component.
 
         Args:
@@ -274,22 +340,20 @@ class Component:
         Returns:
             None
         """
-        self.analytical_efficiency(L)
+        self.analytical_efficiency()
         self.eff = self.eff_an
 
-    def get_efficiency(
-        self, L: float = None, plotvar: bool = False, c_guess: float = None
-    ):
+    def get_efficiency(self, plotvar: bool = False, c_guess: float = None):
         """
         Calculates the efficiency of the component.
-
-        Args:
-            L (float): The characteristic length of the component.
-
-        Returns:
-            float: The efficiency of the component.
         """
-        L_vec = np.linspace(0, L, 100)
+
+        if self.c_in == 0:
+            self.c_out = 0
+            self.eff = 0
+            return
+
+        L_vec = np.linspace(0, self.geometry.L, 100)
         dl = L_vec[1] - L_vec[0]
 
         c_vec = np.ndarray(len(L_vec))
@@ -320,7 +384,7 @@ class Component:
             plt.plot(L_vec, c_vec)
         self.eff = (self.c_in - c_vec[-1]) / self.c_in
 
-    def analytical_efficiency(self, L: float = None):
+    def analytical_efficiency(self):
         """
         Calculate the analytical efficiency of a component.
 
@@ -345,7 +409,9 @@ class Component:
         """
         if self.fluid.k_t is None:
             self.fluid.get_kt()
-        self.tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
+        self.tau = (
+            4 * self.fluid.k_t * self.geometry.L / (self.fluid.U0 * self.fluid.d_Hyd)
+        )
         if self.fluid.MS:
             self.epsilon = (
                 1
@@ -868,20 +934,6 @@ class Component:
                     self.J_perm = self.fluid.k_t * (c - c_wl)  # LM factor
                     return float(solution.x[0])
 
-    # def get_trapped_inventory: #TODO
-    # get regime
-    # if MTL trap 0
-    # if surface limited get filling ratio, and cm is defined by surface limited
-    # if diffusion limited get filling ratio, and cm is defined by diffusion limited with distribution
-    # if mixed regime get filling ratio and cm is defined by diffusion with mixed regime  with distribution
-    # def get characteristic time #TODO
-    # if Peclet is useful time liquid = L/U0
-    # if MTL time solid=time liquid
-    # if diffusion
-    #     if trap get effective diffusivity
-    # use analitical solution
-    # if surface limited time solid = time of diffusivity to build up the concentration in the membrane with constant flux
-
     def get_global_HX_coeff(self, R_conv_sec: float = 0):
         """
         Calculates the global heat exchange coefficient of the component.
@@ -1041,7 +1093,6 @@ class Membrane:
         k_d (float, optional): Dissociation rate constant of the membrane. Defaults to None.
         k_r (float, optional): Recombination rate constant of the membrane. Defaults to None.
         k (float, optional): Thermal conductivity of the membrane. Defaults to None.
-        traps(Trap,oprional): List of traps in the membrane. Defaults to None.
     """
 
     def __init__(
@@ -1053,7 +1104,6 @@ class Membrane:
         k_d: float = None,
         k_r: float = None,
         k: float = None,
-        traps: List[Trap] = None,
     ):
         """
         Initializes a new instance of the Membrane class.
