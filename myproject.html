@@ -1,0 +1,661 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>TRIOMA API Documentation &#8212; TRIOMA 0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Welcome to Trioma’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="trioma-api-documentation">
+<h1>TRIOMA API Documentation<a class="headerlink" href="#trioma-api-documentation" title="Permalink to this heading">¶</a></h1>
+<p>Below is the documentation for all modules in Tritone:</p>
+<section id="component-tools">
+<h2>Component tools<a class="headerlink" href="#component-tools" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="tools.component_tools.Component">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tools.component_tools.</span></span><span class="sig-name descname"><span class="pre">Component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tools.component_tools.Fluid" title="tools.component_tools.Fluid"><span class="pre">Fluid</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">membrane</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tools.component_tools.Membrane" title="tools.component_tools.Membrane"><span class="pre">Membrane</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Component" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a component in a plant to make a high level T transport analysis.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>c_in (float): The concentration of the component at the inlet.
+fluid (Fluid, optional): The fluid associated with the component. Defaults to None.
+membrane (Membrane, optional): The membrane associated with the component. Defaults to None.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Component.T_leak">
+<span class="sig-name descname"><span class="pre">T_leak</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#tools.component_tools.Component.T_leak" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the leakage of the component.</p>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>float: The leakage of the component.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Component.analytical_efficiency">
+<span class="sig-name descname"><span class="pre">analytical_efficiency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">L</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Component.analytical_efficiency" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the analytical efficiency of a component.</p>
+<p>Parameters:
+- L: Length of the component</p>
+<p>Returns:
+- eff_an: Analytical efficiency of the component (from Humrickhouse papers)</p>
+<p>This function calculates the analytical efficiency of a component based on the given length (L) of the component.
+It uses various properties of the component, such as membrane properties, fluid properties, and adimensionals.</p>
+<p>If the fluid is a molten salt (MS=True), the analytical efficiency is calculated using the following formula:
+eff_an = 1 - epsilon * (lambertw(z=np.exp(beta - tau - 1), tol=1e-10) ** 2 + 2 * lambertw(z=np.exp(beta - tau - 1), tol=1e-10)).</p>
+<p>If the fluid is a liquid metal (MS= False), the analytical efficiency is calculated using the following formula:
+eff_an = 1 - np.exp(-tau * zeta / (1 + zeta)).</p>
+<p>The output of the function is the analytical efficiency of the component as Component.eff_an.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Component.get_adimensionals">
+<span class="sig-name descname"><span class="pre">get_adimensionals</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Component.get_adimensionals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the adimensional parameters H and W.</p>
+<p>Updates the H and W attributes of the Component object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Component.get_efficiency">
+<span class="sig-name descname"><span class="pre">get_efficiency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">L</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plotvar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_guess</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Component.get_efficiency" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the efficiency of the component.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>L (float): The characteristic length of the component.</p>
+</dd>
+<dt>Returns:</dt><dd><p>float: The efficiency of the component.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Component.get_flux">
+<span class="sig-name descname"><span class="pre">get_flux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_guess</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-09</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Component.get_flux" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the Tritium flux of the component.
+It can make some approximations based on W and H to make the solver faster</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>c (float): The concentration in the component fluid.</p>
+</dd>
+<dt>Returns:</dt><dd><p>float: The permeation flux.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Component.get_global_HX_coeff">
+<span class="sig-name descname"><span class="pre">get_global_HX_coeff</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">R_conv_sec</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Component.get_global_HX_coeff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the global heat exchange coefficient of the component.
+It can take the secondary resistance to convection as input. defaults to no resistance</p>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>float: The global heat exchange coefficient of the component.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Component.get_regime">
+<span class="sig-name descname"><span class="pre">get_regime</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">print_var</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Component.get_regime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gets the regime of the component.</p>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>str: The regime of the component.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Component.inspect">
+<span class="sig-name descname"><span class="pre">inspect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Component.inspect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints the attributes of the component.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Component.outlet_c_comp">
+<span class="sig-name descname"><span class="pre">outlet_c_comp</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#tools.component_tools.Component.outlet_c_comp" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the concentration of the component at the outlet.</p>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>float: The concentration of the component at the outlet.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Component.update_attribute">
+<span class="sig-name descname"><span class="pre">update_attribute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#tools.component_tools.Fluid" title="tools.component_tools.Fluid"><span class="pre">Fluid</span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#tools.component_tools.Membrane" title="tools.component_tools.Membrane"><span class="pre">Membrane</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Component.update_attribute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the value of the specified attribute.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>attr_name (str): The name of the attribute to update.
+new_value: The new value for the attribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Component.use_analytical_efficiency">
+<span class="sig-name descname"><span class="pre">use_analytical_efficiency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">L</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Component.use_analytical_efficiency" title="Permalink to this definition">¶</a></dt>
+<dd><p>Evaluates the analytical efficiency and substitutes it in the efficiency attribute of the component.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>L (float): the length of the pipe component</p>
+</dd>
+<dt>Returns:</dt><dd><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-tools.correlations">
+<span id="correlations"></span><h2>Correlations<a class="headerlink" href="#module-tools.correlations" title="Permalink to this heading">¶</a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.Nu_DittusBoelter">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Nu_DittusBoelter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Pr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.Nu_DittusBoelter" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Nusselt number using the Dittus-Boelter correlation.
+Parameters:
+- Re (float): Reynolds number
+- Pr (float): Prandtl number
+Returns:
+- Nu (float): Nusselt number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.Nu_Gnielinsky">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Nu_Gnielinsky</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Pr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.Nu_Gnielinsky" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Nusselt number using the Gnielinsky correlation.
+Parameters:
+- Re (float): Reynolds number
+- Pr (float): Prandtl number
+- f (float): friction factor
+Returns:
+- Nu (float): Nusselt number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.Nu_SiederTate">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Nu_SiederTate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Pr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_c</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.Nu_SiederTate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Nusselt number using the Sieder-Tate correlation.</p>
+<p>Parameters:
+- Re (float): Reynolds number
+- Pr (float): Prandtl number
+- mu_w (float): viscosity of the wall fluid
+- mu_c (float): viscosity of the core fluid</p>
+<p>Returns:
+- Nu (float): Nusselt number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.Pr">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Pr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c_p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.Pr" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Prandtl number.
+Parameters:
+- c_p (float): specific heat capacity
+- mu (float): viscosity
+- k (float): thermal conductivity
+Returns:
+- Pr (float): Prandtl number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.Re">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Re</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.Re" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Reynolds number.
+Parameters:
+- rho (float): density
+- u (float): velocity
+- L (float): length
+- mu (float): viscosity
+Returns:
+- Re (float): Reynolds number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.Schmidt">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Schmidt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">D</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.Schmidt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Schmidt number.
+Parameters:
+- D (float): diffusivity
+- mu (float): viscosity
+- rho (float): density
+Returns:
+- Sc (float): Schmidt number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.Sherwood">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Sherwood</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Sc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Re</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.Sherwood" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Sherwood number.
+Parameters:
+- Sc (float): Schmidt number
+- Re (float): Reynolds number
+Returns:
+- Sh (float): Sherwood number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.Sherwood_HT_analogy">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Sherwood_HT_analogy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Sc</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.Sherwood_HT_analogy" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Sherwood number using the heat transfer analogy.
+Parameters:
+- Re (float): Reynolds number
+- Sc (float): Schmidt number
+Returns:
+- Sh (float): Sherwood number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.Sherwood_bubbles">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Sherwood_bubbles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Sc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Re</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.Sherwood_bubbles" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the Sherwood number for bubbles.
+Parameters:
+- Sc (float): Schmidt number
+- Re (float): Reynolds number
+Returns:
+- Sh (float): Sherwood number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.f_Haaland">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">f_Haaland</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e_D</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.f_Haaland" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the friction factor using the Haaland correlation.
+Parameters:
+- Re (float): Reynolds number
+- e_D (float): relative roughness
+Returns:
+- f (float): friction factor</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.f_Pethukov">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">f_Pethukov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Pr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.f_Pethukov" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the friction factor using the Pethukov correlation.
+Parameters:
+- Re (float): Reynolds number
+- Pr (float): Prandtl number
+Returns:
+- f (float): friction factor</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.get_deltaTML">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">get_deltaTML</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_in_hot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_out_hot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_in_cold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_out_cold</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.get_deltaTML" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the log mean temperature difference.
+Parameters:
+- T_in_hot (float): hot inlet temperature
+- T_out_hot (float): hot outlet temperature
+- T_in_cold (float): cold inlet temperature
+- T_out_cold (float): cold outlet temperature
+Returns:
+- deltaTML (float): log mean temperature difference</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.get_h_from_Nu">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">get_h_from_Nu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.get_h_from_Nu" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the heat transfer coefficient from the Nusselt number.
+Parameters:
+- Nu (float): Nusselt number
+- k (float): thermal conductivity
+- D (float): diameter
+Returns:
+- h (float): heat transfer coefficient</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.get_k_from_Sh">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">get_k_from_Sh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Sh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.get_k_from_Sh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the mass transfer coefficient from the Sherwood number.
+Parameters:
+- Sh (float): Sherwood number
+- L (float): length
+- D (float): diameter
+Returns:
+- k (float): mass transfer coefficient</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="tools.correlations.get_length_HX">
+<span class="sig-prename descclassname"><span class="pre">tools.correlations.</span></span><span class="sig-name descname"><span class="pre">get_length_HX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deltaTML</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_hyd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.correlations.get_length_HX" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the length of the heat exchanger.
+Parameters:
+- deltaTML (float): log mean temperature difference
+- d_hyd (float): hydraulic diameter
+- U (float): overall heat transfer coefficient
+- Q (float): heat transfer rate
+Returns:
+- L (float): length of the heat exchanger</p>
+</dd></dl>
+
+</section>
+<section id="fluid-class">
+<h2>Fluid Class<a class="headerlink" href="#fluid-class" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="tools.component_tools.Fluid">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tools.component_tools.</span></span><span class="sig-name descname"><span class="pre">Fluid</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Solubility</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MS</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_Hyd</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">U0</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Fluid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a fluid in a component for Tritium transport analysis</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>T (float): Temperature of the fluid.
+D (float): Tritium Diffusivity of the fluid.
+Solubility (float): Solubility of the fluid.
+MS (bool): Indicates whether the fluid is a molten salt or a liquid metal.
+d_Hyd (float, optional): Hydraulic diameter of the fluid. Defaults to None.
+k_t (float, optional): Mass transport coefficient of the fluid. Defaults to None.
+mu (float, optional): Viscosity of the fluid. Defaults to None.
+rho (float, optional): Density of the fluid. Defaults to None.
+U0 (float, optional): Velocity of the fluid. Defaults to None.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Fluid.get_kt">
+<span class="sig-name descname"><span class="pre">get_kt</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Fluid.get_kt" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the mass transport coefficient (k_t) for the fluid.</p>
+<p>If the hydraulic diameter (d_Hyd) is defined, the mass transport coefficient is calculated using correlations.
+Otherwise, an error message is printed.</p>
+<dl class="simple">
+<dt>Returns:</dt><dd><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Fluid.inspect">
+<span class="sig-name descname"><span class="pre">inspect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Fluid.inspect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints the attributes of the component.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Fluid.set_properties_from_fluid_material">
+<span class="sig-name descname"><span class="pre">set_properties_from_fluid_material</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fluid_material</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tools.component_tools.FluidMaterial" title="tools.component_tools.FluidMaterial"><span class="pre">FluidMaterial</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Fluid.set_properties_from_fluid_material" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the properties of the fluid from a FluidMaterial object.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>fluid_material (FluidMaterial): The FluidMaterial object to set the properties from.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Fluid.update_attribute">
+<span class="sig-name descname"><span class="pre">update_attribute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#tools.component_tools.FluidMaterial" title="tools.component_tools.FluidMaterial"><span class="pre">FluidMaterial</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Fluid.update_attribute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the value of the specified attribute.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>attr_name (str): The name of the attribute to update.
+new_value: The new value for the attribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="membrane-class">
+<h2>Membrane Class<a class="headerlink" href="#membrane-class" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="tools.component_tools.Membrane">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tools.component_tools.</span></span><span class="sig-name descname"><span class="pre">Membrane</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">thick</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">K_S</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_d</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k_r</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">traps</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Trap</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Membrane" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a metallic membrane of a component for H transport.</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><p>T (float): Temperature of the membrane.
+D (float): Diffusion coefficient of the membrane.
+thick (float): Thickness of the membrane.
+K_S (float): Solubility coefficient of the membrane.
+k_d (float, optional): Dissociation rate constant of the membrane. Defaults to None.
+k_r (float, optional): Recombination rate constant of the membrane. Defaults to None.
+k (float, optional): Thermal conductivity of the membrane. Defaults to None.
+traps(Trap,oprional): List of traps in the membrane. Defaults to None.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Membrane.inspect">
+<span class="sig-name descname"><span class="pre">inspect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Membrane.inspect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints the attributes of the component.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Membrane.set_properties_from_solid_material">
+<span class="sig-name descname"><span class="pre">set_properties_from_solid_material</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">solid_material</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tools.component_tools.SolidMaterial" title="tools.component_tools.SolidMaterial"><span class="pre">SolidMaterial</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Membrane.set_properties_from_solid_material" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the properties of the membrane from a SolidMaterial object.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>solid_material (SolidMaterial): The SolidMaterial object to set the properties from.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.Membrane.update_attribute">
+<span class="sig-name descname"><span class="pre">update_attribute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Union</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><a class="reference internal" href="#tools.component_tools.SolidMaterial" title="tools.component_tools.SolidMaterial"><span class="pre">SolidMaterial</span></a><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.Membrane.update_attribute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the value of the specified attribute.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>attr_name (str): The name of the attribute to update.
+new_value: The new value for the attribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="solid-material-class">
+<h2>Solid Material Class<a class="headerlink" href="#solid-material-class" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="tools.component_tools.SolidMaterial">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tools.component_tools.</span></span><span class="sig-name descname"><span class="pre">SolidMaterial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">K_S</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.SolidMaterial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a solid material used in a component.</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><p>D (float): The Diffusivity of the solid material.
+K_S (float): The Sievert constant of the solid material.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.SolidMaterial.inspect">
+<span class="sig-name descname"><span class="pre">inspect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.SolidMaterial.inspect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints the attributes of the component.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.SolidMaterial.update_attribute">
+<span class="sig-name descname"><span class="pre">update_attribute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.SolidMaterial.update_attribute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the value of the specified attribute.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>attr_name (str): The name of the attribute to update.
+new_value: The new value for the attribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="fluid-material-class">
+<h2>Fluid Material Class<a class="headerlink" href="#fluid-material-class" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="tools.component_tools.FluidMaterial">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tools.component_tools.</span></span><span class="sig-name descname"><span class="pre">FluidMaterial</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Solubility</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">MS</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cp</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.FluidMaterial" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a fluid material with various properties.</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><p>T (float): Temperature of the fluid material.
+D (float): Density of the fluid material.
+Solubility (float): Solubility of the fluid material.
+MS (float): Molecular weight of the fluid material.
+mu (float): Viscosity of the fluid material.
+rho (float): Density of the fluid material.
+k (float): Thermal conductivity of the fluid material.
+cp (float): Specific heat capacity of the fluid material.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.FluidMaterial.inspect">
+<span class="sig-name descname"><span class="pre">inspect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.FluidMaterial.inspect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints the attributes of the component.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.FluidMaterial.update_attribute">
+<span class="sig-name descname"><span class="pre">update_attribute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.FluidMaterial.update_attribute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the value of the specified attribute.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>attr_name (str): The name of the attribute to update.
+new_value: The new value for the attribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="breeding-blanket-class">
+<h2>Breeding Blanket Class<a class="headerlink" href="#breeding-blanket-class" title="Permalink to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="tools.component_tools.BreedingBlanket">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">tools.component_tools.</span></span><span class="sig-name descname"><span class="pre">BreedingBlanket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TBR</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#tools.component_tools.Fluid" title="tools.component_tools.Fluid"><span class="pre">Fluid</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.BreedingBlanket" title="Permalink to this definition">¶</a></dt>
+<dd><p>Represents a breeding blanket component in a fuel cycle system.</p>
+<dl class="simple">
+<dt>Attributes:</dt><dd><p>c_in(float): Inlet concentration of tritium in the breeding blanket component.
+Q (float): Heat generated by the breeding blanket component.
+TBR (float): Tritium breeding ratio of the breeding blanket component.
+T_out (float): Outlet temperature of the breeding blanket component.
+T_in (float): Inlet temperature of the breeding blanket component.
+fluid (Fluid): Fluid used in the breeding blanket component.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.BreedingBlanket.get_cout">
+<span class="sig-name descname"><span class="pre">get_cout</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">print_var</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.BreedingBlanket.get_cout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the outlet concentration of tritium in the breeding blanket component.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>print_var (bool): If True, prints the intermediate variables.</p>
+</dd>
+<dt>Returns:</dt><dd><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.BreedingBlanket.get_flowrate">
+<span class="sig-name descname"><span class="pre">get_flowrate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.BreedingBlanket.get_flowrate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculates the flow rate of the coolant in the breeding blanket component.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.BreedingBlanket.inspect">
+<span class="sig-name descname"><span class="pre">inspect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">variable_names</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.BreedingBlanket.inspect" title="Permalink to this definition">¶</a></dt>
+<dd><p>Prints the attributes of the component.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="tools.component_tools.BreedingBlanket.update_attribute">
+<span class="sig-name descname"><span class="pre">update_attribute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">attr_name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_value</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#tools.component_tools.BreedingBlanket.update_attribute" title="Permalink to this definition">¶</a></dt>
+<dd><p>Updates the value of the specified attribute.</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>attr_name (str): The name of the attribute to update.
+new_value: The new value for the attribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">TRIOMA</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">TRIOMA API Documentation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#component-tools">Component tools</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-tools.correlations">Correlations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fluid-class">Fluid Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#membrane-class">Membrane Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#solid-material-class">Solid Material Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#fluid-material-class">Fluid Material Class</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#breeding-blanket-class">Breeding Blanket Class</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to Trioma’s documentation!</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2024, Gabriele Ferrero Samuele Meschini.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 5.0.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/myproject.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
