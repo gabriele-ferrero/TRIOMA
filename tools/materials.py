@@ -116,6 +116,8 @@ def LiPb(T):
         # Henry's constant mol/m^3/Pa
         MM_LiPb = 180  # TODO
         return 4.7e-7 * np.exp(-9e3 / (R_const * T) * density(T) / MM_LiPb)  # TODO
+    def thermal_diff(T):
+        return 3.46E-2*T-10.5
 
     LiPb = FluidMaterial(
         T,
@@ -125,7 +127,7 @@ def LiPb(T):
         mu=viscosity(T),
         rho=density(T),
         k=k(),
-        cp=cp(),
+        cp=cp()
     )
     return LiPb
 
