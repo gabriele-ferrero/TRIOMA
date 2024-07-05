@@ -26,4 +26,4 @@ Fuerst, Thomas F., Chase N. Taylor, and Paul W. Humrickhouse. [Tritium Transport
 
 Rader, Jordan D., M. Scott Greenwood, and Paul W. Humrickhouse. ["Verification of modelica-based models with analytical solutions for tritium diffusion."](<https://www.tandfonline.com/doi/full/10.1080/00295450.2018.1431505?casa_token=S0I-kCsS6noAAAAA%3A-52Bra2CN56Zg4p9l-l8XXkZXnT0WvPzDI6q-HrQy3NLDPY76wy-UfHlJwZ51VACCmWw7X13Bi-Luc0>) Nuclear Technology 203.1 (2018): 58-65.  
 
-Urgorri, F. R., et al. ["Theoretical evaluation of the tritium extraction from liquid metal flows through a free surface and through a permeable membrane."](<https://iopscience.iop.org/article/10.1088/1741-4326/acbec7/meta Nuclear Fusion 63.4 (2023): 046025.>)
+Urgorri, F. R., et al. ["Theoretical evaluation of the tritium extraction from liquid metal flows through a free surface and through a permeable membrane."](<https://iopscience.iop.org/article/10.1088/1741-4326/acbec7/meta>)
