@@ -11,6 +11,8 @@ plantParametric.ipynb
 *debug.ipynb
 *DoubleSweep*
 # Distribution / packaging
+*Sensitivity*
+*COMSOL*
 .Python
 build/
 develop-eggs/

@@ -80,16 +80,29 @@ class Geometry:
         D (float): Diameter of the component.
         thick (float): Thickness of the component.
         n_pipes (int, optional): The number of pipes in the component. Defaults to 1.
+        wirecoil (bool, optional): Indicates whether the component is a wire coil. Defaults to False.
+        p_wc (float, optional): The pitch of the wire coil. Defaults to None.
+        d_wc (float, optional): The diameter of the wire coil. Defaults to None.
 
     """
 
     def __init__(
-        self, L: float = None, D: float = None, thick: float = None, n_pipes: int = 1
+        self,
+        L: float = None,
+        D: float = None,
+        thick: float = None,
+        n_pipes: int = 1,
+        wirecoil: bool = False,
+        p_wc: float = None,
+        d_wc: float = None,
     ):
         self.L = L
         self.D = D
         self.thick = thick
         self.n_pipes = n_pipes
+        self.wirecoil = wirecoil
+        self.p_wc = p_wc
+        self.d_wc = d_wc
 
     def update_attribute(self, attr_name: str, new_value: float):
         """
@@ -163,6 +176,11 @@ class Component:
         self.n_pipes = (n_pipes,)
         self.fluid = fluid
         self.membrane = membrane
+        if self.geometry.wirecoil == True:
+            self.fluid.wirecoil = True
+            self.fluid.p_wc = self.geometry.p_wc
+            self.fluid.d_wc = self.geometry.d_wc
+
         # if (
         #     isinstance(self.fluid, Fluid)
         #     and isinstance(self.membrane, Membrane)
@@ -947,9 +965,20 @@ class Component:
         )
         Re = corr.Re(self.fluid.rho, self.fluid.U0, self.fluid.d_Hyd, self.fluid.mu)
         Pr = corr.Pr(self.fluid.cp, self.fluid.mu, self.fluid.k)
-        h_prim = corr.get_h_from_Nu(
-            corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
-        )
+        if self.fluid.wirecoil == True:
+
+            if Re > 1000:
+                Nu = (
+                    0.132
+                    * (self.geometry.p_wc / self.geometry.d_wc) ** -0.372
+                    * Re**0.72
+                    * Pr**0.37
+                )
+                h_prim = corr.get_h_from_Nu(Nu, self.fluid.k, self.fluid.d_Hyd)
+        else:
+            h_prim = corr.get_h_from_Nu(
+                corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
+            )
         R_conv_prim = 1 / h_prim
         R_tot = R_conv_prim + R_cond + R_conv_sec
         self.U = 1 / R_tot
@@ -970,6 +999,9 @@ class Fluid:
         mu (float, optional): Viscosity of the fluid. Defaults to None.
         rho (float, optional): Density of the fluid. Defaults to None.
         U0 (float, optional): Velocity of the fluid. Defaults to None.
+        wirecoil (bool, optional): Indicates whether the fluid is with a wire coil. Defaults to False.
+        p_wc (float, optional): Pitch of the wire coil. Defaults to None.
+        d_wc (float, optional): Diameter of the wire coil. Defaults to None.
     """
 
     def __init__(
@@ -985,6 +1017,9 @@ class Fluid:
         U0: float = None,
         k: float = None,
         cp: float = None,
+        wirecoil: bool = False,
+        p_wc: float = None,
+        d_wc: float = None,
     ):
         """
         Initializes a new instance of the Fluid class.
@@ -1012,6 +1047,9 @@ class Fluid:
         self.U0 = U0
         self.k = k
         self.cp = cp
+        self.wirecoil = wirecoil
+        self.p_wc = p_wc
+        self.d_wc = d_wc
 
     def update_attribute(
         self, attr_name: str = None, new_value: Union[float, "FluidMaterial"] = None
@@ -1062,11 +1100,24 @@ class Fluid:
             if self.k_t is None:
                 Re = corr.Re(rho=self.rho, u=self.U0, L=self.d_Hyd, mu=self.mu)
                 Sc = corr.Schmidt(D=self.D, mu=self.mu, rho=self.rho)
+                if self.wirecoil == True:
+                    if Re > 1000:
+                        Sh = (
+                            0.132
+                            * (self.p_wc / self.d_wc) ** -0.372
+                            * Re**0.72
+                            * Sc**0.37
+                        )
+                    else:
+
+                        print(Re)
+                        raise ValueError("Reynolds number is too low")
                 # if Re < 1e4 and Re > 2030:
                 #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
-                if Re > 2030:
+                elif Re > 2030:
                     Sh = 0.0096 * Re**0.913 * Sc**0.346  ##Getthem paper
                 else:
+                    print(self.wirecoil)
                     print(Re)
                     raise ValueError("Reynolds number is too low")
                 self.k_t = corr.get_k_from_Sh(
