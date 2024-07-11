@@ -11,6 +11,10 @@ To run copy the repo in a local folder, and run:
 
 ```pip install -r requirements.txt```
 
+## Binder
+
+[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/gabriele-ferrero/TRIOMA/main)
+
 ## Contributions
 
 Contributions are welcome from everyone. The project is a work in progress and may intercur significant and structural changes.
