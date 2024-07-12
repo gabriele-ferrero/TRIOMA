@@ -207,8 +207,8 @@ class Component:
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 
         # First subplot: two overlapping circles
-        circle1 = plt.Circle((0, 0), r_tot, color='#C0C0C0', label='Fluid')
-        circle2 = plt.Circle((0, 0), self.geometry.D/2, color='#87CEEB', label='Membrane')
+        circle1 = plt.Circle((0, 0), r_tot, color='#87CEEB', label='Fluid')
+        circle2 = plt.Circle((0, 0), self.geometry.D/2, color='#C0C0C0', label='Membrane')
         ax1.add_artist(circle1)
         ax1.add_artist(circle2)
         ax1.set_aspect('equal')
