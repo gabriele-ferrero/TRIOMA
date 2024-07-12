@@ -1,3 +1,4 @@
+from tkinter import N
 import numpy as np
 
 # from example_simulation import TBR
@@ -11,6 +12,7 @@ from scipy.constants import physical_constants
 from scipy.optimize import minimize
 from scipy.special import lambertw
 from typing import Union
+import matplotlib.pyplot as plt
 
 
 def print_class_variables(instance, variable_names=None, tab: int = 0):
@@ -146,6 +148,7 @@ class Component:
         n_pipes: int = 1,
         fluid: "Fluid" = None,
         membrane: "Membrane" = None,
+        name: str = None,
     ):
         """
         Initializes a new instance of the Component class.
@@ -156,6 +159,7 @@ class Component:
             L (float, optional): The length of the component. Defaults to None.
             fluid (Fluid, optional): The fluid associated with the component. Defaults to None.
             membrane (Membrane, optional): The membrane associated with the component. Defaults to None.
+            name (str, optional): The name of the component. Defaults to None.
         """
         self.c_in = c_in
         self.geometry = geometry
@@ -163,6 +167,7 @@ class Component:
         self.n_pipes = (n_pipes,)
         self.fluid = fluid
         self.membrane = membrane
+        self.name = name
         # if (
         #     isinstance(self.fluid, Fluid)
         #     and isinstance(self.membrane, Membrane)
@@ -196,7 +201,61 @@ class Component:
         Prints the attributes of the component.
         """
         print_class_variables(self, variable_names)
+    def plot_component(self):
+        r_tot=(self.geometry.D)/2+self.geometry.thick
+        # Create a figure with two subplots
+        fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 
+        # First subplot: two overlapping circles
+        circle1 = plt.Circle((0, 0), r_tot, color='#C0C0C0', label='Fluid')
+        circle2 = plt.Circle((0, 0), self.geometry.D/2, color='#87CEEB', label='Membrane')
+        ax1.add_artist(circle1)
+        ax1.add_artist(circle2)
+        ax1.set_aspect('equal')
+        ax1.set_xlim(-r_tot*1.1, r_tot*1.1)
+        ax1.set_ylim(-r_tot*1.1, r_tot*1.1)
+        if self.name is None:
+            ax1.set_title('Component cross section')
+        else :
+            ax1.set_title(self.name+' cross section')
+
+        # Add text over the circles
+        ax1.text(0, 0, r"R="+str(self.geometry.D/2), color='black', ha='center', va='center')
+        ax1.text(0,self.geometry.D/2 , r"t="+str(self.geometry.thick), color='black', ha='center', va='center', alpha=0.7)
+        if self.geometry.n_pipes is not None:
+            ax1.text(0, -self.geometry.D/4, r""+str(self.geometry.n_pipes)+" pipes", color='black', ha='center', va='center', alpha=0.7)
+        
+        # Add legend for the circles
+        ax1.legend(loc='upper right')
+        ax1.axis('off')
+        # Second subplot: rectangle and two arrows
+        rectangle = plt.Rectangle((0.2, 0.3), 0.55, 0.4, edgecolor='black', facecolor='blue', alpha=0.5)
+        ax2.add_patch(rectangle)
+        # Arrow pointing to the left side of the rectangle
+        ax2.arrow(0.0, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc='black', ec='black')
+        # Arrow pointing out of the right side of the rectangle
+        ax2.arrow(0.8, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc='black', ec='black')
+        ax2.set_aspect('equal')
+        ax2.set_xlim(0, 1)
+        ax2.set_ylim(0, 1)
+        if self.name is None:
+            ax2.set_title('Component Lateral view')
+        else:
+            ax2.set_title(self.name+' Lateral view')
+        
+
+        # Add text over the arrows
+        ax2.text(0.15, 0.3,  r"L="+str(self.geometry.L)+"m", color='black', ha='center', va='center')
+        ax2.text(0.15, 0.4,r"T="+str(self.fluid.T)+"K" , color='black', ha='center', va='center')
+        ax2.text(0.15, 0.6, f"c={self.c_in:.2g} $mol/m^3$", color='black', ha='center', va='center')
+        ax2.text(0.5, 0.6, f"velocity={self.fluid.U0:.2g} m/s", color='black', ha='center', va='center')
+        ax2.text(0.5, 0.4, f"eff={self.eff*100:.2g}%", color='black', ha='center', va='center')
+        
+        ax2.text(0.9, 0.3, fr"c={self.c_out:.2g}$mol/m^3$", color='black', ha='center', va='center')
+        ax2.axis('off')
+        # Display the plot
+        plt.tight_layout()
+        plt.show()
     def outlet_c_comp(self) -> float:
         """
         Calculates the concentration of the component at the outlet.
