@@ -179,9 +179,37 @@ class Circuit:
             self.loss_perc=losses/self.components[0].c_in/eff_circuit
         self.eff=eff_circuit
     def plot_circuit(self):
+        from matplotlib.colors import LinearSegmentedColormap
+
+        # Define the red-to-blue colormap
+        red_to_blue = LinearSegmentedColormap.from_list('RedToBlue', ['red', 'blue'])
+        num_components = len(self.components)
+        num_columns = (num_components // 3) + (1 if num_components % 3 != 0 else 0)
         
-        for component in self.components:
-            component.plot_component()
+        fig, axs = plt.subplots(3, num_columns+1,figsize=(100,15))
+        # for component in self.components:
+        #     component.plot_component()
+        for i,component in enumerate(self.components):
+            color = red_to_blue(i / num_components)
+            rectangle = plt.Rectangle((0.2, 0.3), 0.55, 0.4, edgecolor='black', facecolor=color, alpha=0.5)
+            axs[i//num_columns,i%num_columns].add_patch(rectangle)
+            # Arrow pointing to the left side of the rectangle
+            axs[i//num_columns,i%num_columns].arrow(0.0, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc='black', ec='black')
+            # Arrow pointing out of the right side of the rectangle
+            axs[i//num_columns,i%num_columns].arrow(0.8, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc='black', ec='black')
+            axs[i//num_columns,i%num_columns].set_aspect('equal')
+            axs[i//num_columns,i%num_columns].set_xlim(0, 1)
+            axs[i//num_columns,i%num_columns].set_ylim(0, 1)
+            axs[i//num_columns,i%num_columns].text(0.15, 0.3,  f"L={component.geometry.L:.3g} m", color='black', ha='center', va='center')
+            axs[i//num_columns,i%num_columns].text(0.15, 0.4,f"T={component.fluid.T:.6g}K" , color='black', ha='center', va='center')
+            axs[i//num_columns,i%num_columns].text(0.15, 0.6, f"c={component.c_in:.4g} $mol/m^3$", color='black', ha='center', va='center')
+            axs[i//num_columns,i%num_columns].text(0.5, 0.7, f"velocity={component.fluid.U0:.2g} m/s", color='black', ha='center', va='center')
+            axs[i//num_columns,i%num_columns].text(0.5, 0.4, f"eff={component.eff*100:.2g}%", color='black', ha='center', va='center')
+            
+            axs[i//num_columns,i%num_columns].text(0.9, 0.3, fr"c={component.c_out:.4g}$mol/m^3$", color='black', ha='center', va='center')
+        for row in axs:
+            for ax in row:
+                ax.axis('off')
     def solve_circuit(self,tol=1E-6):
         err=1
         flag=0
@@ -339,11 +367,11 @@ class Component:
         # Add text over the arrows
         ax2.text(0.15, 0.3,  r"L="+str(self.geometry.L)+"m", color='black', ha='center', va='center')
         ax2.text(0.15, 0.4,r"T="+str(self.fluid.T)+"K" , color='black', ha='center', va='center')
-        ax2.text(0.15, 0.6, f"c={self.c_in:.3g} $mol/m^3$", color='black', ha='center', va='center')
+        ax2.text(0.15, 0.6, f"c={self.c_in:.4g} $mol/m^3$", color='black', ha='center', va='center')
         ax2.text(0.5, 0.6, f"velocity={self.fluid.U0:.2g} m/s", color='black', ha='center', va='center')
         ax2.text(0.5, 0.4, f"eff={self.eff*100:.2g}%", color='black', ha='center', va='center')
         
-        ax2.text(0.9, 0.3, fr"c={self.c_out:.3g}$mol/m^3$", color='black', ha='center', va='center')
+        ax2.text(0.9, 0.3, fr"c={self.c_out:.4g}$mol/m^3$", color='black', ha='center', va='center')
         ax2.axis('off')
         # Display the plot
         plt.tight_layout()
@@ -1610,11 +1638,11 @@ class BreedingBlanket:
         # Add text over the arrows
         ax2.text(0.7, 0.8,  r"$T_o$="+str(self.T_out)+" K", color='black', ha='center', va='center')
         ax2.text(0.7, 0.2,r"$T_i$="+str(self.T_in)+" K" , color='black', ha='center', va='center')
-        ax2.text(0.3, 0.2, f"$c_i$={self.c_in:.3g} $mol/m^3$", color='black', ha='center', va='center')
+        ax2.text(0.3, 0.2, f"$c_i$={self.c_in:.4g} $mol/m^3$", color='black', ha='center', va='center')
         ax2.text(0.5, 0.6, f"Q={self.Q/1E6:.3g} MW", color='black', ha='center', va='center')
         ax2.text(0.5, 0.4, f"TBR={self.TBR:.3g}", color='black', ha='center', va='center')
         
-        ax2.text(0.3, 0.8, fr"$c_o$={self.c_out:.3g}$mol/m^3$", color='black', ha='center', va='center')
+        ax2.text(0.3, 0.8, fr"$c_o$={self.c_out:.4g}$mol/m^3$", color='black', ha='center', va='center')
         ax2.axis('off')
         # Display the plot
         plt.tight_layout()
