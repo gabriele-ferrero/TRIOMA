@@ -128,7 +128,95 @@ class Geometry:
         """
         return self.get_fluid_volume() + self.get_solid_volume()
 
-
+class Circuit:
+    """
+    Represent a circuit of components connected in series
+    """
+    def __init__(
+        self,
+        components: list = None,
+        closed: bool = False,
+    ):
+        self.components = components if components is not None else []
+        self.closed = closed
+    def get_eff_circuit(self):
+        for i,component in enumerate(self.components):
+            component.use_analytical_efficiency()
+            component.outlet_c_comp()
+            if i != len(self.components)-1:
+                component.connect_to_component(self.components[i+1])
+        eff_circuit=(self.components[0].c_in-self.components[-1].c_out)/self.components[0].c_in
+        self.eff=eff_circuit
+    def get_gains_and_losses(self):
+        gains=0
+        losses=0
+        for i,component in enumerate(self.components):
+            diff=component.c_in-component.c_out
+            if isinstance(component, Component):
+                if component.loss==False:
+                    gains+=diff
+                else:
+                    losses+=diff
+        for i,component in enumerate(self.components):
+            flag_bb=0
+            if isinstance(component,BreedingBlanket):
+                ind=i
+                if flag_bb!=0:
+                    print("There are more BB!")
+                flag_bb=1
+        if ind !=0 and ind != len(self.components):  
+            eff_circuit=(self.components[ind+1].c_in-self.components[ind-1].c_out)/self.components[ind+1].c_in
+            self.extraction_perc=gains/self.components[ind+1].c_in/eff_circuit
+            self.loss_perc=losses/self.components[ind+1].c_in/eff_circuit
+        elif ind==0:
+            eff_circuit=(self.components[ind+1].c_in-self.components[-1].c_out)/self.components[ind+1].c_in
+            self.extraction_perc=gains/self.components[ind+1].c_in/eff_circuit
+            self.loss_perc=losses/self.components[ind+1].c_in/eff_circuit
+        elif ind==len(self.components):
+            eff_circuit=(self.components[0].c_in-self.components[ind-1].c_out)/self.components[0].c_in
+            self.extraction_perc=gains/self.components[0].c_in/eff_circuit
+            self.loss_perc=losses/self.components[0].c_in/eff_circuit
+        self.eff=eff_circuit
+    def plot_circuit(self):
+        
+        for component in self.components:
+            component.plot_component()
+    def solve_circuit(self,tol=1E-6):
+        err=1
+        flag=0
+        while flag==0:
+            for i,  component in enumerate(self.components):
+                
+                if isinstance(component, Component):
+                    component.use_analytical_efficiency()
+                    component.outlet_c_comp() 
+                    if i != len(self.components)-1:
+                        component.connect_to_component(self.components[i+1])
+                if isinstance(component,BreedingBlanket):
+                    component.get_cout()
+                    if i != len(self.components)-1:
+                        component.connect_to_component(self.components[i+1])
+            if self.closed==True:
+                err=(self.components[0].c_in-self.components[-1].c_out)/self.components[0].c_in
+                if err<tol:
+                    flag=1
+            else:
+                flag=1
+            self.components[-1].connect_to_component(self.components[0])
+    def inspect_circuit(self,name=None):
+        if name is None:
+            for component in self.components:
+                component.inspect()   
+        else:
+            for component in self.components:
+                if component.name==name:
+                    component.inspect()         
+    ## Closed Bool
+    ## Components list
+    ##Plot circuit
+    ##bool losses or gains
+    #only cin and cout
+    #write Component.connect()
 class Component:
     """
     Represents a component in a plant to make a high level T transport analysis.
@@ -149,6 +237,7 @@ class Component:
         fluid: "Fluid" = None,
         membrane: "Membrane" = None,
         name: str = None,
+        loss: bool=False
     ):
         """
         Initializes a new instance of the Component class.
@@ -168,6 +257,7 @@ class Component:
         self.fluid = fluid
         self.membrane = membrane
         self.name = name
+        self.loss=loss
         # if (
         #     isinstance(self.fluid, Fluid)
         #     and isinstance(self.membrane, Membrane)
@@ -179,8 +269,6 @@ class Component:
         #         print("overwriting Fluid Hydraulic diameter with Geometry Diameter")
         # self.membrane.thick = self.geometry.thick
         # self.fluid.d_Hyd = self.geometry.D
-
-        ##Todo initialize k_t
 
     def update_attribute(
         self,
@@ -201,6 +289,9 @@ class Component:
         Prints the attributes of the component.
         """
         print_class_variables(self, variable_names)
+    def connect_to_component(self,component2 : Union["Component","BreedingBlanket"]=None):
+        """sets the inlet conc of the object component equal to the outlet of self"""
+        component2.update_attribute("c_in",self.c_out)
     def plot_component(self):
         r_tot=(self.geometry.D)/2+self.geometry.thick
         # Create a figure with two subplots
@@ -247,11 +338,11 @@ class Component:
         # Add text over the arrows
         ax2.text(0.15, 0.3,  r"L="+str(self.geometry.L)+"m", color='black', ha='center', va='center')
         ax2.text(0.15, 0.4,r"T="+str(self.fluid.T)+"K" , color='black', ha='center', va='center')
-        ax2.text(0.15, 0.6, f"c={self.c_in:.2g} $mol/m^3$", color='black', ha='center', va='center')
+        ax2.text(0.15, 0.6, f"c={self.c_in:.3g} $mol/m^3$", color='black', ha='center', va='center')
         ax2.text(0.5, 0.6, f"velocity={self.fluid.U0:.2g} m/s", color='black', ha='center', va='center')
         ax2.text(0.5, 0.4, f"eff={self.eff*100:.2g}%", color='black', ha='center', va='center')
         
-        ax2.text(0.9, 0.3, fr"c={self.c_out:.2g}$mol/m^3$", color='black', ha='center', va='center')
+        ax2.text(0.9, 0.3, fr"c={self.c_out:.3g}$mol/m^3$", color='black', ha='center', va='center')
         ax2.axis('off')
         # Display the plot
         plt.tight_layout()
@@ -1215,6 +1306,7 @@ class Membrane:
         self.K_S = solid_material.K_S
 
 
+
 # class GLC_Gas:
 #     """
 #     GLC_Gas class represents a sweep gas in a GLC (Gas-Liquid Contactor) system.
@@ -1455,6 +1547,7 @@ class BreedingBlanket:
         T_out: float = None,
         T_in: float = None,
         fluid: Fluid = None,
+        name: str =None
     ):
         self.c_in = c_in
         self.Q = Q
@@ -1462,7 +1555,37 @@ class BreedingBlanket:
         self.T_out = T_out
         self.T_in = T_in
         self.fluid = fluid
+        self.name=name
+    def plot_component(self):
+        fig, ax2 = plt.subplots(1, 1, figsize=(10, 5))
+        rectangle = plt.Rectangle((0.2, 0.3), 0.55, 0.4, edgecolor='black', facecolor='green', alpha=0.5)
+        ax2.add_patch(rectangle)
+        # Arrow pointing to the left side of the rectangle
+        ax2.arrow(0.5, 0.7, 0, 0.1, head_width=0.05, head_length=0.1, fc='black', ec='black')
+        # Arrow pointing out of the right side of the rectangle
+        ax2.arrow(0.5, 0.1, 0.0, 0.1, head_width=0.05, head_length=0.1, fc='black', ec='black')
+        ax2.set_aspect('equal')
+        ax2.set_xlim(0, 1)
+        ax2.set_ylim(0, 1)
+        if self.name is None:
+            ax2.set_title('Component  ')
+        else:
+            ax2.set_title(self.name)
+        
 
+        # Add text over the arrows
+        ax2.text(0.7, 0.8,  r"$T_o$="+str(self.T_out)+" K", color='black', ha='center', va='center')
+        ax2.text(0.7, 0.2,r"$T_i$="+str(self.T_in)+" K" , color='black', ha='center', va='center')
+        ax2.text(0.3, 0.2, f"$c_i$={self.c_in:.3g} $mol/m^3$", color='black', ha='center', va='center')
+        ax2.text(0.5, 0.6, f"Q={self.Q/1E6:.3g} MW", color='black', ha='center', va='center')
+        ax2.text(0.5, 0.4, f"TBR={self.TBR:.3g}", color='black', ha='center', va='center')
+        
+        ax2.text(0.3, 0.8, fr"$c_o$={self.c_out:.3g}$mol/m^3$", color='black', ha='center', va='center')
+        ax2.axis('off')
+        # Display the plot
+        plt.tight_layout()
+        plt.show()
+        
     def inspect(self, variable_names=None):
         """
         Prints the attributes of the component.
@@ -1485,7 +1608,9 @@ class BreedingBlanket:
         """
         self.m_coolant = self.Q / ((self.T_out - self.T_in) * self.fluid.cp)
         return
-
+    def connect_to_component(self, component2: Union["Component","BreedingBlanket"]) :
+        component2.update_attribute("c_in",self.c_out)
+        
     def get_cout(self, print_var: bool = False):
         """
         Calculates the outlet concentration of tritium in the breeding blanket component.
