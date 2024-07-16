@@ -1,3 +1,4 @@
+from re import T
 from tkinter import N
 import numpy as np
 
@@ -355,7 +356,40 @@ class Component:
             float: The concentration of the component at the outlet.
         """
         self.c_out = self.c_in * (1 - self.eff)
+    def split_HX(self,N:int=10,T_in_hot:int=None, T_out_hot:int=None, T_in_cold:int=None, T_out_cold:int=None,U:int=None,Q:int=None,plotvar:bool=False)->"Circuit":
+        """
+        Splits the component into N components to better discretize Temperature effects
+        """
+        import copy
+        deltaTML=corr.get_deltaTML(T_in_hot, T_out_hot, T_in_cold, T_out_cold)
+        L_tot=corr.get_length_HX(deltaTML=deltaTML, d_hyd=self.geometry.D, U=U, Q=Q)
+        ratio_ps=(T_in_hot-T_out_hot)/(T_out_cold-T_in_cold) #gets the ratio between flowrate and heat capacity of primary and secondary fluid
+        components_list = []
 
+        # Use a for loop to append N instances of Component to the list
+        for i in range(N-1):
+             
+            components_list.append(Component(name=f"HX_{i+1}", geometry=copy.deepcopy(self.geometry), c_in=copy.deepcopy(self.c_in), fluid=copy.deepcopy(self.fluid), membrane=copy.deepcopy(self.membrane)))
+        T_vec_p=np.linspace(T_in_hot,T_out_hot,N)
+        L_vec=[]
+        T_vec_s=[]
+        T_vec_s.append(T_out_cold)
+        for i,component in enumerate(components_list):
+            deltaTML=corr.get_deltaTML(T_in_hot=T_vec_p[i],T_out_hot= T_vec_p[i+1],T_in_cold= T_vec_s[i]+(T_vec_p[i+1]-T_vec_p[i])/ratio_ps,T_out_cold= T_vec_s[i])
+            
+            component.get_global_HX_coeff(0)
+            L_vec.append(corr.get_length_HX(deltaTML=deltaTML, d_hyd=self.geometry.D, U=component.U, Q=Q/(N-1)))
+            next_T_s=T_vec_s[i]+(T_vec_p[i+1]-T_vec_p[i])/ratio_ps
+            T_vec_s.append(next_T_s)
+        for i,component in enumerate(components_list):
+            component.geometry.L=(L_vec[i])
+            component.fluid.T=(T_vec_p[i]+T_vec_p[i+1])/2
+        circuit=Circuit(components=components_list)
+
+        if plotvar==True:
+            plt.plot(T_vec_p)
+            plt.plot(T_vec_s)
+        return circuit
     def T_leak(self) -> float:
         """
         Calculates the leakage of the component.
