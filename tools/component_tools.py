@@ -184,9 +184,11 @@ class Circuit:
         # Define the red-to-blue colormap
         red_to_blue = LinearSegmentedColormap.from_list('RedToBlue', ['red', 'blue'])
         num_components = len(self.components)
-        num_columns = (num_components // 3) + (1 if num_components % 3 != 0 else 0)
+        num_rows = (num_components // 10) + (1 if num_components % 10 != 0 else 0)
+        num_columns = 10
         
-        fig, axs = plt.subplots(3, num_columns+1,figsize=(100,15))
+        fig, axs = plt.subplots(num_rows+1, num_columns,figsize=(5*num_columns,4*num_rows))
+        fig.subplots_adjust(hspace=0)
         # for component in self.components:
         #     component.plot_component()
         for i,component in enumerate(self.components):
@@ -202,14 +204,15 @@ class Circuit:
             axs[i//num_columns,i%num_columns].set_ylim(0, 1)
             axs[i//num_columns,i%num_columns].text(0.15, 0.3,  f"L={component.geometry.L:.3g} m", color='black', ha='center', va='center')
             axs[i//num_columns,i%num_columns].text(0.15, 0.4,f"T={component.fluid.T:.6g}K" , color='black', ha='center', va='center')
-            axs[i//num_columns,i%num_columns].text(0.15, 0.6, f"c={component.c_in:.4g} $mol/m^3$", color='black', ha='center', va='center')
+            axs[i//num_columns,i%num_columns].text(0.15, 0.6, f"$c_{{in}}={component.c_in:.4g} \, mol/m^3$", color='black', ha='center', va='center')
             axs[i//num_columns,i%num_columns].text(0.5, 0.7, f"velocity={component.fluid.U0:.2g} m/s", color='black', ha='center', va='center')
             axs[i//num_columns,i%num_columns].text(0.5, 0.4, f"eff={component.eff*100:.2g}%", color='black', ha='center', va='center')
             
-            axs[i//num_columns,i%num_columns].text(0.9, 0.3, fr"c={component.c_out:.4g}$mol/m^3$", color='black', ha='center', va='center')
+            axs[i//num_columns,i%num_columns].text(0.9, 0.3, fr"$c_{{out}}={component.c_out:.4g}\, mol/m^3$", color='black', ha='center', va='center')
         for row in axs:
             for ax in row:
                 ax.axis('off')
+                ax.set_ylim(0.2,0.8)
     def solve_circuit(self,tol=1E-6):
         err=1
         flag=0
@@ -384,13 +387,13 @@ class Component:
             float: The concentration of the component at the outlet.
         """
         self.c_out = self.c_in * (1 - self.eff)
-    def split_HX(self,N:int=10,T_in_hot:int=None, T_out_hot:int=None, T_in_cold:int=None, T_out_cold:int=None,U_sec:int=None,Q:int=None,plotvar:bool=False)->"Circuit":
+    def split_HX(self,N:int=25,T_in_hot:int=None, T_out_hot:int=None, T_in_cold:int=None, T_out_cold:int=None,R_sec:int=None,Q:int=None,plotvar:bool=False)->"Circuit":
         """
         Splits the component into N components to better discretize Temperature effects
         """
         import copy
         deltaTML=corr.get_deltaTML(T_in_hot, T_out_hot, T_in_cold, T_out_cold)
-        self.get_global_HX_coeff(U_sec)
+        self.get_global_HX_coeff(R_sec)
         L_tot=corr.get_length_HX(deltaTML=deltaTML, d_hyd=self.geometry.D, U=self.U, Q=Q)
         ratio_ps=(T_in_hot-T_out_hot)/(T_out_cold-T_in_cold) #gets the ratio between flowrate and heat capacity of primary and secondary fluid
         components_list = []
@@ -407,7 +410,7 @@ class Component:
         for i,component in enumerate(components_list):
             deltaTML=corr.get_deltaTML(T_in_hot=T_vec_p[i],T_out_hot= T_vec_p[i+1],T_in_cold= T_vec_s[i]+(T_vec_p[i+1]-T_vec_p[i])/ratio_ps,T_out_cold= T_vec_s[i])
             
-            component.get_global_HX_coeff(U_sec)
+            component.get_global_HX_coeff(R_sec)
             L_vec.append(corr.get_length_HX(deltaTML=deltaTML, d_hyd=self.geometry.D, U=component.U, Q=Q/(N-1)))
             next_T_s=T_vec_s[i]+(T_vec_p[i+1]-T_vec_p[i])/ratio_ps
             T_vec_s.append(next_T_s)
@@ -417,7 +420,11 @@ class Component:
             component.geometry.L=(L_vec[i])
             component.fluid.T=(T_vec_p[i]+T_vec_p[i+1])/2
             average_T_s=(T_vec_s[i]+T_vec_s[i+1])/2
-            T_membrane=(T_vec_p[i]+T_vec_p[i+1])/2+(average_T_s-((T_vec_p[i]+T_vec_p[i+1])/2))*component.U/component.fluid.h_coeff
+            R_prim=1/self.fluid.h_coeff
+            R_cond = np.log((self.fluid.d_Hyd + self.membrane.thick) / self.fluid.d_Hyd) / (
+            2 * np.pi * self.membrane.k)
+            R_tot=1/component.U
+            T_membrane=(T_vec_p[i]+T_vec_p[i+1])/2+(average_T_s-((T_vec_p[i]+T_vec_p[i+1])/2))*(R_prim+R_cond/2)/R_tot
             component.membrane.update_attribute("T",T_membrane)
             T_vec_membrane.append(component.membrane.T)
         circuit=Circuit(components=components_list)
@@ -431,14 +438,17 @@ class Component:
             plt.show()
             
         return circuit
-    def converge_split_HX(self,T_in_hot:int=None, T_out_hot:int=None, T_in_cold:int=None, T_out_cold:int=None,U_sec:int=None,Q:int=None,plotvar:bool=False)->"Circuit":
+    def converge_split_HX(self,tol:float=1E-3,T_in_hot:float=None, T_out_hot:float=None, T_in_cold:float=None, T_out_cold:float=None,R_sec:float=None,Q:float=None,plotvar:bool=False)->"Circuit":
         """
         Splits the component into N components to better discretize Temperature effects
+        Tries to find the optimal number of components to split the component into
+        
         """
         import copy
         eff_v=[]
         for N in range(10,101,10):
-            circuit=self.split_HX(N=N,T_in_hot=T_in_hot,T_out_hot=T_out_hot,T_in_cold=T_in_cold,T_out_cold=T_out_cold,U_sec=U_sec,Q=Q,plotvar=False)
+            circuit=self.split_HX(N=N,
+                                  T_in_hot=T_in_hot,T_out_hot=T_out_hot,T_in_cold=T_in_cold,T_out_cold=T_out_cold,R_sec=R_sec,Q=Q,plotvar=False)
             
             circuit.get_eff_circuit()
             eff_v.append(circuit.eff)
