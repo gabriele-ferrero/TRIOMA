@@ -196,6 +196,19 @@ class Circuit:
             self.components.append(component)
 
     def get_eff_circuit(self):
+        """
+        Calculates the efficiency of the circuit based on the components present.
+
+        Returns:
+            circtuit.eff (float): The efficiency of the circuit.
+
+        Raises:
+            None
+
+        Example Usage:
+            circuit.get_eff_circuit()
+            
+        """
         ind = None
         for i, component in enumerate(self.components):
             if isinstance(component, BreedingBlanket):
@@ -222,43 +235,63 @@ class Circuit:
         self.eff = eff_circuit
 
     def get_gains_and_losses(self):
-        gains = 0
-        losses = 0
-        for i, component in enumerate(self.components):
-            diff = component.c_in - component.c_out
-            if isinstance(component, Component):
-                if component.loss == False:
-                    gains += diff
-                else:
-                    losses += diff
-        for i, component in enumerate(self.components):
-            flag_bb = 0
-            if isinstance(component, BreedingBlanket):
-                ind = i
-                if flag_bb != 0:
-                    print("There are more BB!")
-                flag_bb = 1
-        if ind != 0 and ind != len(self.components):
-            eff_circuit = (
-                self.components[ind + 1].c_in - self.components[ind - 1].c_out
-            ) / self.components[ind + 1].c_in
-            self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
-            self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
-        elif ind == 0:
-            eff_circuit = (
-                self.components[ind + 1].c_in - self.components[-1].c_out
-            ) / self.components[ind + 1].c_in
-            self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
-            self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
-        elif ind == len(self.components):
-            eff_circuit = (
-                self.components[0].c_in - self.components[ind - 1].c_out
-            ) / self.components[0].c_in
-            self.extraction_perc = gains / self.components[0].c_in / eff_circuit
-            self.loss_perc = losses / self.components[0].c_in / eff_circuit
-        self.eff = eff_circuit
+            """
+            Calculates the gains and losses of the components in the circuit.
 
+            Returns:
+                circuit.extraction_perc (float): The extraction percentage of the circuit.
+                circuit.loss_perc (float): The loss percentage of the circuit.
+                
+            """
+            
+            gains = 0
+            losses = 0
+            for i, component in enumerate(self.components):
+                diff = component.c_in - component.c_out
+                if isinstance(component, Component):
+                    if component.loss == False:
+                        gains += diff
+                    else:
+                        losses += diff
+            for i, component in enumerate(self.components):
+                flag_bb = 0
+                if isinstance(component, BreedingBlanket):
+                    ind = i
+                    if flag_bb != 0:
+                        print("There are more BB!")
+                    flag_bb = 1
+            if ind != 0 and ind != len(self.components):
+                eff_circuit = (
+                    self.components[ind + 1].c_in - self.components[ind - 1].c_out
+                ) / self.components[ind + 1].c_in
+                self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
+                self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
+            elif ind == 0:
+                eff_circuit = (
+                    self.components[ind + 1].c_in - self.components[-1].c_out
+                ) / self.components[ind + 1].c_in
+                self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
+                self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
+            elif ind == len(self.components):
+                eff_circuit = (
+                    self.components[0].c_in - self.components[ind - 1].c_out
+                ) / self.components[0].c_in
+                self.extraction_perc = gains / self.components[0].c_in / eff_circuit
+                self.loss_perc = losses / self.components[0].c_in / eff_circuit
+            self.eff = eff_circuit
+
+    
     def plot_circuit(self):
+        """
+        Plot the circuit diagram for the components in the circuit.
+
+        This function uses matplotlib to create a circuit diagram for the components in the circuit.
+        Each component is represented by a rectangle with arrows indicating the flow direction.
+        The color of the rectangle represents the position of the component in the circuit.
+
+        Returns:
+            None
+        """
         from matplotlib.colors import LinearSegmentedColormap
 
         # Define the red-to-blue colormap
@@ -457,6 +490,11 @@ class Circuit:
                 ax.set_ylim(0.2, 0.8)
 
     def solve_circuit(self, tol=1e-6):
+        """
+        Solve the circuit by calculating the concentration of the components at the outlet.
+        If the circuit is a closed loop, the concentration of the first component is set to the concentration of the last component until the stationary regime is reached.
+        
+        """
         err = 1
         flag = 0
         while flag == 0:
@@ -483,6 +521,16 @@ class Circuit:
             self.components[-1].connect_to_component(self.components[0])
 
     def inspect_circuit(self, name=None):
+        """
+        Inspects the circuit components.
+
+        Parameters:
+            name (str, optional): The name of the component to inspect. If not provided, all components will be inspected.
+
+        Returns:
+            None
+
+        """
         if name is None:
             for component in self.components:
                 component.inspect()
@@ -490,13 +538,6 @@ class Circuit:
             for component in self.components:
                 if component.name == name:
                     component.inspect()
-
-    ## Closed Bool
-    ## Components list
-    ##Plot circuit
-    ##bool losses or gains
-    # only cin and cout
-    # write Component.connect()
 
 
 class Component:
