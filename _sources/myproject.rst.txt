@@ -16,6 +16,16 @@ Correlations
 .. automodule:: tools.correlations
    :members:
 
+Component Class
+---------------
+.. autoclass:: tools.component_tools.Component
+   :members:
+
+Circuit Class
+-------------
+.. autoclass:: tools.component_tools.Circuit
+   :members:
+
 Fluid Class 
 -----------
 
