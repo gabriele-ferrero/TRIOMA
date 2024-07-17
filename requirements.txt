@@ -2,3 +2,11 @@ scipy
 numpy
 matplotlib
 pytest
+os
+regex
+pandas
+scikit-learn
+unittest
+operator
+io
+typing

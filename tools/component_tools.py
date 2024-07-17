@@ -1,7 +1,4 @@
-from re import T
-from tkinter import N
 import numpy as np
-
 # from example_simulation import TBR
 import tools.molten_salts as MS
 import tools.liquid_metals as LM
