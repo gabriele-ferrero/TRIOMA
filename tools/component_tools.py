@@ -384,13 +384,14 @@ class Component:
             float: The concentration of the component at the outlet.
         """
         self.c_out = self.c_in * (1 - self.eff)
-    def split_HX(self,N:int=10,T_in_hot:int=None, T_out_hot:int=None, T_in_cold:int=None, T_out_cold:int=None,U:int=None,Q:int=None,plotvar:bool=False)->"Circuit":
+    def split_HX(self,N:int=10,T_in_hot:int=None, T_out_hot:int=None, T_in_cold:int=None, T_out_cold:int=None,U_sec:int=None,Q:int=None,plotvar:bool=False)->"Circuit":
         """
         Splits the component into N components to better discretize Temperature effects
         """
         import copy
         deltaTML=corr.get_deltaTML(T_in_hot, T_out_hot, T_in_cold, T_out_cold)
-        L_tot=corr.get_length_HX(deltaTML=deltaTML, d_hyd=self.geometry.D, U=U, Q=Q)
+        self.get_global_HX_coeff(U_sec)
+        L_tot=corr.get_length_HX(deltaTML=deltaTML, d_hyd=self.geometry.D, U=self.U, Q=Q)
         ratio_ps=(T_in_hot-T_out_hot)/(T_out_cold-T_in_cold) #gets the ratio between flowrate and heat capacity of primary and secondary fluid
         components_list = []
 
@@ -401,23 +402,62 @@ class Component:
         T_vec_p=np.linspace(T_in_hot,T_out_hot,N)
         L_vec=[]
         T_vec_s=[]
+        T_vec_membrane=[]
         T_vec_s.append(T_out_cold)
         for i,component in enumerate(components_list):
             deltaTML=corr.get_deltaTML(T_in_hot=T_vec_p[i],T_out_hot= T_vec_p[i+1],T_in_cold= T_vec_s[i]+(T_vec_p[i+1]-T_vec_p[i])/ratio_ps,T_out_cold= T_vec_s[i])
             
-            component.get_global_HX_coeff(0)
+            component.get_global_HX_coeff(U_sec)
             L_vec.append(corr.get_length_HX(deltaTML=deltaTML, d_hyd=self.geometry.D, U=component.U, Q=Q/(N-1)))
             next_T_s=T_vec_s[i]+(T_vec_p[i+1]-T_vec_p[i])/ratio_ps
             T_vec_s.append(next_T_s)
+            
         for i,component in enumerate(components_list):
+            
             component.geometry.L=(L_vec[i])
             component.fluid.T=(T_vec_p[i]+T_vec_p[i+1])/2
+            average_T_s=(T_vec_s[i]+T_vec_s[i+1])/2
+            T_membrane=(T_vec_p[i]+T_vec_p[i+1])/2+(average_T_s-((T_vec_p[i]+T_vec_p[i+1])/2))*component.U/component.fluid.h_coeff
+            component.membrane.update_attribute("T",T_membrane)
+            T_vec_membrane.append(component.membrane.T)
         circuit=Circuit(components=components_list)
 
         if plotvar==True:
             plt.plot(T_vec_p)
             plt.plot(T_vec_s)
+            x_values = np.arange(len(T_vec_membrane)) + 0.5
+            plt.plot(x_values, T_vec_membrane)
+            plt.legend(["Primary fluid","Secondary fluid","Membrane"])
+            plt.show()
+            
         return circuit
+    def converge_split_HX(self,T_in_hot:int=None, T_out_hot:int=None, T_in_cold:int=None, T_out_cold:int=None,U_sec:int=None,Q:int=None,plotvar:bool=False)->"Circuit":
+        """
+        Splits the component into N components to better discretize Temperature effects
+        """
+        import copy
+        eff_v=[]
+        for N in range(10,101,10):
+            circuit=self.split_HX(N=N,T_in_hot=T_in_hot,T_out_hot=T_out_hot,T_in_cold=T_in_cold,T_out_cold=T_out_cold,U_sec=U_sec,Q=Q,plotvar=False)
+            
+            circuit.get_eff_circuit()
+            eff_v.append(circuit.eff)
+        x_values = range(10, 101, 10)
+        if plotvar==True:
+            fig, axs = plt.subplots(1, 2, figsize=(10, 5))
+
+            # First subplot
+            axs[0].plot(x_values, eff_v)
+            axs[0].set_xlabel("Number of components")
+            axs[0].set_ylabel("Efficiency")
+
+            # Second subplot
+            axs[1].semilogy(x_values, abs(eff_v - eff_v[-1]) / eff_v[-1] * 100)
+            axs[1].set_xlabel("Number of components")
+            axs[1].set_ylabel(f"Relative error in efficiency (%) with respect to {100} components")
+
+            plt.tight_layout()
+            plt.show()
     def T_leak(self) -> float:
         """
         Calculates the leakage of the component.
@@ -1162,6 +1202,7 @@ class Component:
         h_prim = corr.get_h_from_Nu(
             corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
         )
+        self.fluid.h_coeff= h_prim
         R_conv_prim = 1 / h_prim
         R_tot = R_conv_prim + R_cond + R_conv_sec
         self.U = 1 / R_tot
@@ -1305,6 +1346,8 @@ class Membrane:
         k_d (float, optional): Dissociation rate constant of the membrane. Defaults to None.
         k_r (float, optional): Recombination rate constant of the membrane. Defaults to None.
         k (float, optional): Thermal conductivity of the membrane. Defaults to None.
+        D_0 (float, optional): Pre-exponential factor of the membrane. Defaults to None.Overwrites D if defined
+        E_d (float, optional): Activation energy of the diffusivity in the membrane in eV. Defaults to None. Overwrites D if defined
     """
 
     def __init__(
@@ -1316,6 +1359,8 @@ class Membrane:
         k_d: float = None,
         k_r: float = None,
         k: float = None,
+        D_0: float = None,
+        E_d: float = None,
     ):
         """
         Initializes a new instance of the Membrane class.
@@ -1329,12 +1374,17 @@ class Membrane:
             k_r (float, optional): Recombination rate constant of the membrane. Defaults to 1e6.
         """
         self.T = T
-        self.D = D
+        if D_0 is not None and E_d is not None:
+            self.D = D_0 * np.exp(-E_d / (8.617333262145e-5 * self.T))
+        else:
+            self.D = D
         self.thick = thick
         self.k_d = k_d
         self.K_S = K_S
         self.k_r = k_r
         self.k = k
+        self.D_0=D_0
+        self.E_d=E_d
 
     def update_attribute(
         self, attr_name: str = None, new_value: Union[float, "SolidMaterial"] = None
@@ -1347,6 +1397,10 @@ class Membrane:
             new_value: The new value for the attribute.
         """
         set_attribute(self, attr_name, new_value)
+        if self.D_0 is not None and self.E_d is not None:
+            if attr_name == "T" and new_value is not None:
+                self.D =self.D_0 * np.exp(-self.E_d / (8.617333262145e-5 * self.T))
+                
 
     def inspect(self, variable_names=None):
         """
