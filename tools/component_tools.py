@@ -182,14 +182,18 @@ class Circuit:
         """
         set_attribute(self, attr_name, new_value)
 
-    def add_component(self, component: Union["Component", "BreedingBlanket"]):
+    def add_component(self, component: Union["Component", "BreedingBlanket", "Circuit"]):
         """
         Adds a component to the circuit.
 
         Args:
             component (Component): The component to add.
         """
-        self.components.append(component)
+        if isinstance(component, Circuit):
+            for comp in component.components:
+                self.components.append(comp)
+        else:
+            self.components.append(component)
 
     def get_eff_circuit(self):
         ind = None
