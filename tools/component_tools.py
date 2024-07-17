@@ -129,10 +129,41 @@ class Geometry:
         """
         return self.get_fluid_volume() + self.get_solid_volume()
 
+
 class Circuit:
     """
     Represent a circuit of components connected in series
+    
+    This class represents a circuit consisting of multiple components connected in series. It provides methods to update attributes, add components, calculate circuit efficiency, and plot the circuit.
+
+    Attributes:
+        components (list): A list of components in the circuit.
+        closed (bool): A boolean indicating whether the circuit is a closed loop or not.
+
+    Methods:
+        update_attribute(attr_name, new_value):
+            Updates the value of the specified attribute.
+        
+        add_component(component):
+            Adds a component to the circuit.
+        
+        get_eff_circuit():
+            Calculates the efficiency of the circuit.
+        
+        get_gains_and_losses():
+            Calculates the gains and losses of the circuit.
+        
+        plot_circuit():
+            Plots the circuit using matplotlib.
+
+    Example usage:
+        circuit = Circuit()
+        circuit.add_component(component1)
+        circuit.add_component(component2)
+        circuit.get_eff_circuit()
+        circuit.plot_circuit()
     """
+
     def __init__(
         self,
         components: list = None,
@@ -140,115 +171,330 @@ class Circuit:
     ):
         self.components = components if components is not None else []
         self.closed = closed
+
+    def update_attribute(self, attr_name: str, new_value: Union[float, bool]):
+        """
+        Updates the value of the specified attribute.
+
+        Args:
+            attr_name (str): The name of the attribute to update.
+            new_value: The new value for the attribute.
+        """
+        set_attribute(self, attr_name, new_value)
+
+    def add_component(self, component: Union["Component", "BreedingBlanket"]):
+        """
+        Adds a component to the circuit.
+
+        Args:
+            component (Component): The component to add.
+        """
+        self.components.append(component)
+
     def get_eff_circuit(self):
-        for i,component in enumerate(self.components):
-            component.use_analytical_efficiency()
-            component.outlet_c_comp()
-            if i != len(self.components)-1:
-                component.connect_to_component(self.components[i+1])
-        eff_circuit=(self.components[0].c_in-self.components[-1].c_out)/self.components[0].c_in
-        self.eff=eff_circuit
-    def get_gains_and_losses(self):
-        gains=0
-        losses=0
-        for i,component in enumerate(self.components):
-            diff=component.c_in-component.c_out
+        ind = None
+        for i, component in enumerate(self.components):
+            if isinstance(component, BreedingBlanket):
+                ind = i
+                break  # Assuming there's only one BreedingBlanket
+
+        if ind is not None:
+            # Move the element at index `ind` to the first position
+            self.components = (
+                [self.components[ind]]
+                + self.components[:ind]
+                + self.components[ind + 1 :]
+            )
+
+        for i, component in enumerate(self.components):
             if isinstance(component, Component):
-                if component.loss==False:
-                    gains+=diff
+                component.use_analytical_efficiency()
+                component.outlet_c_comp()
+            if i != len(self.components) - 1:
+                component.connect_to_component(self.components[i + 1])
+        eff_circuit = (
+            self.components[1].c_in - self.components[-1].c_out
+        ) / self.components[1].c_in
+        self.eff = eff_circuit
+
+    def get_gains_and_losses(self):
+        gains = 0
+        losses = 0
+        for i, component in enumerate(self.components):
+            diff = component.c_in - component.c_out
+            if isinstance(component, Component):
+                if component.loss == False:
+                    gains += diff
                 else:
-                    losses+=diff
-        for i,component in enumerate(self.components):
-            flag_bb=0
-            if isinstance(component,BreedingBlanket):
-                ind=i
-                if flag_bb!=0:
+                    losses += diff
+        for i, component in enumerate(self.components):
+            flag_bb = 0
+            if isinstance(component, BreedingBlanket):
+                ind = i
+                if flag_bb != 0:
                     print("There are more BB!")
-                flag_bb=1
-        if ind !=0 and ind != len(self.components):  
-            eff_circuit=(self.components[ind+1].c_in-self.components[ind-1].c_out)/self.components[ind+1].c_in
-            self.extraction_perc=gains/self.components[ind+1].c_in/eff_circuit
-            self.loss_perc=losses/self.components[ind+1].c_in/eff_circuit
-        elif ind==0:
-            eff_circuit=(self.components[ind+1].c_in-self.components[-1].c_out)/self.components[ind+1].c_in
-            self.extraction_perc=gains/self.components[ind+1].c_in/eff_circuit
-            self.loss_perc=losses/self.components[ind+1].c_in/eff_circuit
-        elif ind==len(self.components):
-            eff_circuit=(self.components[0].c_in-self.components[ind-1].c_out)/self.components[0].c_in
-            self.extraction_perc=gains/self.components[0].c_in/eff_circuit
-            self.loss_perc=losses/self.components[0].c_in/eff_circuit
-        self.eff=eff_circuit
+                flag_bb = 1
+        if ind != 0 and ind != len(self.components):
+            eff_circuit = (
+                self.components[ind + 1].c_in - self.components[ind - 1].c_out
+            ) / self.components[ind + 1].c_in
+            self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
+            self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
+        elif ind == 0:
+            eff_circuit = (
+                self.components[ind + 1].c_in - self.components[-1].c_out
+            ) / self.components[ind + 1].c_in
+            self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
+            self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
+        elif ind == len(self.components):
+            eff_circuit = (
+                self.components[0].c_in - self.components[ind - 1].c_out
+            ) / self.components[0].c_in
+            self.extraction_perc = gains / self.components[0].c_in / eff_circuit
+            self.loss_perc = losses / self.components[0].c_in / eff_circuit
+        self.eff = eff_circuit
+
     def plot_circuit(self):
         from matplotlib.colors import LinearSegmentedColormap
 
         # Define the red-to-blue colormap
-        red_to_blue = LinearSegmentedColormap.from_list('RedToBlue', ['red', 'blue'])
+        red_to_blue = LinearSegmentedColormap.from_list("RedToBlue", ["red", "blue"])
         num_components = len(self.components)
-        num_rows = (num_components // 10) + (1 if num_components % 10 != 0 else 0)
-        num_columns = 10
-        
-        fig, axs = plt.subplots(num_rows+1, num_columns,figsize=(5*num_columns,4*num_rows))
+        if num_components < 10:
+            num_rows =1
+            num_columns = num_components
+        else:
+            num_rows = (num_components // 10) + (1 if num_components % 10 != 0 else 0)
+            num_columns = 10
+
+        fig, axs = plt.subplots(
+            num_rows + 1, num_columns, figsize=(5 * num_columns, 4 * num_rows)
+        )
         fig.subplots_adjust(hspace=0)
         # for component in self.components:
         #     component.plot_component()
-        for i,component in enumerate(self.components):
+        for i, component in enumerate(self.components):
             color = red_to_blue(i / num_components)
-            rectangle = plt.Rectangle((0.2, 0.3), 0.55, 0.4, edgecolor='black', facecolor=color, alpha=0.5)
-            axs[i//num_columns,i%num_columns].add_patch(rectangle)
-            # Arrow pointing to the left side of the rectangle
-            axs[i//num_columns,i%num_columns].arrow(0.0, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc='black', ec='black')
-            # Arrow pointing out of the right side of the rectangle
-            axs[i//num_columns,i%num_columns].arrow(0.8, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc='black', ec='black')
-            axs[i//num_columns,i%num_columns].set_aspect('equal')
-            axs[i//num_columns,i%num_columns].set_xlim(0, 1)
-            axs[i//num_columns,i%num_columns].set_ylim(0, 1)
-            axs[i//num_columns,i%num_columns].text(0.15, 0.3,  f"L={component.geometry.L:.3g} m", color='black', ha='center', va='center')
-            axs[i//num_columns,i%num_columns].text(0.15, 0.4,f"T={component.fluid.T:.6g}K" , color='black', ha='center', va='center')
-            axs[i//num_columns,i%num_columns].text(0.15, 0.6, f"$c_{{in}}={component.c_in:.4g} \, mol/m^3$", color='black', ha='center', va='center')
-            axs[i//num_columns,i%num_columns].text(0.5, 0.7, f"velocity={component.fluid.U0:.2g} m/s", color='black', ha='center', va='center')
-            axs[i//num_columns,i%num_columns].text(0.5, 0.4, f"eff={component.eff*100:.2g}%", color='black', ha='center', va='center')
-            
-            axs[i//num_columns,i%num_columns].text(0.9, 0.3, fr"$c_{{out}}={component.c_out:.4g}\, mol/m^3$", color='black', ha='center', va='center')
+            if isinstance(component, Component):
+                rectangle = plt.Rectangle(
+                    (0.2, 0.3), 0.55, 0.4, edgecolor="black", facecolor=color, alpha=0.5
+                )
+                axs[i // num_columns, i % num_columns].add_patch(rectangle)
+                # Arrow pointing to the left side of the rectangle
+                axs[i // num_columns, i % num_columns].arrow(
+                    0.0,
+                    0.5,
+                    0.1,
+                    0,
+                    head_width=0.05,
+                    head_length=0.1,
+                    fc="black",
+                    ec="black",
+                )
+                # Arrow pointing out of the right side of the rectangle
+                axs[i // num_columns, i % num_columns].arrow(
+                    0.8,
+                    0.5,
+                    0.1,
+                    0,
+                    head_width=0.05,
+                    head_length=0.1,
+                    fc="black",
+                    ec="black",
+                )
+                axs[i // num_columns, i % num_columns].set_aspect("equal")
+                axs[i // num_columns, i % num_columns].set_xlim(0, 1)
+                axs[i // num_columns, i % num_columns].set_ylim(0, 1)
+                axs[i // num_columns, i % num_columns].text(
+                    0.15,
+                    0.3,
+                    f"L={component.geometry.L:.3g} m",
+                    color="black",
+                    ha="center",
+                    va="center",
+                )
+                axs[i // num_columns, i % num_columns].text(
+                    0.15,
+                    0.4,
+                    f"T={component.fluid.T:.6g}K",
+                    color="black",
+                    ha="center",
+                    va="center",
+                )
+                axs[i // num_columns, i % num_columns].text(
+                    0.15,
+                    0.6,
+                    f"$c_{{in}}={component.c_in:.4g}  mol/m^3$",
+                    color="black",
+                    ha="center",
+                    va="center",
+                )
+                axs[i // num_columns, i % num_columns].text(
+                    0.5,
+                    0.7,
+                    f"velocity={component.fluid.U0:.2g} m/s",
+                    color="black",
+                    ha="center",
+                    va="center",
+                )
+                axs[i // num_columns, i % num_columns].text(
+                    0.5,
+                    0.4,
+                    f"eff={component.eff*100:.2g}%",
+                    color="black",
+                    ha="center",
+                    va="center",
+                )
+
+                axs[i // num_columns, i % num_columns].text(
+                    0.9,
+                    0.3,
+                    fr"$c_{{out}}={component.c_out:.4g} mol/m^3$",
+                    color="black",
+                    ha="center",
+                    va="center",
+                )
+            elif isinstance(component, BreedingBlanket):
+
+                rectangle = plt.Rectangle(
+                    (0.2, 0.3),
+                    0.55,
+                    0.4,
+                    edgecolor="black",
+                    facecolor="green",
+                    alpha=0.5,
+                )
+                axs[i // num_columns, i % num_columns].add_patch(rectangle)
+                # Arrow pointing to the left side of the rectangle
+                axs[i // num_columns, i % num_columns].arrow(
+                    0.5,
+                    0.7,
+                    0,
+                    0.1,
+                    head_width=0.05,
+                    head_length=0.1,
+                    fc="black",
+                    ec="black",
+                )
+                # Arrow pointing out of the right side of the rectangle
+                axs[i // num_columns, i % num_columns].arrow(
+                    0.5,
+                    0.1,
+                    0.0,
+                    0.1,
+                    head_width=0.05,
+                    head_length=0.1,
+                    fc="black",
+                    ec="black",
+                )
+                axs[i // num_columns, i % num_columns].set_aspect("equal")
+                axs[i // num_columns, i % num_columns].set_xlim(0, 1)
+                axs[i // num_columns, i % num_columns].set_ylim(0, 1)
+                if component.name is None:
+                    axs[i // num_columns, i % num_columns].set_title("Component ")
+                else:
+                    axs[i // num_columns, i % num_columns].set_title(component.name)
+                axs[i // num_columns, i % num_columns].text(
+                    0.7,
+                    0.8,
+                    r"$T_o$=" + str(component.T_out) + " K",
+                    color="black",
+                    ha="center",
+                    va="center",
+                )
+                axs[i // num_columns, i % num_columns].text(
+                    0.7,
+                    0.2,
+                    r"$T_i$=" + str(component.T_in) + " K",
+                    color="black",
+                    ha="center",
+                    va="center",
+                )
+                axs[i // num_columns, i % num_columns].text(
+                    0.3,
+                    0.2,
+                    f"$c_i$={component.c_in:.4g} $mol/m^3$",
+                    color="black",
+                    ha="center",
+                    va="center",
+                )
+                axs[i // num_columns, i % num_columns].text(
+                    0.5,
+                    0.6,
+                    f"Q={component.Q/1E6:.3g} MW",
+                    color="black",
+                    ha="center",
+                    va="center",
+                )
+                axs[i // num_columns, i % num_columns].text(
+                    0.5,
+                    0.4,
+                    f"TBR={component.TBR:.3g}",
+                    color="black",
+                    ha="center",
+                    va="center",
+                )
+                axs[i // num_columns, i % num_columns].text(
+                    0.3,
+                    0.8,
+                    fr"$c_o$={component.c_out:.4g}$mol/m^3$",
+                    color="black",
+                    ha="center",
+                    va="center",
+                )
+                axs[i // num_columns, i % num_columns].axis("off")
+                # Display the plot
+                plt.tight_layout()
+            else:
+                raise ValueError("Component not recognized")
         for row in axs:
             for ax in row:
-                ax.axis('off')
-                ax.set_ylim(0.2,0.8)
-    def solve_circuit(self,tol=1E-6):
-        err=1
-        flag=0
-        while flag==0:
-            for i,  component in enumerate(self.components):
-                
+                ax.axis("off")
+                ax.set_ylim(0.2, 0.8)
+
+    def solve_circuit(self, tol=1e-6):
+        err = 1
+        flag = 0
+        while flag == 0:
+            for i, component in enumerate(self.components):
+
                 if isinstance(component, Component):
                     component.use_analytical_efficiency()
-                    component.outlet_c_comp() 
-                    if i != len(self.components)-1:
-                        component.connect_to_component(self.components[i+1])
-                if isinstance(component,BreedingBlanket):
+                    component.outlet_c_comp()
+                    if i != len(self.components) - 1:
+                        component.connect_to_component(self.components[i + 1])
+                if isinstance(component, BreedingBlanket):
                     component.get_cout()
-                    if i != len(self.components)-1:
-                        component.connect_to_component(self.components[i+1])
-            if self.closed==True:
-                err=(self.components[0].c_in-self.components[-1].c_out)/self.components[0].c_in
-                if err<tol:
-                    flag=1
+                    if i != len(self.components) - 1:
+                        component.connect_to_component(self.components[i + 1])
+            if self.closed == True:
+                err = (
+                    abs(self.components[0].c_in - self.components[-1].c_out)
+                    / self.components[0].c_in
+                )
+                if err < tol:
+                    flag = 1
             else:
-                flag=1
+                flag = 1
             self.components[-1].connect_to_component(self.components[0])
-    def inspect_circuit(self,name=None):
+
+    def inspect_circuit(self, name=None):
         if name is None:
             for component in self.components:
-                component.inspect()   
+                component.inspect()
         else:
             for component in self.components:
-                if component.name==name:
-                    component.inspect()         
+                if component.name == name:
+                    component.inspect()
+
     ## Closed Bool
     ## Components list
     ##Plot circuit
     ##bool losses or gains
-    #only cin and cout
-    #write Component.connect()
+    # only cin and cout
+    # write Component.connect()
+
+
 class Component:
     """
     Represents a component in a plant to make a high level T transport analysis.
@@ -269,7 +515,7 @@ class Component:
         fluid: "Fluid" = None,
         membrane: "Membrane" = None,
         name: str = None,
-        loss: bool=False
+        loss: bool = False,
     ):
         """
         Initializes a new instance of the Component class.
@@ -289,7 +535,7 @@ class Component:
         self.fluid = fluid
         self.membrane = membrane
         self.name = name
-        self.loss=loss
+        self.loss = loss
         # if (
         #     isinstance(self.fluid, Fluid)
         #     and isinstance(self.membrane, Membrane)
@@ -321,64 +567,141 @@ class Component:
         Prints the attributes of the component.
         """
         print_class_variables(self, variable_names)
-    def connect_to_component(self,component2 : Union["Component","BreedingBlanket"]=None):
+
+    def connect_to_component(
+        self, component2: Union["Component", "BreedingBlanket"] = None
+    ):
         """sets the inlet conc of the object component equal to the outlet of self"""
-        component2.update_attribute("c_in",self.c_out)
+        component2.update_attribute("c_in", self.c_out)
+
     def plot_component(self):
-        r_tot=(self.geometry.D)/2+self.geometry.thick
+        r_tot = (self.geometry.D) / 2 + self.geometry.thick
         # Create a figure with two subplots
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
 
         # First subplot: two overlapping circles
-        circle1 = plt.Circle((0, 0), r_tot, color='#C0C0C0', label='Membrane')
-        circle2 = plt.Circle((0, 0), self.geometry.D/2, color='#87CEEB', label='Fluid')
+        circle1 = plt.Circle((0, 0), r_tot, color="#C0C0C0", label="Membrane")
+        circle2 = plt.Circle(
+            (0, 0), self.geometry.D / 2, color="#87CEEB", label="Fluid"
+        )
         ax1.add_artist(circle1)
         ax1.add_artist(circle2)
-        ax1.set_aspect('equal')
-        ax1.set_xlim(-r_tot*1.1, r_tot*1.1)
-        ax1.set_ylim(-r_tot*1.1, r_tot*1.1)
+        ax1.set_aspect("equal")
+        ax1.set_xlim(-r_tot * 1.1, r_tot * 1.1)
+        ax1.set_ylim(-r_tot * 1.1, r_tot * 1.1)
         if self.name is None:
-            ax1.set_title('Component cross section')
-        else :
-            ax1.set_title(self.name+' cross section')
+            ax1.set_title("Component cross section")
+        else:
+            ax1.set_title(self.name + " cross section")
 
         # Add text over the circles
-        ax1.text(0, 0, r"R="+str(self.geometry.D/2), color='black', ha='center', va='center')
-        ax1.text(0,self.geometry.D/2 , r"t="+str(self.geometry.thick), color='black', ha='center', va='center', alpha=0.7)
+        ax1.text(
+            0,
+            0,
+            r"R=" + str(self.geometry.D / 2),
+            color="black",
+            ha="center",
+            va="center",
+        )
+        ax1.text(
+            0,
+            self.geometry.D / 2,
+            r"t=" + str(self.geometry.thick),
+            color="black",
+            ha="center",
+            va="center",
+            alpha=0.7,
+        )
         if self.geometry.n_pipes is not None:
-            ax1.text(0, -self.geometry.D/4, r""+str(self.geometry.n_pipes)+" pipes", color='black', ha='center', va='center', alpha=0.7)
-        
+            ax1.text(
+                0,
+                -self.geometry.D / 4,
+                r"" + str(self.geometry.n_pipes) + " pipes",
+                color="black",
+                ha="center",
+                va="center",
+                alpha=0.7,
+            )
+
         # Add legend for the circles
-        ax1.legend(loc='upper right')
-        ax1.axis('off')
+        ax1.legend(loc="upper right")
+        ax1.axis("off")
         # Second subplot: rectangle and two arrows
-        rectangle = plt.Rectangle((0.2, 0.3), 0.55, 0.4, edgecolor='black', facecolor='blue', alpha=0.5)
+        rectangle = plt.Rectangle(
+            (0.2, 0.3), 0.55, 0.4, edgecolor="black", facecolor="blue", alpha=0.5
+        )
         ax2.add_patch(rectangle)
         # Arrow pointing to the left side of the rectangle
-        ax2.arrow(0.0, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc='black', ec='black')
+        ax2.arrow(
+            0.0, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc="black", ec="black"
+        )
         # Arrow pointing out of the right side of the rectangle
-        ax2.arrow(0.8, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc='black', ec='black')
-        ax2.set_aspect('equal')
+        ax2.arrow(
+            0.8, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc="black", ec="black"
+        )
+        ax2.set_aspect("equal")
         ax2.set_xlim(0, 1)
         ax2.set_ylim(0, 1)
         if self.name is None:
-            ax2.set_title('Component Lateral view')
+            ax2.set_title("Component Lateral view")
         else:
-            ax2.set_title(self.name+' Lateral view')
-        
+            ax2.set_title(self.name + " Lateral view")
 
         # Add text over the arrows
-        ax2.text(0.15, 0.3,  r"L="+str(self.geometry.L)+"m", color='black', ha='center', va='center')
-        ax2.text(0.15, 0.4,r"T="+str(self.fluid.T)+"K" , color='black', ha='center', va='center')
-        ax2.text(0.15, 0.6, f"c={self.c_in:.4g} $mol/m^3$", color='black', ha='center', va='center')
-        ax2.text(0.5, 0.6, f"velocity={self.fluid.U0:.2g} m/s", color='black', ha='center', va='center')
-        ax2.text(0.5, 0.4, f"eff={self.eff*100:.2g}%", color='black', ha='center', va='center')
-        
-        ax2.text(0.9, 0.3, fr"c={self.c_out:.4g}$mol/m^3$", color='black', ha='center', va='center')
-        ax2.axis('off')
+        ax2.text(
+            0.15,
+            0.3,
+            r"L=" + str(self.geometry.L) + "m",
+            color="black",
+            ha="center",
+            va="center",
+        )
+        ax2.text(
+            0.15,
+            0.4,
+            r"T=" + str(self.fluid.T) + "K",
+            color="black",
+            ha="center",
+            va="center",
+        )
+        ax2.text(
+            0.15,
+            0.6,
+            f"c={self.c_in:.4g} $mol/m^3$",
+            color="black",
+            ha="center",
+            va="center",
+        )
+        ax2.text(
+            0.5,
+            0.6,
+            f"velocity={self.fluid.U0:.2g} m/s",
+            color="black",
+            ha="center",
+            va="center",
+        )
+        ax2.text(
+            0.5,
+            0.4,
+            f"eff={self.eff*100:.2g}%",
+            color="black",
+            ha="center",
+            va="center",
+        )
+
+        ax2.text(
+            0.9,
+            0.3,
+            fr"c={self.c_out:.4g}$mol/m^3$",
+            color="black",
+            ha="center",
+            va="center",
+        )
+        ax2.axis("off")
         # Display the plot
         plt.tight_layout()
         plt.show()
+
     def outlet_c_comp(self) -> float:
         """
         Calculates the concentration of the component at the outlet.
@@ -387,73 +710,133 @@ class Component:
             float: The concentration of the component at the outlet.
         """
         self.c_out = self.c_in * (1 - self.eff)
-    def split_HX(self,N:int=25,T_in_hot:int=None, T_out_hot:int=None, T_in_cold:int=None, T_out_cold:int=None,R_sec:int=None,Q:int=None,plotvar:bool=False)->"Circuit":
+
+    def split_HX(
+        self,
+        N: int = 25,
+        T_in_hot: int = None,
+        T_out_hot: int = None,
+        T_in_cold: int = None,
+        T_out_cold: int = None,
+        R_sec: int = None,
+        Q: int = None,
+        plotvar: bool = False,
+    ) -> "Circuit":
         """
         Splits the component into N components to better discretize Temperature effects
         """
         import copy
-        deltaTML=corr.get_deltaTML(T_in_hot, T_out_hot, T_in_cold, T_out_cold)
+
+        deltaTML = corr.get_deltaTML(T_in_hot, T_out_hot, T_in_cold, T_out_cold)
         self.get_global_HX_coeff(R_sec)
-        L_tot=corr.get_length_HX(deltaTML=deltaTML, d_hyd=self.geometry.D, U=self.U, Q=Q)
-        ratio_ps=(T_in_hot-T_out_hot)/(T_out_cold-T_in_cold) #gets the ratio between flowrate and heat capacity of primary and secondary fluid
+        L_tot = corr.get_length_HX(
+            deltaTML=deltaTML, d_hyd=self.geometry.D, U=self.U, Q=Q
+        )
+        ratio_ps = (T_in_hot - T_out_hot) / (
+            T_out_cold - T_in_cold
+        )  # gets the ratio between flowrate and heat capacity of primary and secondary fluid
         components_list = []
 
         # Use a for loop to append N instances of Component to the list
-        for i in range(N-1):
-             
-            components_list.append(Component(name=f"HX_{i+1}", geometry=copy.deepcopy(self.geometry), c_in=copy.deepcopy(self.c_in), fluid=copy.deepcopy(self.fluid), membrane=copy.deepcopy(self.membrane)))
-        T_vec_p=np.linspace(T_in_hot,T_out_hot,N)
-        L_vec=[]
-        T_vec_s=[]
-        T_vec_membrane=[]
-        T_vec_s.append(T_out_cold)
-        for i,component in enumerate(components_list):
-            deltaTML=corr.get_deltaTML(T_in_hot=T_vec_p[i],T_out_hot= T_vec_p[i+1],T_in_cold= T_vec_s[i]+(T_vec_p[i+1]-T_vec_p[i])/ratio_ps,T_out_cold= T_vec_s[i])
-            
-            component.get_global_HX_coeff(R_sec)
-            L_vec.append(corr.get_length_HX(deltaTML=deltaTML, d_hyd=self.geometry.D, U=component.U, Q=Q/(N-1)))
-            next_T_s=T_vec_s[i]+(T_vec_p[i+1]-T_vec_p[i])/ratio_ps
-            T_vec_s.append(next_T_s)
-            
-        for i,component in enumerate(components_list):
-            
-            component.geometry.L=(L_vec[i])
-            component.fluid.T=(T_vec_p[i]+T_vec_p[i+1])/2
-            average_T_s=(T_vec_s[i]+T_vec_s[i+1])/2
-            R_prim=1/self.fluid.h_coeff
-            R_cond = np.log((self.fluid.d_Hyd + self.membrane.thick) / self.fluid.d_Hyd) / (
-            2 * np.pi * self.membrane.k)
-            R_tot=1/component.U
-            T_membrane=(T_vec_p[i]+T_vec_p[i+1])/2+(average_T_s-((T_vec_p[i]+T_vec_p[i+1])/2))*(R_prim+R_cond/2)/R_tot
-            component.membrane.update_attribute("T",T_membrane)
-            T_vec_membrane.append(component.membrane.T)
-        circuit=Circuit(components=components_list)
+        for i in range(N - 1):
 
-        if plotvar==True:
+            components_list.append(
+                Component(
+                    name=f"HX_{i+1}",
+                    geometry=copy.deepcopy(self.geometry),
+                    c_in=copy.deepcopy(self.c_in),
+                    fluid=copy.deepcopy(self.fluid),
+                    membrane=copy.deepcopy(self.membrane),
+                    loss=copy.deepcopy(self.loss),
+                )
+            )
+        T_vec_p = np.linspace(T_in_hot, T_out_hot, N)
+        L_vec = []
+        T_vec_s = []
+        T_vec_membrane = []
+        T_vec_s.append(T_out_cold)
+        for i, component in enumerate(components_list):
+            deltaTML = corr.get_deltaTML(
+                T_in_hot=T_vec_p[i],
+                T_out_hot=T_vec_p[i + 1],
+                T_in_cold=T_vec_s[i] + (T_vec_p[i + 1] - T_vec_p[i]) / ratio_ps,
+                T_out_cold=T_vec_s[i],
+            )
+
+            component.get_global_HX_coeff(R_sec)
+            L_vec.append(
+                corr.get_length_HX(
+                    deltaTML=deltaTML,
+                    d_hyd=self.geometry.D,
+                    U=component.U,
+                    Q=Q / (N - 1),
+                )
+            )
+            next_T_s = T_vec_s[i] + (T_vec_p[i + 1] - T_vec_p[i]) / ratio_ps
+            T_vec_s.append(next_T_s)
+
+        for i, component in enumerate(components_list):
+
+            component.geometry.L = L_vec[i]
+            component.fluid.T = (T_vec_p[i] + T_vec_p[i + 1]) / 2
+            average_T_s = (T_vec_s[i] + T_vec_s[i + 1]) / 2
+            R_prim = 1 / self.fluid.h_coeff
+            R_cond = np.log(
+                (self.fluid.d_Hyd + self.membrane.thick) / self.fluid.d_Hyd
+            ) / (2 * np.pi * self.membrane.k)
+            R_tot = 1 / component.U
+            T_membrane = (T_vec_p[i] + T_vec_p[i + 1]) / 2 + (
+                average_T_s - ((T_vec_p[i] + T_vec_p[i + 1]) / 2)
+            ) * (R_prim + R_cond / 2) / R_tot
+            component.membrane.update_attribute("T", T_membrane)
+            T_vec_membrane.append(component.membrane.T)
+        circuit = Circuit(components=components_list)
+
+        if plotvar == True:
             plt.plot(T_vec_p)
             plt.plot(T_vec_s)
             x_values = np.arange(len(T_vec_membrane)) + 0.5
             plt.plot(x_values, T_vec_membrane)
-            plt.legend(["Primary fluid","Secondary fluid","Membrane"])
+            plt.legend(["Primary fluid", "Secondary fluid", "Membrane"])
             plt.show()
-            
+
         return circuit
-    def converge_split_HX(self,tol:float=1E-3,T_in_hot:float=None, T_out_hot:float=None, T_in_cold:float=None, T_out_cold:float=None,R_sec:float=None,Q:float=None,plotvar:bool=False)->"Circuit":
+
+    def converge_split_HX(
+        self,
+        tol: float = 1e-3,
+        T_in_hot: float = None,
+        T_out_hot: float = None,
+        T_in_cold: float = None,
+        T_out_cold: float = None,
+        R_sec: float = None,
+        Q: float = None,
+        plotvar: bool = False,
+    ) -> "Circuit":
         """
         Splits the component into N components to better discretize Temperature effects
         Tries to find the optimal number of components to split the component into
-        
+
         """
         import copy
-        eff_v=[]
-        for N in range(10,101,10):
-            circuit=self.split_HX(N=N,
-                                  T_in_hot=T_in_hot,T_out_hot=T_out_hot,T_in_cold=T_in_cold,T_out_cold=T_out_cold,R_sec=R_sec,Q=Q,plotvar=False)
-            
+
+        eff_v = []
+        for N in range(10, 101, 10):
+            circuit = self.split_HX(
+                N=N,
+                T_in_hot=T_in_hot,
+                T_out_hot=T_out_hot,
+                T_in_cold=T_in_cold,
+                T_out_cold=T_out_cold,
+                R_sec=R_sec,
+                Q=Q,
+                plotvar=False,
+            )
+
             circuit.get_eff_circuit()
             eff_v.append(circuit.eff)
         x_values = range(10, 101, 10)
-        if plotvar==True:
+        if plotvar == True:
             fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 
             # First subplot
@@ -464,10 +847,13 @@ class Component:
             # Second subplot
             axs[1].semilogy(x_values, abs(eff_v - eff_v[-1]) / eff_v[-1] * 100)
             axs[1].set_xlabel("Number of components")
-            axs[1].set_ylabel(f"Relative error in efficiency (%) with respect to {100} components")
+            axs[1].set_ylabel(
+                f"Relative error in efficiency (%) with respect to {100} components"
+            )
 
             plt.tight_layout()
             plt.show()
+
     def T_leak(self) -> float:
         """
         Calculates the leakage of the component.
@@ -530,8 +916,8 @@ class Component:
         Returns:
             float: The flow rate of the component.
         """
-        self.pipe_flowrate = self.fluid.U0 * np.pi * self.fluid.d_Hyd**2 / 4
-        return self.fluid.U0 * np.pi * self.fluid.d_Hyd**2 / 4
+        self.pipe_flowrate = self.fluid.U0 * np.pi * self.fluid.d_Hyd ** 2 / 4
+        return self.fluid.U0 * np.pi * self.fluid.d_Hyd ** 2 / 4
 
     def get_total_flowrate(self):
         """
@@ -635,8 +1021,8 @@ class Component:
             else:
                 c_vec[i] = c_vec[
                     i - 1
-                ] + f_H2 * self.J_perm * self.fluid.d_Hyd * np.pi * dl**2 / self.fluid.U0 / (
-                    np.pi * self.fluid.d_Hyd**2 / 4 * dl
+                ] + f_H2 * self.J_perm * self.fluid.d_Hyd * np.pi * dl ** 2 / self.fluid.U0 / (
+                    np.pi * self.fluid.d_Hyd ** 2 / 4 * dl
                 )
                 if isinstance(c_guess, float):
                     c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
@@ -697,8 +1083,8 @@ class Component:
 
             if self.epsilon > 1e5:
                 self.eff_an = 1 - np.exp(-self.tau)
-            elif self.epsilon**0.5 < 1e-2 and self.tau < 1 / self.epsilon**0.5:
-                self.eff_an = 1 - (1 - self.tau * self.epsilon**0.5) ** 2
+            elif self.epsilon ** 0.5 < 1e-2 and self.tau < 1 / self.epsilon ** 0.5:
+                self.eff_an = 1 - (1 - self.tau * self.epsilon ** 0.5) ** 2
             else:
                 beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
                     (1 / self.epsilon + 1) ** 0.5 - 1
@@ -732,7 +1118,7 @@ class Component:
                 else:
                     z = np.exp(beta_tau)
                     w = lambertw(z, tol=1e-10)
-                    self.eff_an = 1 - self.epsilon * (w**2 + 2 * w)
+                    self.eff_an = 1 - self.epsilon * (w ** 2 + 2 * w)
                     if self.eff_an.imag != 0:
                         raise ValueError("self.eff_an has a non-zero imaginary part")
                     else:
@@ -867,7 +1253,7 @@ class Component:
                         J_mt = 2 * self.fluid.k_t * (c_bl - c_wl)  ## MS factor
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
+                            - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
                         )
 
                         return abs(J_mt - J_surf)
@@ -900,7 +1286,7 @@ class Component:
                         c_bl = c
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
+                            - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
                         )
                         J_diff = (
                             self.membrane.D
@@ -960,7 +1346,7 @@ class Component:
 
                         J_d = self.membrane.k_d * (
                             c_wl / self.membrane.K_S
-                        ) - self.membrane.k_d * self.membrane.K_S**2 * (c_ws**2)
+                        ) - self.membrane.k_d * self.membrane.K_S ** 2 * (c_ws ** 2)
                         J_diff = (
                             self.membrane.D
                             / (
@@ -1070,7 +1456,7 @@ class Component:
                         J_mt = self.fluid.k_t * (c_bl - c_wl)  ## LM factor
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
+                            - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
                         )
 
                         return abs(J_mt - J_surf)
@@ -1103,7 +1489,7 @@ class Component:
                         c_bl = c
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
+                            - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
                         )
                         J_diff = (
                             self.membrane.D
@@ -1160,7 +1546,7 @@ class Component:
 
                         J_d = self.membrane.k_d * (
                             c_wl / self.membrane.K_S
-                        ) - self.membrane.k_d * self.membrane.K_S * (c_ws**2)
+                        ) - self.membrane.k_d * self.membrane.K_S * (c_ws ** 2)
                         J_diff = (
                             self.membrane.D
                             / (
@@ -1212,7 +1598,7 @@ class Component:
         h_prim = corr.get_h_from_Nu(
             corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
         )
-        self.fluid.h_coeff= h_prim
+        self.fluid.h_coeff = h_prim
         R_conv_prim = 1 / h_prim
         R_tot = R_conv_prim + R_cond + R_conv_sec
         self.U = 1 / R_tot
@@ -1328,7 +1714,7 @@ class Fluid:
                 # if Re < 1e4 and Re > 2030:
                 #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
                 if Re > 2030:
-                    Sh = 0.0096 * Re**0.913 * Sc**0.346  ##Getthem paper
+                    Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
                 else:
                     print(Re)
                     raise ValueError("Reynolds number is too low")
@@ -1393,8 +1779,8 @@ class Membrane:
         self.K_S = K_S
         self.k_r = k_r
         self.k = k
-        self.D_0=D_0
-        self.E_d=E_d
+        self.D_0 = D_0
+        self.E_d = E_d
 
     def update_attribute(
         self, attr_name: str = None, new_value: Union[float, "SolidMaterial"] = None
@@ -1409,8 +1795,7 @@ class Membrane:
         set_attribute(self, attr_name, new_value)
         if self.D_0 is not None and self.E_d is not None:
             if attr_name == "T" and new_value is not None:
-                self.D =self.D_0 * np.exp(-self.E_d / (8.617333262145e-5 * self.T))
-                
+                self.D = self.D_0 * np.exp(-self.E_d / (8.617333262145e-5 * self.T))
 
     def inspect(self, variable_names=None):
         """
@@ -1430,7 +1815,6 @@ class Membrane:
         self.T = solid_material.T
         self.D = solid_material.D
         self.K_S = solid_material.K_S
-
 
 
 # class GLC_Gas:
@@ -1673,7 +2057,7 @@ class BreedingBlanket:
         T_out: float = None,
         T_in: float = None,
         fluid: Fluid = None,
-        name: str =None
+        name: str = None,
     ):
         self.c_in = c_in
         self.Q = Q
@@ -1681,37 +2065,75 @@ class BreedingBlanket:
         self.T_out = T_out
         self.T_in = T_in
         self.fluid = fluid
-        self.name=name
+        self.name = name
+
     def plot_component(self):
         fig, ax2 = plt.subplots(1, 1, figsize=(10, 5))
-        rectangle = plt.Rectangle((0.2, 0.3), 0.55, 0.4, edgecolor='black', facecolor='green', alpha=0.5)
+        rectangle = plt.Rectangle(
+            (0.2, 0.3), 0.55, 0.4, edgecolor="black", facecolor="green", alpha=0.5
+        )
         ax2.add_patch(rectangle)
         # Arrow pointing to the left side of the rectangle
-        ax2.arrow(0.5, 0.7, 0, 0.1, head_width=0.05, head_length=0.1, fc='black', ec='black')
+        ax2.arrow(
+            0.5, 0.7, 0, 0.1, head_width=0.05, head_length=0.1, fc="black", ec="black"
+        )
         # Arrow pointing out of the right side of the rectangle
-        ax2.arrow(0.5, 0.1, 0.0, 0.1, head_width=0.05, head_length=0.1, fc='black', ec='black')
-        ax2.set_aspect('equal')
+        ax2.arrow(
+            0.5, 0.1, 0.0, 0.1, head_width=0.05, head_length=0.1, fc="black", ec="black"
+        )
+        ax2.set_aspect("equal")
         ax2.set_xlim(0, 1)
         ax2.set_ylim(0, 1)
         if self.name is None:
-            ax2.set_title('Component  ')
+            ax2.set_title("Component  ")
         else:
             ax2.set_title(self.name)
-        
 
         # Add text over the arrows
-        ax2.text(0.7, 0.8,  r"$T_o$="+str(self.T_out)+" K", color='black', ha='center', va='center')
-        ax2.text(0.7, 0.2,r"$T_i$="+str(self.T_in)+" K" , color='black', ha='center', va='center')
-        ax2.text(0.3, 0.2, f"$c_i$={self.c_in:.4g} $mol/m^3$", color='black', ha='center', va='center')
-        ax2.text(0.5, 0.6, f"Q={self.Q/1E6:.3g} MW", color='black', ha='center', va='center')
-        ax2.text(0.5, 0.4, f"TBR={self.TBR:.3g}", color='black', ha='center', va='center')
-        
-        ax2.text(0.3, 0.8, fr"$c_o$={self.c_out:.4g}$mol/m^3$", color='black', ha='center', va='center')
-        ax2.axis('off')
+        ax2.text(
+            0.7,
+            0.8,
+            r"$T_o$=" + str(self.T_out) + " K",
+            color="black",
+            ha="center",
+            va="center",
+        )
+        ax2.text(
+            0.7,
+            0.2,
+            r"$T_i$=" + str(self.T_in) + " K",
+            color="black",
+            ha="center",
+            va="center",
+        )
+        ax2.text(
+            0.3,
+            0.2,
+            f"$c_i$={self.c_in:.4g} $mol/m^3$",
+            color="black",
+            ha="center",
+            va="center",
+        )
+        ax2.text(
+            0.5, 0.6, f"Q={self.Q/1E6:.3g} MW", color="black", ha="center", va="center"
+        )
+        ax2.text(
+            0.5, 0.4, f"TBR={self.TBR:.3g}", color="black", ha="center", va="center"
+        )
+
+        ax2.text(
+            0.3,
+            0.8,
+            fr"$c_o$={self.c_out:.4g}$mol/m^3$",
+            color="black",
+            ha="center",
+            va="center",
+        )
+        ax2.axis("off")
         # Display the plot
         plt.tight_layout()
         plt.show()
-        
+
     def inspect(self, variable_names=None):
         """
         Prints the attributes of the component.
@@ -1734,9 +2156,10 @@ class BreedingBlanket:
         """
         self.m_coolant = self.Q / ((self.T_out - self.T_in) * self.fluid.cp)
         return
-    def connect_to_component(self, component2: Union["Component","BreedingBlanket"]) :
-        component2.update_attribute("c_in",self.c_out)
-        
+
+    def connect_to_component(self, component2: Union["Component", "BreedingBlanket"]):
+        component2.update_attribute("c_in", self.c_out)
+
     def get_cout(self, print_var: bool = False):
         """
         Calculates the outlet concentration of tritium in the breeding blanket component.
