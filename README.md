@@ -1,4 +1,5 @@
 # TRIOMA (TRItium Object-oriented and Modular Analysis)
+[![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/gabriele-ferrero/TRIOMA/blob/main/LICENSE)[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/gabriele-ferrero/TRIOMA/main) ![CI](https://github.com/gabriele-ferrero/TRIOMA/actions/workflows/main.yml/badge.svg)[![codecov](https://codecov.io/gh/gabriele-ferrero/TRIOMA/branch/main/graph/badge.svg)](https://codecov.io/gh/gabriele-ferrero/TRIOMA)!![Stars](https://img.shields.io/github/stars/gabriele-ferrero/TRIOMA.svg?logo=github&label=Stars&logoColor=white) ![Forks](https://img.shields.io/github/forks/gabriele-ferrero/TRIOMA.svg?logo=github&label=Forks&logoColor=white)
 
 ## Vision
 
@@ -11,9 +12,8 @@ To run copy the repo in a local folder, and run:
 
 ```pip install -r requirements.txt```
 
-## Binder 
 
-[![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/gabriele-ferrero/TRIOMA/main)
+
 
 ## Contributions
 
