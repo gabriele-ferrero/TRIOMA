@@ -48,7 +48,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install sphinx  
+        pip install sphinx sphinx-rtd-theme
     - name: Build the project
       run: |
         cd docs/
