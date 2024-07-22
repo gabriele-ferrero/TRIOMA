@@ -253,6 +253,7 @@ class Circuit:
             
             gains = 0
             losses = 0
+            flag_bb = 0
             for i, component in enumerate(self.components):
                 diff = component.c_in - component.c_out
                 if isinstance(component, Component):
@@ -261,7 +262,7 @@ class Circuit:
                     else:
                         losses += diff
             for i, component in enumerate(self.components):
-                flag_bb = 0
+                
                 if isinstance(component, BreedingBlanket):
                     ind = i
                     if flag_bb != 0:
@@ -504,6 +505,14 @@ class Circuit:
         """
         err = 1
         flag = 0
+        flag_bb = 0
+        for i, component in enumerate(self.components):
+                
+                if isinstance(component, BreedingBlanket):
+                    ind = i
+                    if flag_bb != 0:
+                        print("There are more BB!")
+                    flag_bb = 1
         while flag == 0:
             for i, component in enumerate(self.components):
 
