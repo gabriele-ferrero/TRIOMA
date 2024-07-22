@@ -489,14 +489,14 @@ class Circuit:
                 )
                 axs[i // num_columns, i % num_columns].axis("off")
                 # Display the plot
-                plt.tight_layout()
+                fig.tight_layout()
             else:
                 raise ValueError("Component not recognized")
         for row in axs:
             for ax in row:
                 ax.axis("off")
                 ax.set_ylim(0.2, 0.8)
-
+        return fig
     def solve_circuit(self, tol=1e-6):
         """
         Solve the circuit by calculating the concentration of the components at the outlet.
@@ -760,8 +760,8 @@ class Component:
         )
         ax2.axis("off")
         # Display the plot
-        plt.tight_layout()
-        plt.show()
+        fig.tight_layout()
+        return fig
 
     def outlet_c_comp(self) -> float:
         """
@@ -2193,8 +2193,8 @@ class BreedingBlanket:
         )
         ax2.axis("off")
         # Display the plot
-        plt.tight_layout()
-        plt.show()
+        fig.tight_layout()
+        return fig
 
     def inspect(self, variable_names=None):
         """
