@@ -13,6 +13,7 @@ from tools.component_tools import (
     BreedingBlanket,
     SolidMaterial,
     Geometry,
+    Circuit
 )
 from tools.materials import Flibe, Steel
 from io import StringIO
@@ -638,6 +639,68 @@ class TestLMComponentDiffusionLimited(unittest.TestCase):
             places=2,
         )
 
+class testclosedCircuit(unittest.TestCase):
+    def setUp(self):
+        fluid = Fluid(
+            T=900,
+            D=1e-7,
+            Solubility=0.5,
+            MS=True,
+            mu=1e-3,
+            rho=1000,
+            k=0.5,
+            cp=1.0,
+            k_t=0.1,
+            U0=1,
+            d_Hyd=2E-2,
+        )
+        geometry = Geometry(L=10.0, thick=0.5E-3, D=2E-2)
+        membrane = Membrane(D_0=1E-7,E_d=1, thick=0.5E-3, K_S=0.6, T=900, k_r=1e7, k=0.8, k_d=1e7)
+        component = Component(
+             geometry=geometry, fluid=fluid, membrane=membrane, loss=False
+        )
+        component2 = Component(
+             geometry=geometry,  fluid=fluid, membrane=membrane
+        ,loss=False)
+        componentBB=BreedingBlanket(
+            c_in=1E-3, Q=0.5e9, TBR=1.05, T_out=900, T_in=800, fluid=Flibe(850)
+            
+        )
+        geometry_HX = Geometry(L=10.0, thick=1e-3, D=2e-3)
+        membrane_HX = Membrane(D_0=1e-9,E_d=0.2, thick=1e-3, K_S=0.6, T=850, k_r=1e7, k=0.8, k_d=1e7)
+        fluid_HX = Fluid(   
+            T=850,
+            D=1e-9,
+            Solubility=0.5,
+            MS=True,
+            mu=1e-3,
+            rho=1000,
+            k=0.5,
+            cp=1.0,
+            k_t=0.1,
+            U0=1,
+            d_Hyd=2E-2,
+        )
+        self.component_HX = Component(c_in=1E-3,
+             geometry=geometry_HX, fluid=fluid_HX, membrane=membrane_HX,loss=True)
+        HX=self.component_HX.split_HX(N=11,T_in_hot=900,T_out_hot=800,T_in_cold=581,T_out_cold=800,R_sec=0,Q=0.5E9/5E3)
+        self.circuit = Circuit([componentBB,component,HX,component2],closed=True)
+    def test_circuit(self):
+        # Only test that Circuit functions are called and return correctly
+        #Test closed circuit
+        self.circuit.solve_circuit()
+        self.circuit.get_eff_circuit()
+        self.circuit.get_gains_and_losses()
+        self.circuit.inspect_circuit()
+        self.circuit.plot_circuit()
+        # Test component split and then test open circuit
+        self.component_HX.converge_split_HX(T_in_hot=900,T_out_hot=800,T_in_cold=581,T_out_cold=800,R_sec=0,Q=0.5E9/5E3)
+        Circuit_HX=self.component_HX.split_HX(N=11,T_in_hot=900,T_out_hot=800,T_in_cold=581,T_out_cold=800,R_sec=0,Q=0.5E9/5E3)
+        Circuit_HX.solve_circuit()
+        Circuit_HX.inspect_circuit()
+        Circuit_HX.add_component(self.component_HX)
+        
+    
 
 if __name__ == "__main__":
     unittest.main()
