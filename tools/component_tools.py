@@ -1231,12 +1231,12 @@ class Component:
         self.get_adimensionals()
         if self.fluid.MS:
             if self.W > 10:
-                # DIFFUSION LIMITED
+                # DIFFUSION LIMITED V // Surface limited X
                 if self.H / self.W > 1000:
-                    # Mass transport limited
+                    # Mass transport limited V // Diffusion limited X
                     self.J_perm = -2 * self.fluid.k_t * c  ## MS factor
                 elif self.H / self.W < 0.0001:
-                    # Diffusion limited
+                    # Diffusion limited V // Mass Transport limited X
                     self.J_perm = -(
                         self.membrane.D
                         / (
@@ -1299,12 +1299,12 @@ class Component:
                     )  ## MS factor
                     return float(solution.x[0])
             elif self.W < 0.1:
-                # Surface limited
+                # Surface limited V // Diffusion Limited X
                 if self.H > 100:
-                    # Mass transport limited
+                    # Mass transport limited V // Surface limited X
                     self.J_perm = -2 * self.fluid.k_t * c  ## MS factor
                 elif self.H < 0.01:
-                    # Surface limited
+                    # Surface limited V // Mass Transport limited X
                     self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
                 else:
                     # Mixed regime mass transfer surface
@@ -1337,10 +1337,11 @@ class Component:
                     self.J_perm = 2 * self.fluid.k_t * (c_bl - c_wl)  ## MS factor
                     return float(solution.x[0])
             else:
-                if self.H / self.W < 0.0001:
-                    # Mass transport limited
+                # Mixed Diffusion Surface
+                if self.H / self.W >1000:
+                    # Mass transport limited V // Mixed Surface Diffusion Limited X
                     self.J_perm = -2 * self.fluid.k_t * c  ## MS factor
-                elif self.H / self.W > 1000:
+                elif self.H / self.W < 0.0001:
                     # Mixed Diffusion Surface
                     def equations(vars):
                         c_wl = vars
@@ -1445,12 +1446,12 @@ class Component:
 
         else:
             if self.W > 10:
-                # DIFFUSION LIMITED
+                # DIFFUSION LIMITED V // Surface limited X
                 if self.H / self.W > 1000:
-                    # Mass transport limited
+                    # Mass transport limited V // Diffusion limited X
                     self.J_perm = -self.fluid.k_t * c  ## LM factor
                 elif self.H / self.W < 0.0001:
-                    # Diffusion limited
+                    # Diffusion limited V // Mass Transport limited X
                     self.J_perm = -(
                         self.membrane.D
                         / (
@@ -1502,12 +1503,12 @@ class Component:
                     self.J_perm = -self.fluid.k_t * (c - solution.x[0])  ## LM factor
                     return float(solution.x[0])
             elif self.W < 0.1:
-                # Surface limited
+                # Surface limited V // Diffusion Limited X
                 if self.H > 100:
-                    # Mass transport limited
+                    # Mass transport limited V // Surface limited X
                     self.J_perm = -self.fluid.k_t * c  ## LM factor
                 elif self.H < 0.01:
-                    # Surface limited
+                    # Surface limited V // Mass Transport limited X
                     self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
                 else:
                     # Mixed regime mass transfer surface
@@ -1541,10 +1542,10 @@ class Component:
                     return float(solution.x[0])
             else:
                 if self.H / self.W < 0.0001:
-                    # Mass transport limited
+                    # Mass transport limited V // Mixed Surface Diffusion  X
                     self.J_perm = -self.fluid.k_t * c  ## LM factor
                 elif self.H / self.W > 1000:
-                    # Mixed Diffusion Surface
+                    # Mixed Diffusion Surface V // Mass Transport limited X
                     def equations(vars):
                         c_wl = vars
                         c_bl = c

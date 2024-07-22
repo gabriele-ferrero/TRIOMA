@@ -368,7 +368,7 @@ class Test_BB_Component(unittest.TestCase):
             c_in=0, Q=0.5e9, TBR=1.05, T_out=900, T_in=800, fluid=Flibe(850)
         )
     def plot_test(self):    
-        self.component.plot()
+        self.component.plot_component()
     def test_outlet_c_comp(self):
         # Test the outlet_c_comp() method
         self.component.get_cout(print_var=True)
@@ -574,7 +574,7 @@ class TestMSComponentMixedDiffusionSurface(unittest.TestCase):
         )
         geometry = Geometry(L=1.0, thick=1e-2, D=2e-2)
         membrane = Membrane(
-            k_d=1e-10, D=1e-8, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-10, k=0.8
+            k_d=1e-10, D=1e-7, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-10, k=0.8
         )
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
@@ -693,6 +693,37 @@ class TestMSComponentSurfaceLimited(unittest.TestCase):
         #Test that get efficiency works
         self.component.get_efficiency(c_guess=self.component.c_in / 2)
         
+class TestMSComponentFullyMixed(unittest.TestCase):
+    def setUp(self):
+        # Create a Component object with some different initial values
+        fluid = Fluid(
+            T=750,  # Changed temperature
+            D=2e-11,  # Changed diffusion coefficient
+            Solubility=1e-4,  # Changed solubility
+            MS=True,
+            mu=1e-3,
+            rho=1000,
+            k=0.5,
+            cp=1.0,
+            U0=1,
+            d_Hyd=2e-2,
+        )
+        geometry = Geometry(L=1.0, thick=1e-2, D=2e-2)
+        membrane = Membrane(
+            k_d=1e-10, D=1e-7, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-10, k=0.8
+        )
+        self.component = Component(
+            c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
+        )
+
+    def test_get_regime(self):
+        regime = self.component.get_regime()
+        self.assertEqual(regime, "Mixed regime")
+
+    def test_efficiency(self):
+        # Test the efficiency_vs_analytical() method
+       
+        self.component.get_efficiency(c_guess=self.component.c_in / 2)
 
 
 class TestLMComponentMassTransportLimited(unittest.TestCase):
@@ -850,7 +881,41 @@ class TestLMComponentMixedMassTransferSurface(unittest.TestCase):
         # Test the efficiency_vs_analytical() method
         
         self.component.get_efficiency(c_guess=self.component.c_in / 2)
+class TestLMComponentFullyMixed(unittest.TestCase):
+    def setUp(self):
+        # Create a Component object with some different initial values
+        fluid = Fluid(
+            T=750,  # Changed temperature
+            D=2e-11,  # Changed diffusion coefficient
+            Solubility=1e-2,  # Changed solubility
+            MS=False,
+            mu=1e-3,
+            rho=1000,
+            k=0.5,
+            cp=1.0,
+            U0=2,
+            d_Hyd=2e-3,
+        )
+        geometry = Geometry(L=1.0, thick=1e-4, D=2e-3)
+        membrane = Membrane(
+            k_d=1e-9, D=1e-9, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e-9, k=0.8
+        )
+        self.component = Component(
+            c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
+        )
+
+    def test_get_regime(self):
+        regime = self.component.get_regime(print_var=True)
+        self.assertEqual(
+            regime,
+            "Mixed regime",
+        )
+
+    
+    def test_efficiency(self):
+        # Test the efficiency_vs_analytical() method
         
+        self.component.get_efficiency(c_guess=self.component.c_in / 2)    
 
 class TestLMComponentDiffusionLimited(unittest.TestCase):
     def setUp(self):
@@ -875,7 +940,7 @@ class TestLMComponentDiffusionLimited(unittest.TestCase):
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
     def plot_test(self):
-        self.component.plot()
+        self.component.plot_component()
         
     def test_get_regime(self):
         regime = self.component.get_regime(print_var=True)
