@@ -353,7 +353,8 @@ class Test_BB_Component(unittest.TestCase):
         self.component = BreedingBlanket(
             c_in=0, Q=0.5e9, TBR=1.05, T_out=900, T_in=800, fluid=Flibe(850)
         )
-
+    def plot_test(self):    
+        self.component.plot()
     def test_outlet_c_comp(self):
         # Test the outlet_c_comp() method
         self.component.get_cout(print_var=True)
@@ -619,7 +620,9 @@ class TestLMComponentDiffusionLimited(unittest.TestCase):
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
-
+    def plot_test(self):
+        self.component.plot()
+        
     def test_get_regime(self):
         regime = self.component.get_regime(print_var=True)
         self.assertEqual(regime, "Diffusion Limited")
