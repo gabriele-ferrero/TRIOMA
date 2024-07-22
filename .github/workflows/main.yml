@@ -24,7 +24,7 @@ jobs:
 
     - name: Run tests
       run: |
-        pytest --cov=your_package_name --cov-report=xml
+        pytest --cov=TRIOMA --cov-report=xml
 
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@v4.0.1
