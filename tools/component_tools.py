@@ -166,7 +166,17 @@ class Circuit:
         components: list = None,
         closed: bool = False,
     ):
-        self.components = components if components is not None else []
+        vec_components=[]
+        if components is not None:
+            for element in components:
+                if isinstance(element, Union[Component, BreedingBlanket]):
+                    vec_components.append(element)
+                elif isinstance(element, Circuit):
+                    for comp in element.components:
+                        vec_components.append(comp)
+                else:
+                    raise ValueError("Invalid component type")
+        self.components =vec_components
         self.closed = closed
 
     def update_attribute(self, attr_name: str, new_value: Union[float, bool]):
