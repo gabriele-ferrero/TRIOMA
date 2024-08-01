@@ -1674,7 +1674,11 @@ class Fluid:
     Args:
         T (float): Temperature of the fluid.
         D (float): Tritium Diffusivity of the fluid.
+        D_0 (float): Preexponential Diffusivity of the fluid.
+        E_d (float): Activation energy of the fluid diffusivity.
         Solubility (float): Solubility of the fluid.
+        Solubility_0 (float): Preexponential solubility of the fluid.
+        E_s (float): Activation energy of the fluid solubility.
         MS (bool): Indicates whether the fluid is a molten salt or a liquid metal.
         d_Hyd (float, optional): Hydraulic diameter of the fluid. Defaults to None.
         k_t (float, optional): Mass transport coefficient of the fluid. Defaults to None.
@@ -1687,7 +1691,11 @@ class Fluid:
         self,
         T: float = None,
         D: float = None,
+        D_0: float = None,
+        E_d: float = None,
         Solubility: float = None,
+        Solubility_0: float = None,
+        E_s: float = None,
         MS: bool = True,
         d_Hyd: float = None,
         k_t: float = None,
@@ -1713,9 +1721,15 @@ class Fluid:
             k thermal conductivity of the fluid. Defaults to None.
         """
         self.T = T
-        self.Solubility = Solubility
         self.MS = MS
-        self.D = D
+        if D_0 is not None and E_d is not None:
+            self.D = D_0 * np.exp(-E_d / (8.617333262145e-5 * self.T))
+        else:
+            self.D = D
+        if Solubility_0 is not None and E_s is not None:
+            self.Solubility = Solubility_0 * np.exp(-E_s / (8.617333262145e-5 * self.T))
+        else:
+            self.Solubility = Solubility
         self.k_t = k_t
         self.d_Hyd = d_Hyd
         self.mu = mu
