@@ -368,7 +368,7 @@ class Test_BB_Component(unittest.TestCase):
             c_in=0, Q=0.5e9, TBR=1.05, T_out=900, T_in=800, fluid=Flibe(850)
         )
     def plot_test(self):    
-        self.component.plot_component()
+        fig=self.component.plot_component()
     def test_outlet_c_comp(self):
         # Test the outlet_c_comp() method
         self.component.get_cout(print_var=True)
@@ -940,7 +940,7 @@ class TestLMComponentDiffusionLimited(unittest.TestCase):
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
     def plot_test(self):
-        self.component.plot_component()
+        fig=self.component.plot_component()
         
     def test_get_regime(self):
         regime = self.component.get_regime(print_var=True)
@@ -1049,7 +1049,7 @@ class testclosedCircuit(unittest.TestCase):
         self.circuit.get_eff_circuit()
         self.circuit.get_gains_and_losses()
         self.circuit.inspect_circuit()
-        self.circuit.plot_circuit()
+        fig=self.circuit.plot_circuit()
         # Test component split and then test open circuit
         self.component_HX.converge_split_HX(T_in_hot=900,T_out_hot=800,T_in_cold=581,T_out_cold=800,R_sec=0,Q=0.5E9/5E3)
         Circuit_HX=self.component_HX.split_HX(N=11,T_in_hot=900,T_out_hot=800,T_in_cold=581,T_out_cold=800,R_sec=0,Q=0.5E9/5E3)

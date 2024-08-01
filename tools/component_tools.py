@@ -489,14 +489,14 @@ class Circuit:
                 )
                 axs[i // num_columns, i % num_columns].axis("off")
                 # Display the plot
-                plt.tight_layout()
+                fig.tight_layout()
             else:
                 raise ValueError("Component not recognized")
         for row in axs:
             for ax in row:
                 ax.axis("off")
                 ax.set_ylim(0.2, 0.8)
-
+        return fig
     def solve_circuit(self, tol=1e-6):
         """
         Solve the circuit by calculating the concentration of the components at the outlet.
@@ -760,8 +760,8 @@ class Component:
         )
         ax2.axis("off")
         # Display the plot
-        plt.tight_layout()
-        plt.show()
+        fig.tight_layout()
+        return fig
 
     def outlet_c_comp(self) -> float:
         """
@@ -1674,7 +1674,11 @@ class Fluid:
     Args:
         T (float): Temperature of the fluid.
         D (float): Tritium Diffusivity of the fluid.
+        D_0 (float): Preexponential Diffusivity of the fluid.
+        E_d (float): Activation energy of the fluid diffusivity.
         Solubility (float): Solubility of the fluid.
+        Solubility_0 (float): Preexponential solubility of the fluid.
+        E_s (float): Activation energy of the fluid solubility.
         MS (bool): Indicates whether the fluid is a molten salt or a liquid metal.
         d_Hyd (float, optional): Hydraulic diameter of the fluid. Defaults to None.
         k_t (float, optional): Mass transport coefficient of the fluid. Defaults to None.
@@ -1687,7 +1691,11 @@ class Fluid:
         self,
         T: float = None,
         D: float = None,
+        D_0: float = None,
+        E_d: float = None,
         Solubility: float = None,
+        Solubility_0: float = None,
+        E_s: float = None,
         MS: bool = True,
         d_Hyd: float = None,
         k_t: float = None,
@@ -1713,9 +1721,15 @@ class Fluid:
             k thermal conductivity of the fluid. Defaults to None.
         """
         self.T = T
-        self.Solubility = Solubility
         self.MS = MS
-        self.D = D
+        if D_0 is not None and E_d is not None:
+            self.D = D_0 * np.exp(-E_d / (8.617333262145e-5 * self.T))
+        else:
+            self.D = D
+        if Solubility_0 is not None and E_s is not None:
+            self.Solubility = Solubility_0 * np.exp(-E_s / (8.617333262145e-5 * self.T))
+        else:
+            self.Solubility = Solubility
         self.k_t = k_t
         self.d_Hyd = d_Hyd
         self.mu = mu
@@ -1776,10 +1790,12 @@ class Fluid:
                 # if Re < 1e4 and Re > 2030:
                 #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
                 if Re > 2030:
-                    Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
+                    # Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
+                    Sh=0.026*Re**0.8*Sc**0.33
                 else:
-                    print(Re)
-                    raise ValueError("Reynolds number is too low")
+                    print(str(Re)+" indicates laminar flow")
+                    Sh=3.66
+                    # raise ValueError("Reynolds number is too low")
                 self.k_t = corr.get_k_from_Sh(
                     Sh=Sh,
                     L=self.d_Hyd,
@@ -1806,6 +1822,8 @@ class Membrane:
         k (float, optional): Thermal conductivity of the membrane. Defaults to None.
         D_0 (float, optional): Pre-exponential factor of the membrane. Defaults to None.Overwrites D if defined
         E_d (float, optional): Activation energy of the diffusivity in the membrane in eV. Defaults to None. Overwrites D if defined
+        K_S_0 (float, optional): Pre-exponential factor of the solubility in the membrane. Defaults to None.Overwrites K_S if defined
+        E_S (float, optional): Activation energy of the solubility in the membrane in eV. Defaults to None. Overwrites K_S if defined
     """
 
     def __init__(
@@ -1819,6 +1837,8 @@ class Membrane:
         k: float = None,
         D_0: float = None,
         E_d: float = None,
+        K_S_0: float = None,
+        E_S: float = None,
     ):
         """
         Initializes a new instance of the Membrane class.
@@ -1836,9 +1856,12 @@ class Membrane:
             self.D = D_0 * np.exp(-E_d / (8.617333262145e-5 * self.T))
         else:
             self.D = D
+        if K_S_0 is not None and E_S is not None:
+            self.K_S = K_S_0 * np.exp(-E_S / (8.617333262145e-5 * self.T))
+        else:
+            self.K_S = K_S
         self.thick = thick
         self.k_d = k_d
-        self.K_S = K_S
         self.k_r = k_r
         self.k = k
         self.D_0 = D_0
@@ -2193,8 +2216,8 @@ class BreedingBlanket:
         )
         ax2.axis("off")
         # Display the plot
-        plt.tight_layout()
-        plt.show()
+        fig.tight_layout()
+        return fig
 
     def inspect(self, variable_names=None):
         """
