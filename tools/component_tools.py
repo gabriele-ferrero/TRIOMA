@@ -1776,10 +1776,12 @@ class Fluid:
                 # if Re < 1e4 and Re > 2030:
                 #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
                 if Re > 2030:
-                    Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
+                    # Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
+                    Sh=0.026*Re**0.8*Sc**0.33
                 else:
-                    print(Re)
-                    raise ValueError("Reynolds number is too low")
+                    print(str(Re)+" indicates laminar flow")
+                    Sh=3.66
+                    # raise ValueError("Reynolds number is too low")
                 self.k_t = corr.get_k_from_Sh(
                     Sh=Sh,
                     L=self.d_Hyd,
