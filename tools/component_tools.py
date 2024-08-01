@@ -1808,6 +1808,8 @@ class Membrane:
         k (float, optional): Thermal conductivity of the membrane. Defaults to None.
         D_0 (float, optional): Pre-exponential factor of the membrane. Defaults to None.Overwrites D if defined
         E_d (float, optional): Activation energy of the diffusivity in the membrane in eV. Defaults to None. Overwrites D if defined
+        K_S_0 (float, optional): Pre-exponential factor of the solubility in the membrane. Defaults to None.Overwrites K_S if defined
+        E_S (float, optional): Activation energy of the solubility in the membrane in eV. Defaults to None. Overwrites K_S if defined
     """
 
     def __init__(
@@ -1821,6 +1823,8 @@ class Membrane:
         k: float = None,
         D_0: float = None,
         E_d: float = None,
+        K_S_0: float = None,
+        E_S: float = None,
     ):
         """
         Initializes a new instance of the Membrane class.
@@ -1838,9 +1842,12 @@ class Membrane:
             self.D = D_0 * np.exp(-E_d / (8.617333262145e-5 * self.T))
         else:
             self.D = D
+        if K_S_0 is not None and E_S is not None:
+            self.K_S = K_S_0 * np.exp(-E_S / (8.617333262145e-5 * self.T))
+        else:
+            self.K_S = K_S
         self.thick = thick
         self.k_d = k_d
-        self.K_S = K_S
         self.k_r = k_r
         self.k = k
         self.D_0 = D_0
