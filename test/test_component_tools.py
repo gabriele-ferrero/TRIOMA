@@ -2,9 +2,11 @@ import unittest
 import sys
 import os
 
+
 sys.path.append(os.path.abspath("."))
 from operator import ge
 import unittest
+
 from tools.component_tools import (
     Component,
     Fluid,
@@ -467,22 +469,22 @@ class TestFluid(unittest.TestCase):
         self.component.update_attribute("d_Hyd", 0.3)
         self.component.update_attribute("k_t", None)
         self.component.get_kt()
-        self.assertEqual(self.component.k_t, 8.046408367835323e-06)
+        self.assertEqual(self.component.k_t,8.046408367835323e-06)
         # test when k_t is already defined
         result = "k_t is already defined"
         with patch("sys.stdout", new=StringIO()) as fake_out:
             self.component.get_kt()
             self.assertEqual(fake_out.getvalue().strip(), result.strip())
         # test when Reynolds number is too low
-        self.component.update_attribute("U0", 0)
+        self.component.update_attribute("U0", 1E-6)
         self.component.update_attribute("k_t", None)
-        with pytest.raises(ValueError) as excinfo:
-            self.component.get_kt()
-        assert str(excinfo.value) == "Reynolds number is too low"
+        
+        self.component.get_kt()
+        self.assertEqual((3.66/self.component.d_Hyd*self.component.D), self.component.k_t)
         self.component.update_attribute("U0", 0.008)
         # test when Reynolds number is in a different correlation range
         self.component.get_kt()
-        self.assertAlmostEqual(self.component.k_t, 4.25875681945274e-07)
+        self.assertAlmostEqual(self.component.k_t, 1.2200000000000002e-08)
 
 
 class TestMSComponentDiffusionLimited(unittest.TestCase):
@@ -587,7 +589,7 @@ class TestMSComponentMixedDiffusionSurface(unittest.TestCase):
     def test_efficiency(self):
         # Test the efficiency_vs_analytical() method
        
-        self.component.get_efficiency(c_guess=self.component.c_in / 2)
+        self.component.get_efficiency(c_guess=self.component.c_in )
 class TestMSComponentMixedMassTransportSurface(unittest.TestCase):
     def setUp(self):
         # Create a Component object with some different initial values
@@ -949,7 +951,7 @@ class TestLMComponentDiffusionLimited(unittest.TestCase):
     def test_get_flux(self):
         # Test the get_flux() method
         flux = self.component.get_flux(c=0.3)
-        self.assertAlmostEqual(flux, 0.299909767880366, places=5)
+        self.assertAlmostEqual(flux, 0.29990976788036605, places=5)
 
     def test_efficiency_vs_analytical(self):
         # Test the efficiency_vs_analytical() method

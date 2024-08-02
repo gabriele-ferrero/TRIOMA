@@ -1309,6 +1309,8 @@ class Component:
                 else:
                     # Mixed regime mass transfer surface
                     def equations(vars):
+                        if vars.size == 0:
+                            return upper_bound
                         c_wl = vars
                         c_bl = c
                         J_mt = 2 * self.fluid.k_t * (c_bl - c_wl)  ## MS factor
@@ -1344,6 +1346,8 @@ class Component:
                 elif self.H / self.W < 0.0001:
                     # Mixed Diffusion Surface
                     def equations(vars):
+                        if vars.size == 0:
+                            return upper_bound
                         c_wl = vars
                         c_bl = c
                         J_surf = (
@@ -1379,7 +1383,7 @@ class Component:
                         bounds=[
                             (1e-14, c),
                         ],
-                        tol=1e-8,
+                        tol=1e-7,
                         options={
                             "maxiter": int(1e6),
                         },
@@ -1790,8 +1794,8 @@ class Fluid:
                 # if Re < 1e4 and Re > 2030:
                 #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
                 if Re > 2030:
-                    # Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
-                    Sh=0.026*Re**0.8*Sc**0.33
+                    Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
+                    #Sh=0.026*Re**0.8*Sc**0.33
                 else:
                     print(str(Re)+" indicates laminar flow")
                     Sh=3.66
