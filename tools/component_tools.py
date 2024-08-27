@@ -770,13 +770,15 @@ class Component:
         else:
             err=1
             tol=1E-6
+            c0=self.c_in
             while err>tol:
+                
                 c_in1=self.c_in
                 self.update_attribute("c_in",self.c_in)
                 self.analytical_efficiency()
                 self.update_attribute("eff",self.eff_an)
                 self.c_out=self.c_in * (1 - self.eff)
-                self.c_in=(self.c_out*self.fluid.recirculation)/(self.fluid.recirculation+1)
+                self.c_in=(self.c_out*self.fluid.recirculation+c0)/(self.fluid.recirculation+1)
                 err=abs((self.c_in-c_in1)/self.c_in)
 
     def split_HX(
