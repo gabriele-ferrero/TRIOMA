@@ -1,3 +1,4 @@
+from ast import Raise
 import numpy as np
 # from example_simulation import TBR
 import tools.molten_salts as MS
@@ -770,6 +771,8 @@ class Component:
         else:
             err=1
             tol=1E-6
+            if self.c_in==0:
+                RaiseError("The inlet concentration is zero")   
             c0=self.c_in
             c_in=c0
             while err>tol:
