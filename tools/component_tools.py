@@ -777,7 +777,7 @@ class Component:
                 self.update_attribute("eff",self.eff_an)
                 self.c_out=self.c_in * (1 - self.eff)
                 self.c_in=(self.c_out*self.fluid.recirculation)/(self.fluid.recirculation+1)
-                err=abs((c_in-c_in1)/c_in)
+                err=abs((self.c_in-c_in1)/self.c_in)
 
     def split_HX(
         self,
