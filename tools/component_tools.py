@@ -765,7 +765,19 @@ class Component:
         Returns:
             float: The concentration of the component at the outlet.
         """
-        self.c_out = self.c_in * (1 - self.eff)
+        if self.fluid.recirculation==0:
+            self.c_out = self.c_in * (1 - self.eff)
+        else:
+            err=1
+            tol=1E-6
+            while err>tol:
+                c_in1=c_in
+                self.update_attribute("c_in",c_in)
+                self.analytical_efficiency()
+                self.update_attribute("eff",self.eff_an)
+                self.c_out=self.c_in * (1 - self.eff)
+                c_in=(self.c_out*self.fluid.recirculation)/(self.fluid.recirculation+1)
+                err=abs((c_in-c_in1)/c_in)
 
     def split_HX(
         self,
@@ -1684,6 +1696,7 @@ class Fluid:
         mu (float, optional): Viscosity of the fluid. Defaults to None.
         rho (float, optional): Density of the fluid. Defaults to None.
         U0 (float, optional): Velocity of the fluid. Defaults to None.
+        recirculation(float,optional): fraction of recirculated flowrate. Defaults to 0. 1 = 100%, 0.5=50%. 
     """
 
     def __init__(
@@ -1703,6 +1716,7 @@ class Fluid:
         U0: float = None,
         k: float = None,
         cp: float = None,
+        recirculation: float = 0,   
     ):
         """
         Initializes a new instance of the Fluid class.
@@ -1736,6 +1750,7 @@ class Fluid:
         self.U0 = U0
         self.k = k
         self.cp = cp
+        self.recirculation = recirculation
 
     def update_attribute(
         self, attr_name: str = None, new_value: Union[float, "FluidMaterial"] = None
