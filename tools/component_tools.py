@@ -1749,10 +1749,14 @@ class Fluid:
         self.d_Hyd = d_Hyd
         self.mu = mu
         self.rho = rho
-        self.U0 = U0
+        self.recirculation = recirculation
+        if self.recirculation==0:
+            self.U0 = U0
+        else:
+            self.U0=U0*(1+self.recirculation)
         self.k = k
         self.cp = cp
-        self.recirculation = recirculation
+        
 
     def update_attribute(
         self, attr_name: str = None, new_value: Union[float, "FluidMaterial"] = None
