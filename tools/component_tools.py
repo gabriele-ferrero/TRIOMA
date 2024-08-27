@@ -45,11 +45,6 @@ def print_class_variables(instance, variable_names=None, tab: int = 0):
             else:
                 print(f"{indent}{attr_name}: {attr_value}")
 
-
-def calculate_p_H2_from_c0(instance, c0):
-    return c0 / instance.fluid.Solubility
-
-
 def set_attribute(instance, attr_name, new_value):
     """
     Sets the specified attribute to a new value.
