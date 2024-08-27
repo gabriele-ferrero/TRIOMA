@@ -91,6 +91,7 @@ class TestMSComponent(unittest.TestCase):
         )
 
     def test_get_regime(self):
+        regime = self.component.get_regime(print_var=True)
         regime = self.component.get_regime()
         self.assertEqual(regime, "Mixed regime")
 

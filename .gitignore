@@ -5,6 +5,7 @@ __pycache__/
 -gitignore
 plant.ipynb
 plantParametric.ipynb
+*Superfennec*
 # C extensions
 *.so
 *.mph
