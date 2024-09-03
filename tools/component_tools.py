@@ -1,3 +1,4 @@
+from ast import Raise
 import numpy as np
 # from example_simulation import TBR
 import tools.molten_salts as MS
@@ -79,12 +80,13 @@ class Geometry:
     """
 
     def __init__(
-        self, L: float = None, D: float = None, thick: float = None, n_pipes: int = 1
+        self, L: float = None, D: float = None, thick: float = None, n_pipes: int = 1, turbulator: str = None
     ):
         self.L = L
         self.D = D
         self.thick = thick
         self.n_pipes = n_pipes
+        self.turbulator = turbulator
 
     def update_attribute(self, attr_name: str, new_value: float):
         """
@@ -1786,21 +1788,36 @@ class Fluid:
             if self.k_t is None:
                 Re = corr.Re(rho=self.rho, u=self.U0, L=self.d_Hyd, mu=self.mu)
                 Sc = corr.Schmidt(D=self.D, mu=self.mu, rho=self.rho)
-                # if Re < 1e4 and Re > 2030:
-                #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
-                if Re > 2030:
-                    Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
-                    #Sh=0.026*Re**0.8*Sc**0.33
+                if self.geometry.turbulator is None:
+                    
+                    # if Re < 1e4 and Re > 2030:
+                    #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
+                    if Re > 2030:
+                        Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
+                        #Sh=0.026*Re**0.8*Sc**0.33
+                    else:
+                        print(str(Re)+" indicates laminar flow")
+                        Sh=3.66
+                        # raise ValueError("Reynolds number is too low")
+                    self.k_t = corr.get_k_from_Sh(
+                        Sh=Sh,
+                        L=self.d_Hyd,
+                        D=self.D,
+                    )
                 else:
-                    print(str(Re)+" indicates laminar flow")
-                    Sh=3.66
-                    # raise ValueError("Reynolds number is too low")
-                self.k_t = corr.get_k_from_Sh(
-                    Sh=Sh,
-                    L=self.d_Hyd,
-                    D=self.D,
-                )
-
+                    match self.geometry.turbulator:
+                        case "WireCoil":
+                            if Re > 2030:
+                                Sh=0.132*Re**0.72*Sc**0.37*(3)**-0.372
+                            else: 
+                                Sh=3.66
+                            self.k_t = corr.get_k_from_Sh(Sh=Sh, L=self.d_Hyd, D=self.D)
+                        case "TwistedTape":
+                            raise NotImplementedError("Twisted Tape not implemented yet")
+                        case _:
+                            print(str(self.geometry.turbulator)+" is not recognized")
+                            raise ValueError("Turbulator not recognized")
+                            
             else:
                 print("k_t is already defined")
         else:
