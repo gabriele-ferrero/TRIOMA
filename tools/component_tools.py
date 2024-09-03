@@ -1658,9 +1658,18 @@ class Component:
         )
         Re = corr.Re(self.fluid.rho, self.fluid.U0, self.fluid.d_Hyd, self.fluid.mu)
         Pr = corr.Pr(self.fluid.cp, self.fluid.mu, self.fluid.k)
-        h_prim = corr.get_h_from_Nu(
-            corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
-        )
+        if self.geometry.turbulator is None: 
+            h_prim = corr.get_h_from_Nu(
+                corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
+            )
+        else:
+            match self.geometry.turbulator:
+                case "TwistedTape":
+                    print(str(self.geometry.turbulator)+" is not implemented yet")
+                    raise NotImplementedError("Twisted tape is not implemented yet")
+                case "WireCoil":
+                    Nu=0.132*Re**0.72*Pr**0.37*(3)**-0.372
+                    h_prim=corr.get_h_from_Nu(Nu, self.fluid.k, self.fluid.d_Hyd)
         self.fluid.h_coeff = h_prim
         R_conv_prim = 1 / h_prim
         R_tot = R_conv_prim + R_cond + R_conv_sec
