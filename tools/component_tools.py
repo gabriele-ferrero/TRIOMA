@@ -32,6 +32,7 @@ def print_class_variables(instance, variable_names=None, tab: int = 0):
         SolidMaterial,
         BreedingBlanket,
         Geometry,
+        Turbulator
     ]
     indent = "    " * tab  # Define the indentation as four spaces per tab level
     for attr_name, attr_value in instance.__dict__.items():
@@ -80,7 +81,7 @@ class Geometry:
     """
 
     def __init__(
-        self, L: float = None, D: float = None, thick: float = None, n_pipes: int = 1, turbulator: str = None
+        self, L: float = None, D: float = None, thick: float = None, n_pipes: int = 1, turbulator: Union["Turbulator"] = None
     ):
         self.L = L
         self.D = D
@@ -1663,13 +1664,14 @@ class Component:
                 corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
             )
         else:
-            match self.geometry.turbulator:
+            match self.geometry.turbulator.turbulator_type:
                 case "TwistedTape":
-                    print(str(self.geometry.turbulator)+" is not implemented yet")
+                    print(str(self.geometry.turbulator.turbulator_type)+" is not implemented yet")
                     raise NotImplementedError("Twisted tape is not implemented yet")
                 case "WireCoil":
-                    Nu=0.132*Re**0.72*Pr**0.37*(3)**-0.372
-                    h_prim=corr.get_h_from_Nu(Nu, self.fluid.k, self.fluid.d_Hyd)
+                    h_prim=self.geometry.turbulator.h_t_correlation(Re=Re,Pr=Pr,d_hyd=self.fluid.d_Hyd)
+                case "Custom":
+                    h_prim=self.geometry.turbulator.h_t_correlation(Re=Re,Pr=Pr,d_hyd=self.fluid.d_Hyd)
         self.fluid.h_coeff = h_prim
         R_conv_prim = 1 / h_prim
         R_tot = R_conv_prim + R_cond + R_conv_sec
@@ -1823,6 +1825,8 @@ class Fluid:
                             self.k_t = corr.get_k_from_Sh(Sh=Sh, L=self.d_Hyd, D=self.D)
                         case "TwistedTape":
                             raise NotImplementedError("Twisted Tape not implemented yet")
+                        case "Custom":
+                            raise NotImplementedError("Custom not implemented yet")
                         case _:
                             print(str(self.geometry.turbulator)+" is not recognized")
                             raise ValueError("Turbulator not recognized")
@@ -1832,7 +1836,197 @@ class Fluid:
         else:
             print("Hydraulic Diameter is not defined")
 
+class Turbulator: 
+    """
+    Represents a turbulator in a component for Tritium transport analysis
 
+    Args:
+        turbulator_type (str): Type of the turbulator.
+        turbulator_params (dict): Parameters of the turbulator.
+    """
+
+    def __init__(
+        self,
+        turbulator_type: str = None,
+    ):
+        """
+        Initializes a new instance of the Turbulator class.
+
+        Args:
+            turbulator_type (str): Type of the turbulator.
+            turbulator_params (dict): Parameters of the turbulator.
+        """
+        self.turbulator_type = turbulator_type
+
+    def update_attribute(
+        self, attr_name: str = None, new_value: Union[str, dict] = None
+    ):
+        """
+        Updates the value of the specified attribute.
+
+        Args:
+            attr_name (str): The name of the attribute to update.
+            new_value: The new value for the attribute.
+        """
+        set_attribute(self, attr_name, new_value)
+
+    def inspect(self, variable_names=None):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self, variable_names)
+        
+class WireCoil(Turbulator):
+    """
+    Represents a wire coil turbulator in a component for Tritium transport analysis
+
+    Args:
+        turbulator_type (str): Type of the turbulator.
+        turbulator_params (dict): Parameters of the turbulator.
+    """
+
+    def __init__(
+        self,
+        turbulator_type: str = "WireCoil",
+        pitch: float = None,
+    ):
+        """
+        Initializes a new instance of the WireCoil class.
+
+        Args:
+            turbulator_type (str): Type of the turbulator.
+            pitch (float): Pitch of the wire coil.
+        """
+        super().__init__(turbulator_type)
+        self.pitch = pitch
+     
+    def k_t_correlation(self, Re: float = None, Sc: float = None, d_hyd: float = None):
+        """
+        Calculates the mass transport coefficient (k_t) for the fluid with a wire coil turbulator.
+
+        Args:
+            Re (float): Reynolds number of the fluid.
+            Sc (float): Schmidt number of the fluid.
+
+        Returns:
+            float: The mass transport coefficient.
+        """
+        if Re > 2030:
+            Sh = 0.132 * Re ** 0.72 * Sc ** 0.37 * (self.pitch/d_hyd) ** -0.372
+        else:
+            Sh = 3.66
+        k_t = corr.get_k_from_Sh(Sh=Sh, L=self.pitch, D=self.D)
+        return k_t
+    def h_t_correlation(self, Re: float = None, Pr: float = None, d_hyd: float = None):
+        """
+        Calculates the heat transfer coefficient (h_t) for the fluid with a wire coil turbulator.
+
+        Args:
+            Re (float): Reynolds number of the fluid.
+            Pr (float): Prandtl number of the fluid.
+
+        Returns:
+            float: The heat transfer coefficient.
+        """
+        if Re > 2030:
+            Nu = 0.132 * Re ** 0.72 * Pr ** 0.37 * (self.pitch/d_hyd) ** -0.372
+        else:
+            Nu = 3.66
+        h_t = corr.get_h_from_Nu(Nu=Nu, k=self.k, L=self.pitch)
+        return h_t
+    
+    def update_attribute(
+        self, attr_name: str = None, new_value: Union[str, dict] = None
+    ):
+        """
+        Updates the value of the specified attribute.
+
+        Args:
+            attr_name (str): The name of the attribute to update.
+            new_value: The new value for the attribute.
+        """
+        set_attribute(self, attr_name, new_value)
+
+    def inspect(self, variable_names=None):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self, variable_names)
+        
+class CustomTurbulator(Turbulator):
+    """
+    Represents a custom turbulator in a component for Tritium transport analysis
+    """   
+    def __init__(
+        self,
+        turbulator_type: str = "Custom",
+        a: float = None,
+        b: float = None,
+        c: float = None,
+    ):
+        """
+        Initializes a new instance of the CustomTurbulator class.
+
+        Args:
+            turbulator_type (str): Type of the turbulator.
+            turbulator_params (dict): Parameters of the turbulator.
+        """
+        super().__init__(turbulator_type)
+        self.a=a
+        self.b=b
+        self.c=c
+
+    def update_attribute(
+        self, attr_name: str = None, new_value: Union[str, dict] = None
+    ):
+        """
+        Updates the value of the specified attribute.
+
+        Args:
+            attr_name (str): The name of the attribute to update.
+            new_value: The new value for the attribute.
+        """
+        set_attribute(self, attr_name, new_value)
+
+    def inspect(self, variable_names=None):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self, variable_names)
+    def k_t_correlation(self, Re: float = None, Sc: float = None, d_hyd: float = None):
+        """
+        Calculates the mass transport coefficient (k_t) for the fluid with a custom turbulator.
+
+        Args:
+            Re (float): Reynolds number of the fluid.
+            Sc (float): Schmidt number of the fluid.
+
+        Returns:
+            float: The mass transport coefficient.
+        """
+        if Re > 2030:
+            Sh = self.a * Re ** self.b * Sc ** self.c
+        else:
+            Sh = 3.66
+        k_t = corr.get_k_from_Sh(Sh=Sh, L=self.pitch, D=self.D)
+        return k_t
+    def h_t_correlation(self, Re: float = None, Pr: float = None, d_hyd: float = None):
+        """
+        Calculates the heat transfer coefficient (h_t) for the fluid with a custom turbulator.
+
+        Args:
+            Re (float): Reynolds number of the fluid.
+            Pr (float): Prandtl number of the fluid.
+
+        Returns:
+            float: The heat transfer coefficient.
+        """
+        if Re > 2030:
+            Nu = self.a * Re ** self.b * Pr ** self.c
+        else:
+            Nu = 3.66
+        h_t = corr.get_h_from_Nu(Nu=Nu, k=self.k, L=self.pitch)
+        return h_t
 class Membrane:
     """
     Represents a metallic membrane of a component for H transport.
