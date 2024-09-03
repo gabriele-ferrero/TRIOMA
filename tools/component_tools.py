@@ -932,7 +932,7 @@ class Component:
         """
         if self.fluid is not None:
             if self.fluid.k_t is None:
-                self.fluid.get_kt()
+                self.fluid.get_kt(turbulator=self.geometry.turbulator)
             if self.fluid.MS == True:
                 if self.membrane is not None:
 
@@ -1000,7 +1000,7 @@ class Component:
         Updates the H and W attributes of the Component object.
         """
         if self.fluid.k_t is None:
-            self.fluid.get_kt()
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
         if self.fluid is not None:
             if self.fluid.MS:
                 self.H = MS.H(
@@ -1114,7 +1114,7 @@ class Component:
         The output of the function is the analytical efficiency of the component as Component.eff_an.
         """
         if self.fluid.k_t is None:
-            self.fluid.get_kt()
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
         self.tau = (
             4 * self.fluid.k_t * self.geometry.L / (self.fluid.U0 * self.fluid.d_Hyd)
         )
@@ -1783,7 +1783,7 @@ class Fluid:
         self.cp = fluid_material.cp
         self.k = fluid_material.k
 
-    def get_kt(self):
+    def get_kt(self,turbulator=None):
         """
         Calculates the mass transport coefficient (k_t) for the fluid.
 
@@ -1797,7 +1797,7 @@ class Fluid:
             if self.k_t is None:
                 Re = corr.Re(rho=self.rho, u=self.U0, L=self.d_Hyd, mu=self.mu)
                 Sc = corr.Schmidt(D=self.D, mu=self.mu, rho=self.rho)
-                if self.geometry.turbulator is None:
+                if turbulator is None:
                     
                     # if Re < 1e4 and Re > 2030:
                     #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
@@ -1814,7 +1814,7 @@ class Fluid:
                         D=self.D,
                     )
                 else:
-                    match self.geometry.turbulator:
+                    match turbulator:
                         case "WireCoil":
                             if Re > 2030:
                                 Sh=0.132*Re**0.72*Sc**0.37*(3)**-0.372
