@@ -1956,7 +1956,6 @@ class WireCoil(Turbulator):
         else:
             Nu = 3.66
         h_t = corr.get_h_from_Nu(Nu=Nu, k=k, D=d_hyd)
-        print(h_t)
         return h_t
 
     def update_attribute(
