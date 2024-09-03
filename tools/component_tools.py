@@ -1,5 +1,6 @@
 from ast import Raise
 import numpy as np
+
 # from example_simulation import TBR
 import tools.molten_salts as MS
 import tools.liquid_metals as LM
@@ -32,7 +33,7 @@ def print_class_variables(instance, variable_names=None, tab: int = 0):
         SolidMaterial,
         BreedingBlanket,
         Geometry,
-        Turbulator
+        Turbulator,
     ]
     indent = "    " * tab  # Define the indentation as four spaces per tab level
     for attr_name, attr_value in instance.__dict__.items():
@@ -46,6 +47,7 @@ def print_class_variables(instance, variable_names=None, tab: int = 0):
                 tab -= 1
             else:
                 print(f"{indent}{attr_name}: {attr_value}")
+
 
 def set_attribute(instance, attr_name, new_value):
     """
@@ -81,7 +83,12 @@ class Geometry:
     """
 
     def __init__(
-        self, L: float = None, D: float = None, thick: float = None, n_pipes: int = 1, turbulator: Union["Turbulator"] = None
+        self,
+        L: float = None,
+        D: float = None,
+        thick: float = None,
+        n_pipes: int = 1,
+        turbulator: Union["Turbulator"] = None,
     ):
         self.L = L
         self.D = D
@@ -128,7 +135,7 @@ class Geometry:
 class Circuit:
     """
     Represent a circuit of components connected in series
-    
+
     This class represents a circuit consisting of multiple components connected in series. It provides methods to update attributes, add components, calculate circuit efficiency, and plot the circuit.
 
     Attributes:
@@ -138,16 +145,16 @@ class Circuit:
     Methods:
         update_attribute(attr_name, new_value):
             Updates the value of the specified attribute.
-        
+
         add_component(component):
             Adds a component to the circuit.
-        
+
         get_eff_circuit():
             Calculates the efficiency of the circuit.
-        
+
         get_gains_and_losses():
             Calculates the gains and losses of the circuit.
-        
+
         plot_circuit():
             Plots the circuit using matplotlib.
 
@@ -164,7 +171,7 @@ class Circuit:
         components: list = None,
         closed: bool = False,
     ):
-        vec_components=[]
+        vec_components = []
         if components is not None:
             for element in components:
                 if isinstance(element, Union[Component, BreedingBlanket]):
@@ -174,7 +181,7 @@ class Circuit:
                         vec_components.append(comp)
                 else:
                     raise ValueError("Invalid component type")
-        self.components =vec_components
+        self.components = vec_components
         self.closed = closed
 
     def update_attribute(self, attr_name: str, new_value: Union[float, bool]):
@@ -187,7 +194,9 @@ class Circuit:
         """
         set_attribute(self, attr_name, new_value)
 
-    def add_component(self, component: Union["Component", "BreedingBlanket", "Circuit"]):
+    def add_component(
+        self, component: Union["Component", "BreedingBlanket", "Circuit"]
+    ):
         """
         Adds a component to the circuit.
 
@@ -212,7 +221,7 @@ class Circuit:
 
         Example Usage:
             circuit.get_eff_circuit()
-            
+
         """
         ind = None
         for i, component in enumerate(self.components):
@@ -240,53 +249,52 @@ class Circuit:
         self.eff = eff_circuit
 
     def get_gains_and_losses(self):
-            """
-            Calculates the gains and losses of the components in the circuit.
+        """
+        Calculates the gains and losses of the components in the circuit.
 
-            Returns:
-                circuit.extraction_perc (float): The extraction percentage of the circuit.
-                circuit.loss_perc (float): The loss percentage of the circuit.
-                
-            """
-            
-            gains = 0
-            losses = 0
-            flag_bb = 0
-            for i, component in enumerate(self.components):
-                diff = component.c_in - component.c_out
-                if isinstance(component, Component):
-                    if component.loss == False:
-                        gains += diff
-                    else:
-                        losses += diff
-            for i, component in enumerate(self.components):
-                
-                if isinstance(component, BreedingBlanket):
-                    ind = i
-                    if flag_bb != 0:
-                        print("There are more BB!")
-                    flag_bb = 1
-            if ind != 0 and ind != len(self.components):
-                eff_circuit = (
-                    self.components[ind + 1].c_in - self.components[ind - 1].c_out
-                ) / self.components[ind + 1].c_in
-                self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
-                self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
-            elif ind == 0:
-                eff_circuit = (
-                    self.components[ind + 1].c_in - self.components[-1].c_out
-                ) / self.components[ind + 1].c_in
-                self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
-                self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
-            elif ind == len(self.components):
-                eff_circuit = (
-                    self.components[0].c_in - self.components[ind - 1].c_out
-                ) / self.components[0].c_in
-                self.extraction_perc = gains / self.components[0].c_in / eff_circuit
-                self.loss_perc = losses / self.components[0].c_in / eff_circuit
-            self.eff = eff_circuit
+        Returns:
+            circuit.extraction_perc (float): The extraction percentage of the circuit.
+            circuit.loss_perc (float): The loss percentage of the circuit.
 
-    
+        """
+
+        gains = 0
+        losses = 0
+        flag_bb = 0
+        for i, component in enumerate(self.components):
+            diff = component.c_in - component.c_out
+            if isinstance(component, Component):
+                if component.loss == False:
+                    gains += diff
+                else:
+                    losses += diff
+        for i, component in enumerate(self.components):
+
+            if isinstance(component, BreedingBlanket):
+                ind = i
+                if flag_bb != 0:
+                    print("There are more BB!")
+                flag_bb = 1
+        if ind != 0 and ind != len(self.components):
+            eff_circuit = (
+                self.components[ind + 1].c_in - self.components[ind - 1].c_out
+            ) / self.components[ind + 1].c_in
+            self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
+            self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
+        elif ind == 0:
+            eff_circuit = (
+                self.components[ind + 1].c_in - self.components[-1].c_out
+            ) / self.components[ind + 1].c_in
+            self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
+            self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
+        elif ind == len(self.components):
+            eff_circuit = (
+                self.components[0].c_in - self.components[ind - 1].c_out
+            ) / self.components[0].c_in
+            self.extraction_perc = gains / self.components[0].c_in / eff_circuit
+            self.loss_perc = losses / self.components[0].c_in / eff_circuit
+        self.eff = eff_circuit
+
     def plot_circuit(self):
         """
         Plot the circuit diagram for the components in the circuit.
@@ -304,7 +312,7 @@ class Circuit:
         red_to_blue = LinearSegmentedColormap.from_list("RedToBlue", ["red", "blue"])
         num_components = len(self.components)
         if num_components < 10:
-            num_rows =1
+            num_rows = 1
             num_columns = num_components
         else:
             num_rows = (num_components // 10) + (1 if num_components % 10 != 0 else 0)
@@ -392,7 +400,7 @@ class Circuit:
                 axs[i // num_columns, i % num_columns].text(
                     0.9,
                     0.3,
-                    fr"$c_{{out}}={component.c_out:.4g} mol/m^3$",
+                    rf"$c_{{out}}={component.c_out:.4g} mol/m^3$",
                     color="black",
                     ha="center",
                     va="center",
@@ -480,7 +488,7 @@ class Circuit:
                 axs[i // num_columns, i % num_columns].text(
                     0.3,
                     0.8,
-                    fr"$c_o$={component.c_out:.4g}$mol/m^3$",
+                    rf"$c_o$={component.c_out:.4g}$mol/m^3$",
                     color="black",
                     ha="center",
                     va="center",
@@ -495,22 +503,23 @@ class Circuit:
                 ax.axis("off")
                 ax.set_ylim(0.2, 0.8)
         return fig
+
     def solve_circuit(self, tol=1e-6):
         """
         Solve the circuit by calculating the concentration of the components at the outlet.
         If the circuit is a closed loop, the concentration of the first component is set to the concentration of the last component until the stationary regime is reached.
-        
+
         """
         err = 1
         flag = 0
         flag_bb = 0
         for i, component in enumerate(self.components):
-                
-                if isinstance(component, BreedingBlanket):
-                    ind = i
-                    if flag_bb != 0:
-                        print("There are more BB!")
-                    flag_bb = 1
+
+            if isinstance(component, BreedingBlanket):
+                ind = i
+                if flag_bb != 0:
+                    print("There are more BB!")
+                flag_bb = 1
         while flag == 0:
             for i, component in enumerate(self.components):
 
@@ -751,7 +760,7 @@ class Component:
         ax2.text(
             0.9,
             0.3,
-            fr"c={self.c_out:.4g}$mol/m^3$",
+            rf"c={self.c_out:.4g}$mol/m^3$",
             color="black",
             ha="center",
             va="center",
@@ -975,8 +984,8 @@ class Component:
         Returns:
             float: The flow rate of the component.
         """
-        self.pipe_flowrate = self.fluid.U0 * np.pi * self.fluid.d_Hyd ** 2 / 4
-        return self.fluid.U0 * np.pi * self.fluid.d_Hyd ** 2 / 4
+        self.pipe_flowrate = self.fluid.U0 * np.pi * self.fluid.d_Hyd**2 / 4
+        return self.fluid.U0 * np.pi * self.fluid.d_Hyd**2 / 4
 
     def get_total_flowrate(self):
         """
@@ -1080,8 +1089,8 @@ class Component:
             else:
                 c_vec[i] = c_vec[
                     i - 1
-                ] + f_H2 * self.J_perm * self.fluid.d_Hyd * np.pi * dl ** 2 / self.fluid.U0 / (
-                    np.pi * self.fluid.d_Hyd ** 2 / 4 * dl
+                ] + f_H2 * self.J_perm * self.fluid.d_Hyd * np.pi * dl**2 / self.fluid.U0 / (
+                    np.pi * self.fluid.d_Hyd**2 / 4 * dl
                 )
                 if isinstance(c_guess, float):
                     c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
@@ -1142,8 +1151,8 @@ class Component:
 
             if self.epsilon > 1e5:
                 self.eff_an = 1 - np.exp(-self.tau)
-            elif self.epsilon ** 0.5 < 1e-2 and self.tau < 1 / self.epsilon ** 0.5:
-                self.eff_an = 1 - (1 - self.tau * self.epsilon ** 0.5) ** 2
+            elif self.epsilon**0.5 < 1e-2 and self.tau < 1 / self.epsilon**0.5:
+                self.eff_an = 1 - (1 - self.tau * self.epsilon**0.5) ** 2
             else:
                 beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
                     (1 / self.epsilon + 1) ** 0.5 - 1
@@ -1177,7 +1186,7 @@ class Component:
                 else:
                     z = np.exp(beta_tau)
                     w = lambertw(z, tol=1e-10)
-                    self.eff_an = 1 - self.epsilon * (w ** 2 + 2 * w)
+                    self.eff_an = 1 - self.epsilon * (w**2 + 2 * w)
                     if self.eff_an.imag != 0:
                         raise ValueError("self.eff_an has a non-zero imaginary part")
                     else:
@@ -1314,7 +1323,7 @@ class Component:
                         J_mt = 2 * self.fluid.k_t * (c_bl - c_wl)  ## MS factor
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
+                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
                         )
 
                         return abs(J_mt - J_surf)
@@ -1338,7 +1347,7 @@ class Component:
                     return float(solution.x[0])
             else:
                 # Mixed Diffusion Surface
-                if self.H / self.W >1000:
+                if self.H / self.W > 1000:
                     # Mass transport limited V // Mixed Surface Diffusion Limited X
                     self.J_perm = -2 * self.fluid.k_t * c  ## MS factor
                 elif self.H / self.W < 0.0001:
@@ -1350,7 +1359,7 @@ class Component:
                         c_bl = c
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
+                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
                         )
                         J_diff = (
                             self.membrane.D
@@ -1410,7 +1419,7 @@ class Component:
 
                         J_d = self.membrane.k_d * (
                             c_wl / self.membrane.K_S
-                        ) - self.membrane.k_d * self.membrane.K_S ** 2 * (c_ws ** 2)
+                        ) - self.membrane.k_d * self.membrane.K_S**2 * (c_ws**2)
                         J_diff = (
                             self.membrane.D
                             / (
@@ -1520,7 +1529,7 @@ class Component:
                         J_mt = self.fluid.k_t * (c_bl - c_wl)  ## LM factor
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
+                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
                         )
 
                         return abs(J_mt - J_surf)
@@ -1553,7 +1562,7 @@ class Component:
                         c_bl = c
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
+                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
                         )
                         J_diff = (
                             self.membrane.D
@@ -1610,7 +1619,7 @@ class Component:
 
                         J_d = self.membrane.k_d * (
                             c_wl / self.membrane.K_S
-                        ) - self.membrane.k_d * self.membrane.K_S * (c_ws ** 2)
+                        ) - self.membrane.k_d * self.membrane.K_S * (c_ws**2)
                         J_diff = (
                             self.membrane.D
                             / (
@@ -1659,19 +1668,26 @@ class Component:
         )
         Re = corr.Re(self.fluid.rho, self.fluid.U0, self.fluid.d_Hyd, self.fluid.mu)
         Pr = corr.Pr(self.fluid.cp, self.fluid.mu, self.fluid.k)
-        if self.geometry.turbulator is None: 
+        if self.geometry.turbulator is None:
             h_prim = corr.get_h_from_Nu(
                 corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
             )
         else:
             match self.geometry.turbulator.turbulator_type:
                 case "TwistedTape":
-                    print(str(self.geometry.turbulator.turbulator_type)+" is not implemented yet")
+                    print(
+                        str(self.geometry.turbulator.turbulator_type)
+                        + " is not implemented yet"
+                    )
                     raise NotImplementedError("Twisted tape is not implemented yet")
                 case "WireCoil":
-                    h_prim=self.geometry.turbulator.h_t_correlation(Re=Re,Pr=Pr,d_hyd=self.fluid.d_Hyd)
+                    h_prim = self.geometry.turbulator.h_t_correlation(
+                        Re=Re, Pr=Pr, d_hyd=self.fluid.d_Hyd, k=self.fluid.k
+                    )
                 case "Custom":
-                    h_prim=self.geometry.turbulator.h_t_correlation(Re=Re,Pr=Pr,d_hyd=self.fluid.d_Hyd)
+                    h_prim = self.geometry.turbulator.h_t_correlation(
+                        Re=Re, Pr=Pr, d_hyd=self.fluid.d_Hyd, k=self.fluid.k
+                    )
         self.fluid.h_coeff = h_prim
         R_conv_prim = 1 / h_prim
         R_tot = R_conv_prim + R_cond + R_conv_sec
@@ -1785,7 +1801,7 @@ class Fluid:
         self.cp = fluid_material.cp
         self.k = fluid_material.k
 
-    def get_kt(self,turbulator=None):
+    def get_kt(self, turbulator=None):
         """
         Calculates the mass transport coefficient (k_t) for the fluid.
 
@@ -1800,15 +1816,15 @@ class Fluid:
                 Re = corr.Re(rho=self.rho, u=self.U0, L=self.d_Hyd, mu=self.mu)
                 Sc = corr.Schmidt(D=self.D, mu=self.mu, rho=self.rho)
                 if turbulator is None:
-                    
+
                     # if Re < 1e4 and Re > 2030:
                     #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
                     if Re > 2030:
-                        Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
-                        #Sh=0.026*Re**0.8*Sc**0.33
+                        Sh = 0.0096 * Re**0.913 * Sc**0.346  ##Getthem paper
+                        # Sh=0.026*Re**0.8*Sc**0.33
                     else:
-                        print(str(Re)+" indicates laminar flow")
-                        Sh=3.66
+                        print(str(Re) + " indicates laminar flow")
+                        Sh = 3.66
                         # raise ValueError("Reynolds number is too low")
                     self.k_t = corr.get_k_from_Sh(
                         Sh=Sh,
@@ -1816,27 +1832,28 @@ class Fluid:
                         D=self.D,
                     )
                 else:
-                    match turbulator:
+                    match turbulator.turbulator_type:
                         case "WireCoil":
-                            if Re > 2030:
-                                Sh=0.132*Re**0.72*Sc**0.37*(3)**-0.372
-                            else: 
-                                Sh=3.66
-                            self.k_t = corr.get_k_from_Sh(Sh=Sh, L=self.d_Hyd, D=self.D)
+
+                            turbulator.k_t_correlation(
+                                Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
+                            )
                         case "TwistedTape":
-                            raise NotImplementedError("Twisted Tape not implemented yet")
+                            raise NotImplementedError(
+                                "Twisted Tape not implemented yet"
+                            )
                         case "Custom":
-                            raise NotImplementedError("Custom not implemented yet")
-                        case _:
-                            print(str(self.geometry.turbulator)+" is not recognized")
-                            raise ValueError("Turbulator not recognized")
-                            
+                            turbulator.k_t_correlation(
+                                Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
+                            )
+
             else:
                 print("k_t is already defined")
         else:
             print("Hydraulic Diameter is not defined")
 
-class Turbulator: 
+
+class Turbulator:
     """
     Represents a turbulator in a component for Tritium transport analysis
 
@@ -1875,7 +1892,8 @@ class Turbulator:
         Prints the attributes of the component.
         """
         print_class_variables(self, variable_names)
-        
+
+
 class WireCoil(Turbulator):
     """
     Represents a wire coil turbulator in a component for Tritium transport analysis
@@ -1899,8 +1917,10 @@ class WireCoil(Turbulator):
         """
         super().__init__(turbulator_type)
         self.pitch = pitch
-     
-    def k_t_correlation(self, Re: float = None, Sc: float = None, d_hyd: float = None):
+
+    def k_t_correlation(
+        self, Re: float = None, Sc: float = None, d_hyd: float = None, D: float = None
+    ):
         """
         Calculates the mass transport coefficient (k_t) for the fluid with a wire coil turbulator.
 
@@ -1912,12 +1932,15 @@ class WireCoil(Turbulator):
             float: The mass transport coefficient.
         """
         if Re > 2030:
-            Sh = 0.132 * Re ** 0.72 * Sc ** 0.37 * (self.pitch/d_hyd) ** -0.372
+            Sh = 0.132 * Re**0.72 * Sc**0.37 * (self.pitch / d_hyd) ** -0.372
         else:
             Sh = 3.66
-        k_t = corr.get_k_from_Sh(Sh=Sh, L=self.pitch, D=self.D)
+        k_t = corr.get_k_from_Sh(Sh=Sh, L=self.pitch, D=D)
         return k_t
-    def h_t_correlation(self, Re: float = None, Pr: float = None, d_hyd: float = None):
+
+    def h_t_correlation(
+        self, Re: float = None, Pr: float = None, d_hyd: float = None, k=None
+    ):
         """
         Calculates the heat transfer coefficient (h_t) for the fluid with a wire coil turbulator.
 
@@ -1929,12 +1952,12 @@ class WireCoil(Turbulator):
             float: The heat transfer coefficient.
         """
         if Re > 2030:
-            Nu = 0.132 * Re ** 0.72 * Pr ** 0.37 * (self.pitch/d_hyd) ** -0.372
+            Nu = 0.132 * Re**0.72 * Pr**0.37 * (self.pitch / d_hyd) ** -0.372
         else:
             Nu = 3.66
-        h_t = corr.get_h_from_Nu(Nu=Nu, k=self.k, L=self.pitch)
+        h_t = corr.get_h_from_Nu(Nu=Nu, k=k, L=self.pitch)
         return h_t
-    
+
     def update_attribute(
         self, attr_name: str = None, new_value: Union[str, dict] = None
     ):
@@ -1952,11 +1975,13 @@ class WireCoil(Turbulator):
         Prints the attributes of the component.
         """
         print_class_variables(self, variable_names)
-        
+
+
 class CustomTurbulator(Turbulator):
     """
     Represents a custom turbulator in a component for Tritium transport analysis
-    """   
+    """
+
     def __init__(
         self,
         turbulator_type: str = "Custom",
@@ -1972,9 +1997,9 @@ class CustomTurbulator(Turbulator):
             turbulator_params (dict): Parameters of the turbulator.
         """
         super().__init__(turbulator_type)
-        self.a=a
-        self.b=b
-        self.c=c
+        self.a = a
+        self.b = b
+        self.c = c
 
     def update_attribute(
         self, attr_name: str = None, new_value: Union[str, dict] = None
@@ -1993,7 +2018,10 @@ class CustomTurbulator(Turbulator):
         Prints the attributes of the component.
         """
         print_class_variables(self, variable_names)
-    def k_t_correlation(self, Re: float = None, Sc: float = None, d_hyd: float = None):
+
+    def k_t_correlation(
+        self, Re: float = None, Sc: float = None, d_hyd: float = None, D: float = None
+    ):
         """
         Calculates the mass transport coefficient (k_t) for the fluid with a custom turbulator.
 
@@ -2005,12 +2033,15 @@ class CustomTurbulator(Turbulator):
             float: The mass transport coefficient.
         """
         if Re > 2030:
-            Sh = self.a * Re ** self.b * Sc ** self.c
+            Sh = self.a * Re**self.b * Sc**self.c
         else:
             Sh = 3.66
-        k_t = corr.get_k_from_Sh(Sh=Sh, L=self.pitch, D=self.D)
+        k_t = corr.get_k_from_Sh(Sh=Sh, L=d_hyd, D=self.D)
         return k_t
-    def h_t_correlation(self, Re: float = None, Pr: float = None, d_hyd: float = None):
+
+    def h_t_correlation(
+        self, Re: float = None, Pr: float = None, d_hyd: float = None, k: float = None
+    ):
         """
         Calculates the heat transfer coefficient (h_t) for the fluid with a custom turbulator.
 
@@ -2022,11 +2053,13 @@ class CustomTurbulator(Turbulator):
             float: The heat transfer coefficient.
         """
         if Re > 2030:
-            Nu = self.a * Re ** self.b * Pr ** self.c
+            Nu = self.a * Re**self.b * Pr**self.c
         else:
             Nu = 3.66
-        h_t = corr.get_h_from_Nu(Nu=Nu, k=self.k, L=self.pitch)
+        h_t = corr.get_h_from_Nu(Nu=Nu, k=k, L=self.pitch)
         return h_t
+
+
 class Membrane:
     """
     Represents a metallic membrane of a component for H transport.
@@ -2428,7 +2461,7 @@ class BreedingBlanket:
         ax2.text(
             0.3,
             0.8,
-            fr"$c_o$={self.c_out:.4g}$mol/m^3$",
+            rf"$c_o$={self.c_out:.4g}$mol/m^3$",
             color="black",
             ha="center",
             va="center",
