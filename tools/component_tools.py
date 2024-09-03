@@ -1835,7 +1835,7 @@ class Fluid:
                     match turbulator.turbulator_type:
                         case "WireCoil":
 
-                            turbulator.k_t_correlation(
+                            self.k_t=turbulator.k_t_correlation(
                                 Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
                             )
                         case "TwistedTape":
@@ -1843,7 +1843,7 @@ class Fluid:
                                 "Twisted Tape not implemented yet"
                             )
                         case "Custom":
-                            turbulator.k_t_correlation(
+                            self.k_t=turbulator.k_t_correlation(
                                 Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
                             )
 
@@ -1955,7 +1955,8 @@ class WireCoil(Turbulator):
             Nu = 0.132 * Re**0.72 * Pr**0.37 * (self.pitch / d_hyd) ** -0.372
         else:
             Nu = 3.66
-        h_t = corr.get_h_from_Nu(Nu=Nu, k=k, L=self.pitch)
+        h_t = corr.get_h_from_Nu(Nu=Nu, k=k, D=d_hyd)
+        print(h_t)
         return h_t
 
     def update_attribute(
