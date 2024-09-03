@@ -1,3 +1,4 @@
+from ast import Raise
 import numpy as np
 # from example_simulation import TBR
 import tools.molten_salts as MS
@@ -79,12 +80,13 @@ class Geometry:
     """
 
     def __init__(
-        self, L: float = None, D: float = None, thick: float = None, n_pipes: int = 1
+        self, L: float = None, D: float = None, thick: float = None, n_pipes: int = 1, turbulator: str = None
     ):
         self.L = L
         self.D = D
         self.thick = thick
         self.n_pipes = n_pipes
+        self.turbulator = turbulator
 
     def update_attribute(self, attr_name: str, new_value: float):
         """
@@ -930,7 +932,7 @@ class Component:
         """
         if self.fluid is not None:
             if self.fluid.k_t is None:
-                self.fluid.get_kt()
+                self.fluid.get_kt(turbulator=self.geometry.turbulator)
             if self.fluid.MS == True:
                 if self.membrane is not None:
 
@@ -998,7 +1000,7 @@ class Component:
         Updates the H and W attributes of the Component object.
         """
         if self.fluid.k_t is None:
-            self.fluid.get_kt()
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
         if self.fluid is not None:
             if self.fluid.MS:
                 self.H = MS.H(
@@ -1112,7 +1114,7 @@ class Component:
         The output of the function is the analytical efficiency of the component as Component.eff_an.
         """
         if self.fluid.k_t is None:
-            self.fluid.get_kt()
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
         self.tau = (
             4 * self.fluid.k_t * self.geometry.L / (self.fluid.U0 * self.fluid.d_Hyd)
         )
@@ -1656,9 +1658,18 @@ class Component:
         )
         Re = corr.Re(self.fluid.rho, self.fluid.U0, self.fluid.d_Hyd, self.fluid.mu)
         Pr = corr.Pr(self.fluid.cp, self.fluid.mu, self.fluid.k)
-        h_prim = corr.get_h_from_Nu(
-            corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
-        )
+        if self.geometry.turbulator is None: 
+            h_prim = corr.get_h_from_Nu(
+                corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
+            )
+        else:
+            match self.geometry.turbulator:
+                case "TwistedTape":
+                    print(str(self.geometry.turbulator)+" is not implemented yet")
+                    raise NotImplementedError("Twisted tape is not implemented yet")
+                case "WireCoil":
+                    Nu=0.132*Re**0.72*Pr**0.37*(3)**-0.372
+                    h_prim=corr.get_h_from_Nu(Nu, self.fluid.k, self.fluid.d_Hyd)
         self.fluid.h_coeff = h_prim
         R_conv_prim = 1 / h_prim
         R_tot = R_conv_prim + R_cond + R_conv_sec
@@ -1772,7 +1783,7 @@ class Fluid:
         self.cp = fluid_material.cp
         self.k = fluid_material.k
 
-    def get_kt(self):
+    def get_kt(self,turbulator=None):
         """
         Calculates the mass transport coefficient (k_t) for the fluid.
 
@@ -1786,21 +1797,36 @@ class Fluid:
             if self.k_t is None:
                 Re = corr.Re(rho=self.rho, u=self.U0, L=self.d_Hyd, mu=self.mu)
                 Sc = corr.Schmidt(D=self.D, mu=self.mu, rho=self.rho)
-                # if Re < 1e4 and Re > 2030:
-                #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
-                if Re > 2030:
-                    Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
-                    #Sh=0.026*Re**0.8*Sc**0.33
+                if turbulator is None:
+                    
+                    # if Re < 1e4 and Re > 2030:
+                    #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
+                    if Re > 2030:
+                        Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
+                        #Sh=0.026*Re**0.8*Sc**0.33
+                    else:
+                        print(str(Re)+" indicates laminar flow")
+                        Sh=3.66
+                        # raise ValueError("Reynolds number is too low")
+                    self.k_t = corr.get_k_from_Sh(
+                        Sh=Sh,
+                        L=self.d_Hyd,
+                        D=self.D,
+                    )
                 else:
-                    print(str(Re)+" indicates laminar flow")
-                    Sh=3.66
-                    # raise ValueError("Reynolds number is too low")
-                self.k_t = corr.get_k_from_Sh(
-                    Sh=Sh,
-                    L=self.d_Hyd,
-                    D=self.D,
-                )
-
+                    match turbulator:
+                        case "WireCoil":
+                            if Re > 2030:
+                                Sh=0.132*Re**0.72*Sc**0.37*(3)**-0.372
+                            else: 
+                                Sh=3.66
+                            self.k_t = corr.get_k_from_Sh(Sh=Sh, L=self.d_Hyd, D=self.D)
+                        case "TwistedTape":
+                            raise NotImplementedError("Twisted Tape not implemented yet")
+                        case _:
+                            print(str(self.geometry.turbulator)+" is not recognized")
+                            raise ValueError("Turbulator not recognized")
+                            
             else:
                 print("k_t is already defined")
         else:
