@@ -13,6 +13,7 @@ from scipy.optimize import minimize
 from scipy.special import lambertw
 from typing import Union
 import matplotlib.pyplot as plt
+from scipy import integrate
 
 
 def print_class_variables(instance, variable_names=None, tab: int = 0):
@@ -584,6 +585,7 @@ class Component:
         membrane: "Membrane" = None,
         name: str = None,
         loss: bool = False,
+        inv: float = None,
     ):
         """
         Initializes a new instance of the Component class.
@@ -595,6 +597,7 @@ class Component:
             fluid (Fluid, optional): The fluid associated with the component. Defaults to None.
             membrane (Membrane, optional): The membrane associated with the component. Defaults to None.
             name (str, optional): The name of the component. Defaults to None.
+            inv (float, optional): The inverse of the efficiency of the component. Defaults to None.
         """
         self.c_in = c_in
         self.geometry = geometry
@@ -604,6 +607,7 @@ class Component:
         self.membrane = membrane
         self.name = name
         self.loss = loss
+        self.inv = inv
         # if (
         #     isinstance(self.fluid, Fluid)
         #     and isinstance(self.membrane, Membrane)
@@ -1694,6 +1698,179 @@ class Component:
         self.U = 1 / R_tot
         return
 
+    def get_solid_inventory(self):
+        def integrate_c_profile(self):
+            r_in = self.fluid.d_Hyd / 2
+            r_out = self.fluid.d_Hyd / 2 + self.membrane.thick
+            L_min = 0
+            L_max = self.geometry.L
+            N = 100
+
+            def integrand(r, L):
+                # return -c * np.log(r / r_out) / np.log(r_out / r_in) * 2 * np.pi * r
+                if self.fluid.k_t is None:
+                    self.fluid.get_kt(turbulator=self.geometry.turbulator)
+                if self.fluid.MS == False:
+                    c = self.c_in / self.fluid.Solubility * self.membrane.K_S
+                    dimless = (
+                        2
+                        * self.membrane.D
+                        * self.membrane.K_S
+                        / (
+                            self.fluid.k_t
+                            * self.fluid.Solubility
+                            * self.fluid.d_Hyd
+                            * np.log(
+                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                / self.fluid.d_Hyd
+                            )
+                        )
+                    )
+                    dimless2 = (
+                        2
+                        * self.membrane.D
+                        * self.membrane.K_S
+                        / (
+                            self.fluid.Solubility**self.fluid.d_Hyd
+                            * np.log(
+                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                / self.fluid.d_Hyd
+                            )
+                        )
+                    )
+                    L_ch = (
+                        -dimless
+                        / (1 + dimless)
+                        * 4
+                        * self.fluid.k_t
+                        / (self.fluid.U0 * self.fluid.d_Hyd)
+                    )
+                    conv_liquid_to_solid=self.membrane.K_S/self.fluid.Solubility
+                    c_w = c * np.exp(L_ch * L) / (dimless2 / self.fluid.k_t + 1)
+                    return (
+                        -c_w * np.log(r / r_out) / np.log(r_out / r_in) * 2 * np.pi * r
+                    )
+                else:
+                    tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
+                    self.epsilon = (
+                        1
+                        / self.c_in
+                        / self.fluid.Solubility
+                        * (
+                              0.5*##TODO: Check this
+                            self.membrane.K_S
+                            * self.membrane.D
+                            / (
+                                self.fluid.k_t
+                                * self.fluid.d_Hyd
+                                * np.log(
+                                    (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                    / self.fluid.d_Hyd
+                                )
+                            )
+                        )
+                        ** 2
+                    )
+
+                    beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
+                        (1 / self.epsilon + 1) ** 0.5 - 1
+                    )
+                    max_exp = np.log(np.finfo(np.float64).max)
+                    beta_tau = beta - tau - 1
+                    if beta_tau > max_exp:
+                        print(
+                            "Warning: Overflow encountered in exp, input too large.Approximation triggered"
+                        )
+
+                        w = beta_tau - np.log(beta_tau)
+                    else:
+                        z = np.exp(beta_tau)
+                        w = lambertw(z, tol=1e-10)
+                    alpha = (
+                        1
+                        / self.fluid.Solubility
+                        * (
+                            (0.5*  ## TODO: Check this
+                                self.membrane.D * self.membrane.K_S
+                            )
+                            / (
+                                self.fluid.k_t
+                                * self.fluid.d_Hyd
+                                * np.log(
+                                    (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                    / self.fluid.d_Hyd
+                                )
+                            )
+                        )
+                        ** 2
+                    )
+                    conv = (
+                        self.c_in / self.fluid.Solubility
+                    ) ** 0.5 * self.membrane.K_S
+                    print("alpha" + str(alpha) + "corr" + str(alpha * (w**2 + 2 * w)))
+                    c_w_l = alpha * (w**2 + 2 * w) + alpha * (
+                        2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5  ## TODO: Check this
+                    )
+                    return (
+                        -np.log(r / r_out)
+                        / np.log(r_out / r_in)
+                        * 2
+                        * np.pi
+                        * r
+                        * (c_w_l / self.fluid.Solubility) ** 0.5
+                        * self.membrane.K_S
+                    )
+
+            result, err = integrate.nquad(integrand, [[r_in, r_out], [L_min, L_max]])
+            return result
+
+        self.membrane.inv = integrate_c_profile(self)
+        return
+
+        # from sympy import Integral, ln, symbols, init_printing, nsolve, exp
+
+        # # Define the symbolic variables
+        # r, L = symbols("r L")
+        # r_in = self.fluid.d_Hyd / 2
+        # r_out = self.fluid.d_Hyd / 2 + self.membrane.thick
+        # init_printing(use_unicode=True)
+        # if self.fluid.MS == True:
+        #     c = (self.c_in / self.fluid.Solubility) ** 0.5 / self.membrane.K_S
+        # else:
+        #     c = self.c_in / self.fluid.Solubility / self.membrane.K_S
+
+        # # Define the logarithmic function
+        # fun1 = -ln(r / r_out) / ln(r / r_in) * c *r * 2 * np.pi
+
+        # # fun2= c*exp(-4*L)
+        # fun2 = 1
+        # # Perform the integration with respect to r over the interval [r_in, r_out]
+        # integral1 = Integral(fun1, (r, r_in, r_out))
+        # integral2 = Integral(fun2, (L, 0, self.geometry.L))
+        # # Evaluate the integral
+        # # integral_value=nsolve(integral1,r, r_out)-nsolve(integral1,r, r_in)
+
+        # print(integral1)
+
+        # integral1.as_sum(5, method="midpoint")
+        # integral2.as_sum(5, method="midpoint")
+        # result = float(integral1.as_sum(100, method="midpoint")) * float(integral2.as_sum(
+        #     100, method="midpoint")
+        # )
+
+        # self.membrane.inv = float(result)
+        # return
+
+    def get_fluid_inventory(self):
+        self.fluid.inv = self.geometry.get_fluid_volume() * self.c_in
+        return
+
+    def get_inventory(self):
+        self.get_solid_inventory()
+        self.get_fluid_inventory()
+        self.inventory = self.fluid.inv + self.membrane.inv
+        return
+
 
 class Fluid:
     """
@@ -1713,6 +1890,7 @@ class Fluid:
         mu (float, optional): Viscosity of the fluid. Defaults to None.
         rho (float, optional): Density of the fluid. Defaults to None.
         U0 (float, optional): Velocity of the fluid. Defaults to None.
+        inv (float, optional): Inventory of the fluid. Defaults to None.
     """
 
     def __init__(
@@ -1732,6 +1910,7 @@ class Fluid:
         U0: float = None,
         k: float = None,
         cp: float = None,
+        inv: float = None,
     ):
         """
         Initializes a new instance of the Fluid class.
@@ -1765,6 +1944,7 @@ class Fluid:
         self.U0 = U0
         self.k = k
         self.cp = cp
+        self.inv = inv
 
     def update_attribute(
         self, attr_name: str = None, new_value: Union[float, "FluidMaterial"] = None
@@ -1835,7 +2015,7 @@ class Fluid:
                     match turbulator.turbulator_type:
                         case "WireCoil":
 
-                            self.k_t=turbulator.k_t_correlation(
+                            self.k_t = turbulator.k_t_correlation(
                                 Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
                             )
                         case "TwistedTape":
@@ -1843,7 +2023,7 @@ class Fluid:
                                 "Twisted Tape not implemented yet"
                             )
                         case "Custom":
-                            self.k_t=turbulator.k_t_correlation(
+                            self.k_t = turbulator.k_t_correlation(
                                 Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
                             )
 
@@ -2076,6 +2256,7 @@ class Membrane:
         E_d (float, optional): Activation energy of the diffusivity in the membrane in eV. Defaults to None. Overwrites D if defined
         K_S_0 (float, optional): Pre-exponential factor of the solubility in the membrane. Defaults to None.Overwrites K_S if defined
         E_S (float, optional): Activation energy of the solubility in the membrane in eV. Defaults to None. Overwrites K_S if defined
+        inv (float, optional): Inventory of the membrane in mol. Defaults to None.
     """
 
     def __init__(
@@ -2091,6 +2272,7 @@ class Membrane:
         E_d: float = None,
         K_S_0: float = None,
         E_S: float = None,
+        inv: float = None,
     ):
         """
         Initializes a new instance of the Membrane class.
@@ -2118,6 +2300,7 @@ class Membrane:
         self.k = k
         self.D_0 = D_0
         self.E_d = E_d
+        self.inv = inv
 
     def update_attribute(
         self, attr_name: str = None, new_value: Union[float, "SolidMaterial"] = None
