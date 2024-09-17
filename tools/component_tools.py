@@ -1745,7 +1745,7 @@ class Component:
                         * self.fluid.k_t
                         / (self.fluid.U0 * self.fluid.d_Hyd)
                     )
-                    conv_liquid_to_solid=self.membrane.K_S/self.fluid.Solubility
+                    conv_liquid_to_solid = self.membrane.K_S / self.fluid.Solubility
                     c_w = c * np.exp(L_ch * L) / (dimless2 / self.fluid.k_t + 1)
                     return (
                         -c_w * np.log(r / r_out) / np.log(r_out / r_in) * 2 * np.pi * r
@@ -1757,8 +1757,8 @@ class Component:
                         / self.c_in
                         / self.fluid.Solubility
                         * (
-                              0.5*##TODO: Check this
-                            self.membrane.K_S
+                            0.5  ##TODO: Check this
+                            * self.membrane.K_S
                             * self.membrane.D
                             / (
                                 self.fluid.k_t
@@ -1778,20 +1778,27 @@ class Component:
                     max_exp = np.log(np.finfo(np.float64).max)
                     beta_tau = beta - tau - 1
                     if beta_tau > max_exp:
-                        print(
-                            "Warning: Overflow encountered in exp, input too large.Approximation triggered"
-                        )
+                        # print(
+                        #     "Warning: Overflow encountered in exp, input too large.Approximation triggered"
+                        # )
 
                         w = beta_tau - np.log(beta_tau)
                     else:
                         z = np.exp(beta_tau)
                         w = lambertw(z, tol=1e-10)
+                        if w.imag != 0:
+                            raise ValueError(
+                                "self.eff_an has a non-zero imaginary part"
+                            )
+                        w = w.real
                     alpha = (
                         1
                         / self.fluid.Solubility
                         * (
-                            (0.5*  ## TODO: Check this
-                                self.membrane.D * self.membrane.K_S
+                            (
+                                0.5  ## TODO: Check this
+                                * self.membrane.D
+                                * self.membrane.K_S
                             )
                             / (
                                 self.fluid.k_t
@@ -1807,7 +1814,6 @@ class Component:
                     conv = (
                         self.c_in / self.fluid.Solubility
                     ) ** 0.5 * self.membrane.K_S
-                    print("alpha" + str(alpha) + "corr" + str(alpha * (w**2 + 2 * w)))
                     c_w_l = alpha * (w**2 + 2 * w) + alpha * (
                         2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5  ## TODO: Check this
                     )
