@@ -1,4 +1,5 @@
 from ast import Raise
+from re import S
 import numpy as np
 # from example_simulation import TBR
 import tools.molten_salts as MS
@@ -229,7 +230,7 @@ class Circuit:
 
         for i, component in enumerate(self.components):
             if isinstance(component, Component):
-                component.use_analytical_efficiency()
+                component.use_analytical_efficiency(p_out=component.p_out)
                 component.outlet_c_comp()
             if i != len(self.components) - 1:
                 component.connect_to_component(self.components[i + 1])
@@ -514,7 +515,7 @@ class Circuit:
             for i, component in enumerate(self.components):
 
                 if isinstance(component, Component):
-                    component.use_analytical_efficiency()
+                    component.use_analytical_efficiency(p_out=component.p_out)
                     component.outlet_c_comp()
                     if i != len(self.components) - 1:
                         component.connect_to_component(self.components[i + 1])
@@ -573,6 +574,7 @@ class Component:
         fluid: "Fluid" = None,
         membrane: "Membrane" = None,
         name: str = None,
+        p_out: float = 1E-15,
         loss: bool = False,
     ):
         """
@@ -594,6 +596,7 @@ class Component:
         self.membrane = membrane
         self.name = name
         self.loss = loss
+        self.p_out=p_out
         # if (
         #     isinstance(self.fluid, Fluid)
         #     and isinstance(self.membrane, Membrane)
@@ -1038,7 +1041,7 @@ class Component:
                     K_S_L=self.fluid.Solubility,
                 )
 
-    def use_analytical_efficiency(self):
+    def use_analytical_efficiency(self,p_out=1E-15):
         """Evaluates the analytical efficiency and substitutes it in the efficiency attribute of the component.
 
         Args:
@@ -1046,10 +1049,10 @@ class Component:
         Returns:
             None
         """
-        self.analytical_efficiency()
+        self.analytical_efficiency(p_out=p_out)
         self.eff = self.eff_an
 
-    def get_efficiency(self, plotvar: bool = False, c_guess: float = None):
+    def get_efficiency(self, plotvar: bool = False, c_guess: float = None,p_out=1E-15):
         """
         Calculates the efficiency of the component.
         """
@@ -1073,9 +1076,9 @@ class Component:
                 c_vec[i] = float(self.c_in)
 
                 if isinstance(c_guess, float):
-                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
+                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess,p_out=p_out)
                 else:
-                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in))
+                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in),p_out=p_out)
             else:
                 c_vec[i] = c_vec[
                     i - 1
@@ -1083,19 +1086,19 @@ class Component:
                     np.pi * self.fluid.d_Hyd ** 2 / 4 * dl
                 )
                 if isinstance(c_guess, float):
-                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
+                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess,p_out=p_out)
                 else:
-                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in))
+                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in),p_out=p_out)
         if plotvar:
             plt.plot(L_vec, c_vec)
         self.eff = (self.c_in - c_vec[-1]) / self.c_in
 
-    def analytical_efficiency(self):
+    def analytical_efficiency(self,p_out=1E-15):
         """
         Calculate the analytical efficiency of a component.
 
         Parameters:
-        - L: Length of the component
+        - p_out: Pressure of H isotope at the outlet of the component. Defaults to 1E-15.
 
         Returns:
         - eff_an: Analytical efficiency of the component (from Humrickhouse papers)
@@ -1109,7 +1112,7 @@ class Component:
         eff_an = 1 - epsilon * (lambertw(z=np.exp(beta - tau - 1), tol=1e-10) ** 2 + 2 * lambertw(z=np.exp(beta - tau - 1), tol=1e-10)).
 
         If the fluid is a liquid metal (MS= False), the analytical efficiency is calculated using the following formula:
-        eff_an = 1 - np.exp(-tau * zeta / (1 + zeta)).
+        eff_an = 1 - np.exp(-tau * zeta / (1 + zeta))* (1-p_in/p_out)^0.5.
 
         The output of the function is the analytical efficiency of the component as Component.eff_an.
         """
@@ -1140,9 +1143,13 @@ class Component:
             )
 
             if self.epsilon > 1e5:
-                self.eff_an = 1 - np.exp(-self.tau)
+                p_in=self.c_in/self.fluid.Solubility
+                corr_p=1-(p_out/p_in)
+                self.eff_an = (1 - np.exp(-self.tau))*corr_p
             elif self.epsilon ** 0.5 < 1e-2 and self.tau < 1 / self.epsilon ** 0.5:
-                self.eff_an = 1 - (1 - self.tau * self.epsilon ** 0.5) ** 2
+                p_in=self.c_in/self.fluid.Solubility
+                corr_p=1-(p_out/p_in)**0.5
+                self.eff_an = (1 - (1 - self.tau * self.epsilon ** 0.5) ** 2)*corr_p
             else:
                 beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
                     (1 / self.epsilon + 1) ** 0.5 - 1
@@ -1172,11 +1179,16 @@ class Component:
                         bounds=[(0, self.c_in)],
                         tol=1e-7,
                     ).x[0]
-                    self.eff_an = 1 - (cl / self.c_in)
+                    p_in=self.c_in/self.fluid.Solubility
+                    corr_p=1-(p_out/p_in)
+                    self.eff_an = (1 - (cl / self.c_in))*corr_p
                 else:
                     z = np.exp(beta_tau)
                     w = lambertw(z, tol=1e-10)
-                    self.eff_an = 1 - self.epsilon * (w ** 2 + 2 * w)
+                    p_in=self.c_in/self.fluid.Solubility
+                    print("P_out correlation is not implemented yet")
+                    corr_p=1-(p_out/p_in)
+                    self.eff_an = (1 - self.epsilon * (w ** 2 + 2 * w))*corr_p
                     if self.eff_an.imag != 0:
                         raise ValueError("self.eff_an has a non-zero imaginary part")
                     else:
@@ -1205,9 +1217,12 @@ class Component:
                     (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
                 )
             )
-            self.eff_an = 1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
+            p_in=(self.c_in/self.fluid.Solubility)**2
+            corr_p=1-(p_out/p_in)**0.5
+            
+            self.eff_an = (1 - np.exp(-self.tau * self.zeta / (1 + self.zeta)))*corr_p
 
-    def get_flux(self, c: float = None, c_guess: float = 1e-9):
+    def get_flux(self, c: float = None, c_guess: float = 1e-9,p_out=1E-15):
         """
         Calculates the Tritium flux of the component.
         It can make some approximations based on W and H to make the solver faster
@@ -1231,7 +1246,7 @@ class Component:
                 # DIFFUSION LIMITED V // Surface limited X
                 if self.H / self.W > 1000:
                     # Mass transport limited V // Diffusion limited X
-                    self.J_perm = -2 * self.fluid.k_t * c  ## MS factor
+                    self.J_perm = -2 * self.fluid.k_t * (c-p_out*self.fluid.Solubility)  ## MS factor
                 elif self.H / self.W < 0.0001:
                     # Diffusion limited V // Mass Transport limited X
                     self.J_perm = -(
@@ -1245,7 +1260,7 @@ class Component:
                             )
                         )
                         * self.membrane.K_S
-                        * (c / self.fluid.Solubility) ** 0.5
+                        * ((c / self.fluid.Solubility) ** 0.5-p_out**0.5)
                     )
                 else:
                     # Mixed regime mass transport diffusion
@@ -1266,7 +1281,7 @@ class Component:
                             )
                             * (
                                 self.membrane.K_S
-                                * (c_wl / self.fluid.Solubility) ** 0.5
+                                * ((c_wl / self.fluid.Solubility) ** 0.5-p_out**0.5)
                             )
                         )
                         return abs(J_diff - J_mt)
@@ -1299,7 +1314,7 @@ class Component:
                 # Surface limited V // Diffusion Limited X
                 if self.H > 100:
                     # Mass transport limited V // Surface limited X
-                    self.J_perm = -2 * self.fluid.k_t * c  ## MS factor
+                    self.J_perm = -2 * self.fluid.k_t * (c-p_out*self.fluid.Solubility)  ## MS factor
                 elif self.H < 0.01:
                     # Surface limited V // Mass Transport limited X
                     self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
@@ -1339,7 +1354,7 @@ class Component:
                 # Mixed Diffusion Surface
                 if self.H / self.W >1000:
                     # Mass transport limited V // Mixed Surface Diffusion Limited X
-                    self.J_perm = -2 * self.fluid.k_t * c  ## MS factor
+                    self.J_perm = -2 * self.fluid.k_t * (c-p_out*self.fluid.Solubility)  ## MS factor
                 elif self.H / self.W < 0.0001:
                     # Mixed Diffusion Surface
                     def equations(vars):
@@ -1363,7 +1378,7 @@ class Component:
                             )
                             * (
                                 self.membrane.K_S
-                                * (c_wl / self.fluid.Solubility) ** 0.5
+                                * ((c_wl / self.fluid.Solubility) ** 0.5-p_out**0.5)
                             )
                         )
 
@@ -1396,7 +1411,7 @@ class Component:
                                 / (self.fluid.d_Hyd / 2)
                             )
                         )
-                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility) ** 0.5)
+                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility) ** 0.5-p_out**0.5)
                     )
                     return float(solution.x[0])
                 else:
@@ -1420,7 +1435,7 @@ class Component:
                                     / (self.fluid.d_Hyd / 2)
                                 )
                             )
-                            * (self.membrane.K_S * c_ws)
+                            * ((self.membrane.K_S * c_ws)-p_out**0.5)
                         )
                         eq1 = abs(J_mt - J_d)
                         eq2 = abs(J_mt - J_diff)
@@ -1450,7 +1465,7 @@ class Component:
                 # DIFFUSION LIMITED V // Surface limited X
                 if self.H / self.W > 1000:
                     # Mass transport limited V // Diffusion limited X
-                    self.J_perm = -self.fluid.k_t * c  ## LM factor
+                    self.J_perm = -self.fluid.k_t * (c-p_out**0.5*self.fluid.Solubility)  ## LM factor
                 elif self.H / self.W < 0.0001:
                     # Diffusion limited V // Mass Transport limited X
                     self.J_perm = -(
@@ -1463,14 +1478,14 @@ class Component:
                                 / (self.fluid.d_Hyd / 2)
                             )
                         )
-                        * self.membrane.K_S
-                        * (c / self.fluid.Solubility)
+                        * (self.membrane.K_S
+                        * (c / self.fluid.Solubility-p_out**0.5))
                     )
                 else:
                     # Mixed regime mass transport diffusion
                     def equations(vars):
                         c_wl = vars
-                        J_mt = self.fluid.k_t * (c - c_wl)
+                        J_mt = self.fluid.k_t * (c - c_wl)  ## LM factor
                         J_diff = (
                             self.membrane.D
                             / (
@@ -1481,7 +1496,7 @@ class Component:
                                     / (self.fluid.d_Hyd / 2)
                                 )
                             )
-                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility))
+                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility-p_out**0.5))
                         )
                         return abs((J_diff - J_mt))
 
@@ -1507,7 +1522,7 @@ class Component:
                 # Surface limited V // Diffusion Limited X
                 if self.H > 100:
                     # Mass transport limited V // Surface limited X
-                    self.J_perm = -self.fluid.k_t * c  ## LM factor
+                    self.J_perm = -self.fluid.k_t * (c-p_out**0.5*self.fluid.Solubility)  ## LM factor
                 elif self.H < 0.01:
                     # Surface limited V // Mass Transport limited X
                     self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
@@ -1516,7 +1531,7 @@ class Component:
                     def equations(vars):
                         c_wl = vars
                         c_bl = c
-                        J_mt = self.fluid.k_t * (c_bl - c_wl)  ## LM factor
+                        J_mt = self.fluid.k_t * (c_bl - c_wl-p_out**0.5*self.fluid.Solubility)  ## LM factor
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
                             - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
@@ -1539,12 +1554,12 @@ class Component:
                     )
                     c_bl = c
                     c_wl = solution.x[0]
-                    self.J_perm = self.fluid.k_t * (c_bl - c_wl)  ## LM factor
+                    self.J_perm = self.fluid.k_t * (c_bl - c_wl-p_out*self.fluid.Solubility)  ## LM factor
                     return float(solution.x[0])
             else:
                 if self.H / self.W < 0.0001:
                     # Mass transport limited V // Mixed Surface Diffusion  X
-                    self.J_perm = -self.fluid.k_t * c  ## LM factor
+                    self.J_perm = -self.fluid.k_t * (c-p_out**0.5*self.fluid.Solubility)  ## LM factor
                 elif self.H / self.W > 1000:
                     # Mixed Diffusion Surface V // Mass Transport limited X
                     def equations(vars):
@@ -1564,7 +1579,7 @@ class Component:
                                     / (self.fluid.d_Hyd / 2)
                                 )
                             )
-                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility))
+                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility-p_out**0.5))
                         )
 
                         return abs(J_diff - J_surf)
@@ -1596,7 +1611,7 @@ class Component:
                                 / (self.fluid.d_Hyd / 2)
                             )
                         )
-                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility))
+                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility-p_out**0.5))
                     )
                     return float(solution.x[0])
                 else:
@@ -1620,7 +1635,7 @@ class Component:
                                     / (self.fluid.d_Hyd / 2)
                                 )
                             )
-                            * (self.membrane.K_S * c_ws)
+                            * ((self.membrane.K_S * c_ws)-p_out**0.5)
                         )
                         eq1 = abs(J_mt - J_d)
                         eq2 = abs(J_mt - J_diff)
