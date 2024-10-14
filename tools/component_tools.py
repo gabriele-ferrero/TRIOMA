@@ -1122,11 +1122,7 @@ class Component:
             4 * self.fluid.k_t * self.geometry.L / (self.fluid.U0 * self.fluid.d_Hyd)
         )
         if self.fluid.MS:
-            self.epsilon = (
-                1
-                / self.c_in
-                / self.fluid.Solubility
-                * (
+            alpha=1/( self.fluid.Solubility)* (
                     0.5
                     * self.membrane.K_S
                     * self.membrane.D
@@ -1138,8 +1134,11 @@ class Component:
                             / self.fluid.d_Hyd
                         )
                     )
-                )
-                ** 2
+                )** 2
+            self.epsilon = (
+                alpha
+                / self.c_in
+                
             )
 
             if self.epsilon > 1e5:
