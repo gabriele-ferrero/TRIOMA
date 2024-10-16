@@ -1,5 +1,6 @@
 from ast import Raise
 import numpy as np
+import math
 
 # from example_simulation import TBR
 import tools.molten_salts as MS
@@ -88,7 +89,7 @@ class Geometry:
         L: float = None,
         D: float = None,
         thick: float = None,
-        n_pipes: int = 1,
+        n_pipes: float = 1,
         turbulator: Union["Turbulator"] = None,
     ):
         self.L = L
@@ -505,6 +506,27 @@ class Circuit:
                 ax.set_ylim(0.2, 0.8)
         return fig
 
+    def get_inventory(self):
+        """
+        Calculates the inventory (in mol) of the circuit based on the components present.
+
+        Returns:
+            circuit.inv (float): The inventory of the circuit.
+
+        Raises:
+            None
+
+        Example Usage:
+            circuit.get_circuit_inventory()
+
+        """
+        inventory = 0
+        for component in self.components:
+            if isinstance(component, Component):
+                component.get_inventory()
+                inventory += component.inv
+        self.inv = inventory
+
     def solve_circuit(self, tol=1e-6):
         """
         Solve the circuit by calculating the concentration of the components at the outlet.
@@ -580,7 +602,6 @@ class Component:
         geometry: "Geometry" = None,
         c_in: float = None,
         eff: float = None,
-        n_pipes: int = 1,
         fluid: "Fluid" = None,
         membrane: "Membrane" = None,
         name: str = None,
@@ -602,7 +623,7 @@ class Component:
         self.c_in = c_in
         self.geometry = geometry
         self.eff = eff
-        self.n_pipes = (n_pipes,)
+        self.n_pipes = self.geometry.n_pipes,
         self.fluid = fluid
         self.membrane = membrane
         self.name = name
@@ -989,7 +1010,7 @@ class Component:
             float: The flow rate of the component.
         """
         self.pipe_flowrate = self.fluid.U0 * np.pi * self.fluid.d_Hyd**2 / 4
-        return self.fluid.U0 * np.pi * self.fluid.d_Hyd**2 / 4
+        return self.pipe_flowrate
 
     def get_total_flowrate(self):
         """
@@ -1704,7 +1725,7 @@ class Component:
             r_out = self.fluid.d_Hyd / 2 + self.membrane.thick
             L_min = 0
             L_max = self.geometry.L
-            N = 100
+            N = 20
 
             def integrand(r, L):
                 # return -c * np.log(r / r_out) / np.log(r_out / r_in) * 2 * np.pi * r
@@ -1781,11 +1802,12 @@ class Component:
                     max_exp = np.log(np.finfo(np.float64).max)
                     beta_tau = beta - tau - 1
                     if beta_tau > max_exp:
-                        # print(
-                        #     "Warning: Overflow encountered in exp, input too large.Approximation triggered"
-                        # )
+                        print(
+                            "Warning: Overflow encountered in exp, input too large.Approximation triggered. This will slow down the calculation"
+                        )
 
                         w = beta_tau - np.log(beta_tau)
+                        
                     else:
                         z = np.exp(beta_tau)
                         w = lambertw(z, tol=1e-10)
@@ -1820,6 +1842,10 @@ class Component:
                     c_w_l = alpha * (w**2 + 2 * w) + alpha * (
                         2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5  ## TODO: Check this
                     )
+
+                    if c_w_l < 0:
+                        print("negative wall conc! = " + str(c_w_l))
+                        c_w_l = 1e-17
                     return (
                         -np.log(r / r_out)
                         / np.log(r_out / r_in)
@@ -1832,8 +1858,12 @@ class Component:
 
             result, err = integrate.nquad(integrand, [[r_in, r_out], [L_min, L_max]])
             return result
-
-        self.membrane.inv = integrate_c_profile(self)
+        integral_pipe= integrate_c_profile(self)
+        print(str(integral_pipe)+ " is the integral ans the pipes are "+ str(self.geometry.n_pipes))
+        self.membrane.inv = integral_pipe * self.geometry.n_pipes
+        if math.isnan(self.membrane.inv):
+            print("Error: Inventory calculation failed")
+            self.inspect()
         return
 
         # from sympy import Integral, ln, symbols, init_printing, nsolve, exp
@@ -1965,13 +1995,13 @@ class Component:
                 return c_w_l
 
         result, err = integrate.nquad(integrand, [[L_min, L_max]])
-        self.fluid.inv = result * np.pi * r_in**2
+        self.fluid.inv = result * np.pi * r_in**2 * self.n_pipes
         return
 
     def get_inventory(self):
         self.get_solid_inventory()
         self.get_fluid_inventory()
-        self.inventory = self.fluid.inv + self.membrane.inv
+        self.inv = self.fluid.inv + self.membrane.inv
         return
 
 
@@ -2103,8 +2133,8 @@ class Fluid:
                     # if Re < 1e4 and Re > 2030:
                     #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
                     if Re > 2030:
-                        # Sh = 0.0096 * Re**0.913 * Sc**0.346  ##Getthem paper
-                        Sh = 0.023 * Re**0.8 * Sc**0.33
+                        Sh = 0.0096 * Re**0.913 * Sc**0.346  ##Getthem paper
+                        # Sh = 0.023 * Re**0.8 * Sc**0.33
                     else:
                         print(str(Re) + " indicates laminar flow")
                         Sh = 3.66
@@ -2130,8 +2160,8 @@ class Fluid:
                                 Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
                             )
 
-            else:
-                print("k_t is already defined")
+            # else:
+            #     # print("k_t is already defined")
         else:
             print("Hydraulic Diameter is not defined")
 
