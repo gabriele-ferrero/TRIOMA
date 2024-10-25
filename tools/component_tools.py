@@ -1,4 +1,5 @@
 from ast import Raise
+from operator import inv
 import numpy as np
 import math
 
@@ -623,7 +624,7 @@ class Component:
         self.c_in = c_in
         self.geometry = geometry
         self.eff = eff
-        self.n_pipes = self.geometry.n_pipes,
+        self.n_pipes = (self.geometry.n_pipes,)
         self.fluid = fluid
         self.membrane = membrane
         self.name = name
@@ -1719,7 +1720,87 @@ class Component:
         self.U = 1 / R_tot
         return
 
-    def get_solid_inventory(self):
+    def analytical_solid_inventory(self, p_out: float = 0):
+        if self.fluid.k_t is None:
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
+        if self.fluid.MS == False:
+
+            def integralfun(r):
+                return (
+                    1
+                    / 4
+                    * r**2
+                    * (2 * np.log(r / (self.geometry.D / 2 + self.geometry.thick)) - 1)
+                )
+
+            def circle(r):
+                return np.pi * r**2
+
+            dimless = (
+                2
+                * self.membrane.D
+                * self.membrane.K_S
+                / (
+                    self.fluid.k_t
+                    * self.fluid.Solubility
+                    * self.fluid.d_Hyd
+                    * np.log(
+                        (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
+                    )
+                )
+            )
+            dimless2 = (
+                2
+                * self.membrane.D
+                * self.membrane.K_S
+                / (
+                    self.fluid.Solubility
+                    * self.fluid.d_Hyd
+                    * np.log(
+                        (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
+                    )
+                )
+            )
+            L_ch = (
+                -dimless
+                / (1 + dimless)
+                * 4
+                * self.fluid.k_t
+                / (self.fluid.U0 * self.fluid.d_Hyd)
+            )
+            K = (
+                -2
+                * np.pi
+                * (
+                    self.c_in
+                    / (dimless2 / self.fluid.k_t + 1)
+                    / self.fluid.Solubility
+                    * self.membrane.K_S
+                )
+                / np.log(
+                    (self.geometry.D / 2 + self.geometry.thick) / (self.geometry.D / 2)
+                )
+            )
+            L_factor = (np.exp(L_ch * self.geometry.L) - 1) / L_ch
+            K = K * L_factor
+            integral = (
+                K * integralfun(self.geometry.D / 2 + self.geometry.thick)
+                - K * integralfun(self.geometry.D / 2)
+            ) + self.geometry.L * p_out**0.5 * self.membrane.K_S * (
+                circle(self.geometry.D / 2 + self.geometry.thick)
+                - circle(self.geometry.D / 2)
+            )
+            inventory = integral
+            self.membrane.inventory = inventory
+            return inventory
+        else:
+            print("not implemented yet")
+            return
+
+    def get_solid_inventory(self, p_out: float = 0, flag_an=False):
+        if flag_an:
+            return self.analytical_solid_inventory(p_out)
+
         def integrate_c_profile(self):
             r_in = self.fluid.d_Hyd / 2
             r_out = self.fluid.d_Hyd / 2 + self.membrane.thick
@@ -1727,7 +1808,7 @@ class Component:
             L_max = self.geometry.L
             N = 20
 
-            def integrand(r, L):
+            def integrand(r, L, p_out=p_out):
                 # return -c * np.log(r / r_out) / np.log(r_out / r_in) * 2 * np.pi * r
                 if self.fluid.k_t is None:
                     self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1768,11 +1849,19 @@ class Component:
                         / (self.fluid.U0 * self.fluid.d_Hyd)
                     )
                     conv_liquid_to_solid = self.membrane.K_S / self.fluid.Solubility
+                    c_ext = p_out**0.5 * self.membrane.K_S
                     c_w = (
-                        c * np.exp(L_ch * L) / (dimless2 / self.fluid.k_t + 1)
+                        c * np.exp(L_ch * L) / (dimless2 / self.fluid.k_t + 1) + c_ext
                     )  # todo check this is liquid conc
+
                     return (
-                        -c_w * np.log(r / r_out) / np.log(r_out / r_in) * 2 * np.pi * r
+                        (
+                            -(c_w - c_ext) * np.log(r / r_out) / np.log(r_out / r_in)
+                            + c_ext
+                        )
+                        * 2
+                        * np.pi
+                        * r
                     )
                 else:
                     tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
@@ -1807,7 +1896,7 @@ class Component:
                         )
 
                         w = beta_tau - np.log(beta_tau)
-                        
+
                     else:
                         z = np.exp(beta_tau)
                         w = lambertw(z, tol=1e-10)
@@ -1836,30 +1925,45 @@ class Component:
                         )
                         ** 2
                     )
+                    c_ext = p_out**0.5 * self.membrane.K_S
                     conv = (
                         self.c_in / self.fluid.Solubility
                     ) ** 0.5 * self.membrane.K_S
-                    c_w_l = alpha * (w**2 + 2 * w) + alpha * (
-                        2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5  ## TODO: Check this
+                    c_w_l = (
+                        alpha * (w**2 + 2 * w)
+                        + alpha
+                        * (2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5)  ## TODO: Check this
+                        + c_ext
                     )
 
                     if c_w_l < 0:
                         print("negative wall conc! = " + str(c_w_l))
                         c_w_l = 1e-17
                     return (
-                        -np.log(r / r_out)
-                        / np.log(r_out / r_in)
+                        (
+                            -np.log(r / r_out)
+                            / np.log(r_out / r_in)
+                            * (
+                                (c_w_l / self.fluid.Solubility) ** 0.5
+                                * self.membrane.K_S
+                                - c_ext
+                            )
+                            + c_ext
+                        )
                         * 2
                         * np.pi
                         * r
-                        * (c_w_l / self.fluid.Solubility) ** 0.5
-                        * self.membrane.K_S
                     )
 
             result, err = integrate.nquad(integrand, [[r_in, r_out], [L_min, L_max]])
             return result
-        integral_pipe= integrate_c_profile(self)
-        print(str(integral_pipe)+ " is the integral ans the pipes are "+ str(self.geometry.n_pipes))
+
+        integral_pipe = integrate_c_profile(self)
+        print(
+            str(integral_pipe)
+            + " is the integral ans the pipes are "
+            + str(self.geometry.n_pipes)
+        )
         self.membrane.inv = integral_pipe * self.geometry.n_pipes
         if math.isnan(self.membrane.inv):
             print("Error: Inventory calculation failed")
