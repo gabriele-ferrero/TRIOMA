@@ -1791,15 +1791,133 @@ class Component:
                 - circle(self.geometry.D / 2)
             )
             inventory = integral
-            self.membrane.inventory = inventory
+            self.membrane.inv = inventory
             return inventory
         else:
             print("not implemented yet")
-            return
+
+            def ms_integral(self, p_out: float = 0, L: float = 0):
+                tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
+                self.epsilon = (
+                    1
+                    / self.c_in
+                    / self.fluid.Solubility
+                    * (
+                        0.5  ##TODO: Check this
+                        * self.membrane.K_S
+                        * self.membrane.D
+                        / (
+                            self.fluid.k_t
+                            * self.fluid.d_Hyd
+                            * np.log(
+                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                / self.fluid.d_Hyd
+                            )
+                        )
+                    )
+                    ** 2
+                )
+
+                beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
+                    (1 / self.epsilon + 1) ** 0.5 - 1
+                )
+                max_exp = np.log(np.finfo(np.float64).max)
+                beta_tau = beta - tau - 1
+                if beta_tau > max_exp:
+                    # print(
+                    #     "Warning: Overflow encountered in exp, input too large.Approximation triggered. This will slow down the calculation"
+                    # )
+
+                    w = beta_tau - np.log(beta_tau)
+                    w2 = -beta_tau
+
+                else:
+                    z = np.exp(beta_tau)
+                    z2 = np.exp(-beta_tau)
+                    w = lambertw(z, tol=1e-10)
+                    w2 = lambertw(z2, tol=1e-10)
+                    if w.imag != 0:
+                        raise ValueError("self.eff_an has a non-zero imaginary part")
+                    if w2.imag != 0:
+                        raise ValueError("self.eff_an has a non-zero imaginary part")
+                    w = w.real
+                    w2 = w2.real
+                alpha = (
+                    1
+                    / self.fluid.Solubility
+                    * (
+                        (0.5 * self.membrane.D * self.membrane.K_S)  ## TODO: Check this
+                        / (
+                            self.fluid.k_t
+                            * self.fluid.d_Hyd
+                            * np.log(
+                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                / self.fluid.d_Hyd
+                            )
+                        )
+                    )
+                    ** 2
+                )
+                c_ext = p_out**0.5 * self.membrane.K_S
+                conv = (self.c_in / self.fluid.Solubility) ** 0.5 * self.membrane.K_S
+                c_w_l = alpha * (w**2 + 2 * w) + alpha * (
+                    2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5
+                )  ## TODO: Check this
+                print("alpha", alpha)
+                K = (
+                    alpha**0.5
+                    / self.fluid.Solubility**0.5
+                    * (
+                        -beta_tau
+                        * (w**2 - w + 1)
+                        / (4 * self.fluid.k_t / (self.fluid.U0 * self.fluid.d_Hyd) * w2)
+                    )
+                    * self.membrane.K_S
+                )
+
+                def integralfun(r):
+                    return (
+                        1
+                        / 4
+                        * r**2
+                        * (
+                            2 * np.log(r / (self.geometry.D / 2 + self.geometry.thick))
+                            - 1
+                        )
+                    )
+
+                integral = K * integralfun(
+                    self.geometry.D / 2 + self.geometry.thick
+                ) - K * integralfun(self.geometry.D / 2)
+                return integral
+
+            def p_out_term(self, p_out):
+                def circle(r):
+                    return np.pi * r**2
+
+                add = (
+                    self.geometry.L
+                    * p_out**0.5
+                    * self.membrane.K_S
+                    * (
+                        circle(self.geometry.D / 2 + self.geometry.thick)
+                        - circle(self.geometry.D / 2)
+                    )
+                )
+
+                return add
+
+            inv = (
+                ms_integral(self=self, L=self.geometry.L, p_out=p_out)
+                - ms_integral(self=self, L=0, p_out=p_out)
+                + p_out_term(self, p_out)
+            )
+            self.membrane.inv = inv
+            return inv
 
     def get_solid_inventory(self, p_out: float = 0, flag_an=False):
         if flag_an:
-            return self.analytical_solid_inventory(p_out)
+            return self.analytical_solid_inventory(p_out=p_out)
 
         def integrate_c_profile(self):
             r_in = self.fluid.d_Hyd / 2
@@ -1944,7 +2062,8 @@ class Component:
                             -np.log(r / r_out)
                             / np.log(r_out / r_in)
                             * (
-                                (c_w_l / self.fluid.Solubility) ** 0.5
+                                (alpha / self.fluid.Solubility) ** 0.5
+                                * w
                                 * self.membrane.K_S
                                 - c_ext
                             )
@@ -1968,7 +2087,7 @@ class Component:
         if math.isnan(self.membrane.inv):
             print("Error: Inventory calculation failed")
             self.inspect()
-        return
+        return self.membrane.inv
 
         # from sympy import Integral, ln, symbols, init_printing, nsolve, exp
 
@@ -2004,7 +2123,59 @@ class Component:
         # self.membrane.inv = float(result)
         # return
 
-    def get_fluid_inventory(self):
+    def analytical_fluid_inventory(self, p_out=0):
+        if self.fluid.k_t is None:
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
+        if self.fluid.MS == False:
+
+            def circle(r):
+                return np.pi * r**2
+
+            dimless = (
+                2
+                * self.membrane.D
+                * self.membrane.K_S
+                / (
+                    self.fluid.k_t
+                    * self.fluid.Solubility
+                    * self.fluid.d_Hyd
+                    * np.log(
+                        (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
+                    )
+                )
+            )
+            dimless2 = (
+                2
+                * self.membrane.D
+                * self.membrane.K_S
+                / (
+                    self.fluid.Solubility
+                    * self.fluid.d_Hyd
+                    * np.log(
+                        (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
+                    )
+                )
+            )
+            L_ch = (
+                -dimless
+                / (1 + dimless)
+                * 4
+                * self.fluid.k_t
+                / (self.fluid.U0 * self.fluid.d_Hyd)
+            )
+            c_ext = p_out**0.5 * self.fluid.Solubility
+            K = self.c_in - c_ext
+
+            L_factor = (np.exp(L_ch * self.geometry.L) - 1) / L_ch
+            K = K * L_factor
+            integral = (K) * circle(self.geometry.D / 2)+c_ext * circle(self.geometry.D / 2)*self.geometry.L
+            inventory = integral
+            self.fluid.inv = inventory
+            return inventory
+
+    def get_fluid_inventory(self, flag_an=False, p_out=0):
+        if flag_an == True:
+            return self.analytical_fluid_inventory(p_out=p_out)
         r_in = self.fluid.d_Hyd / 2
 
         L_min = 0
@@ -2037,8 +2208,8 @@ class Component:
                     * self.fluid.k_t
                     / (self.fluid.U0 * self.fluid.d_Hyd)
                 )
-
-                return self.c_in * np.exp(L_ch * L)
+                c_ext = p_out**0.5 * self.fluid.Solubility
+                return (self.c_in - c_ext) * np.exp(L_ch * L)+c_ext
             else:
                 tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
                 self.epsilon = (
@@ -2099,8 +2270,9 @@ class Component:
                 return c_w_l
 
         result, err = integrate.nquad(integrand, [[L_min, L_max]])
-        self.fluid.inv = result * np.pi * r_in**2 * self.n_pipes
-        return
+        print(result)
+        self.fluid.inv = result * np.pi * r_in**2 * self.geometry.n_pipes
+        return self.fluid.inv
 
     def get_inventory(self):
         self.get_solid_inventory()
