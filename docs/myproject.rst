@@ -2,12 +2,6 @@ TRIOMA API Documentation
 ===========================
 
 In this section the documentation for all modules in TRIOMA:
-
-Component tools
----------------------
-
-.. autoclass:: tools.component_tools.Component
-   :members:
   
 
 Correlations
