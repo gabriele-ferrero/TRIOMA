@@ -805,7 +805,24 @@ class Component:
         Returns:
             float: The concentration of the component at the outlet.
         """
-        self.c_out = self.c_in * (1 - self.eff)
+        if self.fluid.recirculation==0:
+            self.c_out = self.c_in * (1 - self.eff)
+        else:
+            err=1
+            tol=1E-6
+            if self.c_in==0:
+                RaiseError("The inlet concentration is zero")   
+            c0=self.c_in
+            c_in=c0
+            while err>tol:
+                
+                c_in1=c_in
+                self.update_attribute("c_in",c_in)
+                self.analytical_efficiency()
+                self.update_attribute("eff",self.eff_an)
+                self.c_out=self.c_in * (1 - self.eff)
+                c_in=(self.c_out*self.fluid.recirculation+c0)/(self.fluid.recirculation+1)
+                err=abs((c_in-c_in1)/c_in)
 
     def split_HX(
         self,
@@ -2078,6 +2095,7 @@ class Fluid:
         rho (float, optional): Density of the fluid. Defaults to None.
         U0 (float, optional): Velocity of the fluid. Defaults to None.
         inv (float, optional): Inventory of the fluid. Defaults to None.
+        recirculation(float,optional): fraction of recirculated flowrate. Defaults to 0. 1 = 100%, 0.5=50%. 
     """
 
     def __init__(
@@ -2098,6 +2116,7 @@ class Fluid:
         k: float = None,
         cp: float = None,
         inv: float = None,
+        recirculation: float = 0,   
     ):
         """
         Initializes a new instance of the Fluid class.
@@ -2128,7 +2147,11 @@ class Fluid:
         self.d_Hyd = d_Hyd
         self.mu = mu
         self.rho = rho
-        self.U0 = U0
+        self.recirculation = recirculation
+        if self.recirculation==0:
+            self.U0 = U0
+        else:
+            self.U0=U0*(1+self.recirculation)
         self.k = k
         self.cp = cp
         self.inv = inv
