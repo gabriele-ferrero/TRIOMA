@@ -213,6 +213,21 @@ class Circuit:
         else:
             self.components.append(component)
 
+    def get_circuit_pumping_power(self):
+        """
+        Calculates the pumping power required for the circuit.
+
+        Returns:
+            float: The pumping power required for the circuit in W.
+        """
+        pumping_power = 0
+        for component in self.components:
+            if isinstance(component, Component):
+                component.get_pumping_power()
+                pumping_power += component.pumping_power
+        self.pumping_power = pumping_power
+        return self.pumping_power
+
     def get_eff_circuit(self):
         """
         Calculates the efficiency of the circuit based on the components present.
@@ -644,6 +659,51 @@ class Component:
         #         print("overwriting Fluid Hydraulic diameter with Geometry Diameter")
         # self.membrane.thick = self.geometry.thick
         # self.fluid.d_Hyd = self.geometry.D
+
+    def friction_factor(self, Re: float) -> float:
+        """
+        Calculates the friction factor for the component.
+
+        Args:
+            Re (float): Reynolds number.
+
+        Returns:
+            float: The friction factor.
+        """
+        if Re < 2300:
+            f = 64 / Re  ## laminar darcy
+        else:
+            f = 0.316 / Re**0.25  ## Blasius for smooth pipes
+        return f
+
+    def get_pressure_drop(self) -> float:
+        """
+        Calculates the pressure drop across the component.
+
+        Returns:
+            float: The pressure drop across the component.
+        """
+        rho = self.fluid.rho
+        U = self.fluid.U0
+        D = self.geometry.D
+        mu = self.fluid.mu
+        L = self.geometry.L
+        Re = corr.Re(rho, U, D, mu)
+        f = self.friction_factor(Re)
+        self.delta_p = f * (L / D) * (rho * U**2) / 2
+        return self.delta_p
+
+    def get_pumping_power(self) -> float:
+        """
+        Calculates the pumping power required for the component.
+
+        Returns:
+            float: The pumping power required for the component in W.
+        """
+        self.pumping_power = (
+            self.delta_p * self.get_pipe_flowrate() * self.geometry.n_pipes
+        )
+        return self.pumping_power
 
     def update_attribute(
         self,
