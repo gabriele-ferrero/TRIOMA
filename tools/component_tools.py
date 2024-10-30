@@ -524,7 +524,7 @@ class Circuit:
                 ax.set_ylim(0.2, 0.8)
         return fig
 
-    def get_inventory(self):
+    def get_inventory(self,flag_an=True):
         """
         Calculates the inventory (in mol) of the circuit based on the components present.
 
@@ -541,7 +541,7 @@ class Circuit:
         inventory = 0
         for component in self.components:
             if isinstance(component, Component):
-                component.get_inventory()
+                component.get_inventory(flag_an=flag_an)
                 inventory += component.inv
         self.inv = inventory
 
@@ -1352,10 +1352,6 @@ class Component:
                     z = np.exp(beta_tau)
                     w = lambertw(z, tol=1e-10)
                     p_in = self.c_in / self.fluid.Solubility
-                    print("P_out correlation is not implemented yet")
-                    corr_p1 = 1 - (p_out / p_in) ** 0.5
-                    corr_p2 = 1 - (p_out / p_in)
-
                     self.eff_an = 1 - self.epsilon * (w**2 + 2 * w)
                     if self.eff_an.imag != 0:
                         raise ValueError("self.eff_an has a non-zero imaginary part")
@@ -2037,7 +2033,6 @@ class Component:
                 c_w_l = alpha * (w**2 + 2 * w) + alpha * (
                     2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5
                 )  ## TODO: Check this
-                print("alpha", alpha)
                 K = (
                     alpha**0.5
                     / self.fluid.Solubility**0.5
@@ -2252,11 +2247,6 @@ class Component:
             return result
 
         integral_pipe = integrate_c_profile(self)
-        print(
-            str(integral_pipe)
-            + " is the integral ans the pipes are "
-            + str(self.geometry.n_pipes)
-        )
         self.membrane.inv = integral_pipe * self.geometry.n_pipes
         if math.isnan(self.membrane.inv):
             print("Error: Inventory calculation failed")
@@ -2450,9 +2440,9 @@ class Component:
         self.fluid.inv = result * np.pi * r_in**2 * self.geometry.n_pipes
         return self.fluid.inv
 
-    def get_inventory(self):
-        self.get_solid_inventory()
-        self.get_fluid_inventory()
+    def get_inventory(self,flag_an=True,p_out=0):
+        self.get_solid_inventory(flag_an=flag_an,p_out=p_out)
+        self.get_fluid_inventory(flag_an=flag_an,p_out=p_out)
         self.inv = self.fluid.inv + self.membrane.inv
         return
 
