@@ -167,6 +167,12 @@ cython_debug/
 #  and can be added to the global gitignore or merged into this file.  For a more nuclear
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
+Examples/PAV.xlsx
+Examples/simpy_int_pout copy.ipynb
+Examples/simpy_int_pout.ipynb
+Examples/sweep_pout.ipynb
+Examples/Verification_analytical_eff_LMp_out.ipynb
+SOFT2024ferrero/PAV_eff_sensWC_polished_addendum.ipynb
 COMSOL/test_inv/test_invLdep.ipynb
 Examples/Verification_analytical_eff_LM.ipynb
 tools/logaritmic_distribution_ver.ipynb
