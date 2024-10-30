@@ -1,5 +1,8 @@
 from ast import Raise
+from re import S
 import numpy as np
+import math
+
 # from example_simulation import TBR
 import tools.molten_salts as MS
 import tools.liquid_metals as LM
@@ -12,6 +15,7 @@ from scipy.optimize import minimize
 from scipy.special import lambertw
 from typing import Union
 import matplotlib.pyplot as plt
+from scipy import integrate
 
 
 def print_class_variables(instance, variable_names=None, tab: int = 0):
@@ -32,6 +36,7 @@ def print_class_variables(instance, variable_names=None, tab: int = 0):
         SolidMaterial,
         BreedingBlanket,
         Geometry,
+        Turbulator,
     ]
     indent = "    " * tab  # Define the indentation as four spaces per tab level
     for attr_name, attr_value in instance.__dict__.items():
@@ -45,6 +50,7 @@ def print_class_variables(instance, variable_names=None, tab: int = 0):
                 tab -= 1
             else:
                 print(f"{indent}{attr_name}: {attr_value}")
+
 
 def set_attribute(instance, attr_name, new_value):
     """
@@ -80,12 +86,18 @@ class Geometry:
     """
 
     def __init__(
-        self, L: float = None, D: float = None, thick: float = None, n_pipes: int = 1
+        self,
+        L: float = None,
+        D: float = None,
+        thick: float = None,
+        n_pipes: float = 1,
+        turbulator: Union["Turbulator"] = None,
     ):
         self.L = L
         self.D = D
         self.thick = thick
         self.n_pipes = n_pipes
+        self.turbulator = turbulator
 
     def update_attribute(self, attr_name: str, new_value: float):
         """
@@ -126,7 +138,7 @@ class Geometry:
 class Circuit:
     """
     Represent a circuit of components connected in series
-    
+
     This class represents a circuit consisting of multiple components connected in series. It provides methods to update attributes, add components, calculate circuit efficiency, and plot the circuit.
 
     Attributes:
@@ -136,16 +148,16 @@ class Circuit:
     Methods:
         update_attribute(attr_name, new_value):
             Updates the value of the specified attribute.
-        
+
         add_component(component):
             Adds a component to the circuit.
-        
+
         get_eff_circuit():
             Calculates the efficiency of the circuit.
-        
+
         get_gains_and_losses():
             Calculates the gains and losses of the circuit.
-        
+
         plot_circuit():
             Plots the circuit using matplotlib.
 
@@ -162,7 +174,7 @@ class Circuit:
         components: list = None,
         closed: bool = False,
     ):
-        vec_components=[]
+        vec_components = []
         if components is not None:
             for element in components:
                 if isinstance(element, Union[Component, BreedingBlanket]):
@@ -172,7 +184,7 @@ class Circuit:
                         vec_components.append(comp)
                 else:
                     raise ValueError("Invalid component type")
-        self.components =vec_components
+        self.components = vec_components
         self.closed = closed
 
     def update_attribute(self, attr_name: str, new_value: Union[float, bool]):
@@ -185,7 +197,9 @@ class Circuit:
         """
         set_attribute(self, attr_name, new_value)
 
-    def add_component(self, component: Union["Component", "BreedingBlanket", "Circuit"]):
+    def add_component(
+        self, component: Union["Component", "BreedingBlanket", "Circuit"]
+    ):
         """
         Adds a component to the circuit.
 
@@ -210,7 +224,7 @@ class Circuit:
 
         Example Usage:
             circuit.get_eff_circuit()
-            
+
         """
         ind = None
         for i, component in enumerate(self.components):
@@ -228,7 +242,7 @@ class Circuit:
 
         for i, component in enumerate(self.components):
             if isinstance(component, Component):
-                component.use_analytical_efficiency()
+                component.use_analytical_efficiency(p_out=component.p_out)
                 component.outlet_c_comp()
             if i != len(self.components) - 1:
                 component.connect_to_component(self.components[i + 1])
@@ -238,53 +252,52 @@ class Circuit:
         self.eff = eff_circuit
 
     def get_gains_and_losses(self):
-            """
-            Calculates the gains and losses of the components in the circuit.
+        """
+        Calculates the gains and losses of the components in the circuit.
 
-            Returns:
-                circuit.extraction_perc (float): The extraction percentage of the circuit.
-                circuit.loss_perc (float): The loss percentage of the circuit.
-                
-            """
-            
-            gains = 0
-            losses = 0
-            flag_bb = 0
-            for i, component in enumerate(self.components):
-                diff = component.c_in - component.c_out
-                if isinstance(component, Component):
-                    if component.loss == False:
-                        gains += diff
-                    else:
-                        losses += diff
-            for i, component in enumerate(self.components):
-                
-                if isinstance(component, BreedingBlanket):
-                    ind = i
-                    if flag_bb != 0:
-                        print("There are more BB!")
-                    flag_bb = 1
-            if ind != 0 and ind != len(self.components):
-                eff_circuit = (
-                    self.components[ind + 1].c_in - self.components[ind - 1].c_out
-                ) / self.components[ind + 1].c_in
-                self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
-                self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
-            elif ind == 0:
-                eff_circuit = (
-                    self.components[ind + 1].c_in - self.components[-1].c_out
-                ) / self.components[ind + 1].c_in
-                self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
-                self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
-            elif ind == len(self.components):
-                eff_circuit = (
-                    self.components[0].c_in - self.components[ind - 1].c_out
-                ) / self.components[0].c_in
-                self.extraction_perc = gains / self.components[0].c_in / eff_circuit
-                self.loss_perc = losses / self.components[0].c_in / eff_circuit
-            self.eff = eff_circuit
+        Returns:
+            circuit.extraction_perc (float): The extraction percentage of the circuit.
+            circuit.loss_perc (float): The loss percentage of the circuit.
 
-    
+        """
+
+        gains = 0
+        losses = 0
+        flag_bb = 0
+        for i, component in enumerate(self.components):
+            diff = component.c_in - component.c_out
+            if isinstance(component, Component):
+                if component.loss == False:
+                    gains += diff
+                else:
+                    losses += diff
+        for i, component in enumerate(self.components):
+
+            if isinstance(component, BreedingBlanket):
+                ind = i
+                if flag_bb != 0:
+                    print("There are more BB!")
+                flag_bb = 1
+        if ind != 0 and ind != len(self.components):
+            eff_circuit = (
+                self.components[ind + 1].c_in - self.components[ind - 1].c_out
+            ) / self.components[ind + 1].c_in
+            self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
+            self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
+        elif ind == 0:
+            eff_circuit = (
+                self.components[ind + 1].c_in - self.components[-1].c_out
+            ) / self.components[ind + 1].c_in
+            self.extraction_perc = gains / self.components[ind + 1].c_in / eff_circuit
+            self.loss_perc = losses / self.components[ind + 1].c_in / eff_circuit
+        elif ind == len(self.components):
+            eff_circuit = (
+                self.components[0].c_in - self.components[ind - 1].c_out
+            ) / self.components[0].c_in
+            self.extraction_perc = gains / self.components[0].c_in / eff_circuit
+            self.loss_perc = losses / self.components[0].c_in / eff_circuit
+        self.eff = eff_circuit
+
     def plot_circuit(self):
         """
         Plot the circuit diagram for the components in the circuit.
@@ -302,7 +315,7 @@ class Circuit:
         red_to_blue = LinearSegmentedColormap.from_list("RedToBlue", ["red", "blue"])
         num_components = len(self.components)
         if num_components < 10:
-            num_rows =1
+            num_rows = 1
             num_columns = num_components
         else:
             num_rows = (num_components // 10) + (1 if num_components % 10 != 0 else 0)
@@ -390,7 +403,7 @@ class Circuit:
                 axs[i // num_columns, i % num_columns].text(
                     0.9,
                     0.3,
-                    fr"$c_{{out}}={component.c_out:.4g} mol/m^3$",
+                    rf"$c_{{out}}={component.c_out:.4g} mol/m^3$",
                     color="black",
                     ha="center",
                     va="center",
@@ -478,7 +491,7 @@ class Circuit:
                 axs[i // num_columns, i % num_columns].text(
                     0.3,
                     0.8,
-                    fr"$c_o$={component.c_out:.4g}$mol/m^3$",
+                    rf"$c_o$={component.c_out:.4g}$mol/m^3$",
                     color="black",
                     ha="center",
                     va="center",
@@ -493,27 +506,49 @@ class Circuit:
                 ax.axis("off")
                 ax.set_ylim(0.2, 0.8)
         return fig
+
+    def get_inventory(self):
+        """
+        Calculates the inventory (in mol) of the circuit based on the components present.
+
+        Returns:
+            circuit.inv (float): The inventory of the circuit.
+
+        Raises:
+            None
+
+        Example Usage:
+            circuit.get_circuit_inventory()
+
+        """
+        inventory = 0
+        for component in self.components:
+            if isinstance(component, Component):
+                component.get_inventory()
+                inventory += component.inv
+        self.inv = inventory
+
     def solve_circuit(self, tol=1e-6):
         """
         Solve the circuit by calculating the concentration of the components at the outlet.
         If the circuit is a closed loop, the concentration of the first component is set to the concentration of the last component until the stationary regime is reached.
-        
+
         """
         err = 1
         flag = 0
         flag_bb = 0
         for i, component in enumerate(self.components):
-                
-                if isinstance(component, BreedingBlanket):
-                    ind = i
-                    if flag_bb != 0:
-                        print("There are more BB!")
-                    flag_bb = 1
+
+            if isinstance(component, BreedingBlanket):
+                ind = i
+                if flag_bb != 0:
+                    print("There are more BB!")
+                flag_bb = 1
         while flag == 0:
             for i, component in enumerate(self.components):
 
                 if isinstance(component, Component):
-                    component.use_analytical_efficiency()
+                    component.use_analytical_efficiency(p_out=component.p_out)
                     component.outlet_c_comp()
                     if i != len(self.components) - 1:
                         component.connect_to_component(self.components[i + 1])
@@ -568,11 +603,12 @@ class Component:
         geometry: "Geometry" = None,
         c_in: float = None,
         eff: float = None,
-        n_pipes: int = 1,
         fluid: "Fluid" = None,
         membrane: "Membrane" = None,
         name: str = None,
+        p_out: float = 1E-15,
         loss: bool = False,
+        inv: float = None,
     ):
         """
         Initializes a new instance of the Component class.
@@ -584,15 +620,18 @@ class Component:
             fluid (Fluid, optional): The fluid associated with the component. Defaults to None.
             membrane (Membrane, optional): The membrane associated with the component. Defaults to None.
             name (str, optional): The name of the component. Defaults to None.
+            inv (float, optional): The inverse of the efficiency of the component. Defaults to None.
         """
         self.c_in = c_in
         self.geometry = geometry
         self.eff = eff
-        self.n_pipes = (n_pipes,)
+        self.n_pipes = self.geometry.n_pipes,
         self.fluid = fluid
         self.membrane = membrane
         self.name = name
         self.loss = loss
+        self.inv = inv
+        self.p_out=p_out
         # if (
         #     isinstance(self.fluid, Fluid)
         #     and isinstance(self.membrane, Membrane)
@@ -749,7 +788,7 @@ class Component:
         ax2.text(
             0.9,
             0.3,
-            fr"c={self.c_out:.4g}$mol/m^3$",
+            rf"c={self.c_out:.4g}$mol/m^3$",
             color="black",
             ha="center",
             va="center",
@@ -948,7 +987,7 @@ class Component:
         """
         if self.fluid is not None:
             if self.fluid.k_t is None:
-                self.fluid.get_kt()
+                self.fluid.get_kt(turbulator=self.geometry.turbulator)
             if self.fluid.MS == True:
                 if self.membrane is not None:
 
@@ -990,8 +1029,8 @@ class Component:
         Returns:
             float: The flow rate of the component.
         """
-        self.pipe_flowrate = self.fluid.U0 * np.pi * self.fluid.d_Hyd ** 2 / 4
-        return self.fluid.U0 * np.pi * self.fluid.d_Hyd ** 2 / 4
+        self.pipe_flowrate = self.fluid.U0 * np.pi * self.fluid.d_Hyd**2 / 4
+        return self.pipe_flowrate
 
     def get_total_flowrate(self):
         """
@@ -1016,7 +1055,7 @@ class Component:
         Updates the H and W attributes of the Component object.
         """
         if self.fluid.k_t is None:
-            self.fluid.get_kt()
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
         if self.fluid is not None:
             if self.fluid.MS:
                 self.H = MS.H(
@@ -1054,7 +1093,7 @@ class Component:
                     K_S_L=self.fluid.Solubility,
                 )
 
-    def use_analytical_efficiency(self):
+    def use_analytical_efficiency(self,p_out=1E-15):
         """Evaluates the analytical efficiency and substitutes it in the efficiency attribute of the component.
 
         Args:
@@ -1062,10 +1101,10 @@ class Component:
         Returns:
             None
         """
-        self.analytical_efficiency()
+        self.analytical_efficiency(p_out=p_out)
         self.eff = self.eff_an
 
-    def get_efficiency(self, plotvar: bool = False, c_guess: float = None):
+    def get_efficiency(self, plotvar: bool = False, c_guess: float = None,p_out=1E-15):
         """
         Calculates the efficiency of the component.
         """
@@ -1089,29 +1128,29 @@ class Component:
                 c_vec[i] = float(self.c_in)
 
                 if isinstance(c_guess, float):
-                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
+                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess,p_out=p_out)
                 else:
-                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in))
+                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in),p_out=p_out)
             else:
                 c_vec[i] = c_vec[
                     i - 1
-                ] + f_H2 * self.J_perm * self.fluid.d_Hyd * np.pi * dl ** 2 / self.fluid.U0 / (
-                    np.pi * self.fluid.d_Hyd ** 2 / 4 * dl
+                ] + f_H2 * self.J_perm * self.fluid.d_Hyd * np.pi * dl**2 / self.fluid.U0 / (
+                    np.pi * self.fluid.d_Hyd**2 / 4 * dl
                 )
                 if isinstance(c_guess, float):
-                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess)
+                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess,p_out=p_out)
                 else:
-                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in))
+                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in),p_out=p_out)
         if plotvar:
             plt.plot(L_vec, c_vec)
         self.eff = (self.c_in - c_vec[-1]) / self.c_in
 
-    def analytical_efficiency(self):
+    def analytical_efficiency(self,p_out=1E-15):
         """
         Calculate the analytical efficiency of a component.
 
         Parameters:
-        - L: Length of the component
+        - p_out: Pressure of H isotope at the outlet of the component. Defaults to 1E-15.
 
         Returns:
         - eff_an: Analytical efficiency of the component (from Humrickhouse papers)
@@ -1125,21 +1164,17 @@ class Component:
         eff_an = 1 - epsilon * (lambertw(z=np.exp(beta - tau - 1), tol=1e-10) ** 2 + 2 * lambertw(z=np.exp(beta - tau - 1), tol=1e-10)).
 
         If the fluid is a liquid metal (MS= False), the analytical efficiency is calculated using the following formula:
-        eff_an = 1 - np.exp(-tau * zeta / (1 + zeta)).
+        eff_an = 1 - np.exp(-tau * zeta / (1 + zeta))* (1-p_in/p_out)^0.5.
 
         The output of the function is the analytical efficiency of the component as Component.eff_an.
         """
         if self.fluid.k_t is None:
-            self.fluid.get_kt()
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
         self.tau = (
             4 * self.fluid.k_t * self.geometry.L / (self.fluid.U0 * self.fluid.d_Hyd)
         )
         if self.fluid.MS:
-            self.epsilon = (
-                1
-                / self.c_in
-                / self.fluid.Solubility
-                * (
+            alpha=1/( self.fluid.Solubility)* (
                     0.5
                     * self.membrane.K_S
                     * self.membrane.D
@@ -1151,21 +1186,58 @@ class Component:
                             / self.fluid.d_Hyd
                         )
                     )
-                )
-                ** 2
+                )** 2
+            self.epsilon = (
+                alpha
+                / self.c_in
+                
             )
 
             if self.epsilon > 1e5:
-                self.eff_an = 1 - np.exp(-self.tau)
+                p_in=self.c_in/self.fluid.Solubility
+                corr_p=1-(p_out/p_in)
+                self.eff_an = (1 - np.exp(-self.tau))*corr_p
             elif self.epsilon ** 0.5 < 1e-2 and self.tau < 1 / self.epsilon ** 0.5:
-                self.eff_an = 1 - (1 - self.tau * self.epsilon ** 0.5) ** 2
+                p_in=self.c_in/self.fluid.Solubility
+                corr_p=1-(p_out/p_in)**0.5
+                self.eff_an = (1 - (1 - self.tau * self.epsilon ** 0.5) ** 2)*corr_p
             else:
-                beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
-                    (1 / self.epsilon + 1) ** 0.5 - 1
-                )
+                # n1=1
+                # n2=2
+                # e=n1*(alpha*p_out*self.fluid.Solubility)**0.5
+                # f=e/alpha
+                # # P_out_term=0
+                # # P_out_term2=0
+                # delta=(1/self.epsilon+1+n2*f)**0.5
+                # beta = delta + (1+f)*np.log(+delta-1-f)
+                # max_exp = np.log(np.finfo(np.float64).max)
+                # beta_tau = beta - self.tau*(1) - 1
+                # if beta_tau > max_exp or p_out>1E-5:
+                #     print(
+                #         "Warning: Overflow encountered in exp, input too large.Iterative solver triggered"
+                #     )
+                #     # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
+
+                #     def eq(var):
+                #         cl = var
+                #         alpha = self.epsilon * self.c_in
+                #         left = (cl / alpha + 1+n2*f) ** 0.5 +(1+f)* np.log(-f+((cl/alpha + 1+n2*f) ** 0.5-1)
+                #         )
+                A=2
+                n1=1
+                n2=2
+                n3=1
+                n4=1
+                n5=1
+                e=n1*(alpha*p_out*self.fluid.Solubility)**0.5
+                f=e/alpha
+                # P_out_term=0
+                # P_out_term2=0
+                delta=(1/self.epsilon+1+n2*f)**0.5
+                beta = delta + (1+n4*f)*np.log(+n5*delta-1-n3*f)
                 max_exp = np.log(np.finfo(np.float64).max)
-                beta_tau = beta - self.tau - 1
-                if beta_tau > max_exp:
+                beta_tau = beta - self.tau- 1
+                if beta_tau > max_exp or p_out>1E-5:
                     print(
                         "Warning: Overflow encountered in exp, input too large.Iterative solver triggered"
                     )
@@ -1174,9 +1246,10 @@ class Component:
                     def eq(var):
                         cl = var
                         alpha = self.epsilon * self.c_in
-                        left = (cl / alpha + 1) ** 0.5 + np.log(
-                            (cl / alpha + 1) ** 0.5 - 1 + 1e-10
+                        
+                        left = (cl / alpha + 1+n2*f) ** 0.5 +(1+n4*f)* np.log(-n3*f+(n5*(cl/alpha + 1+n2*f) ** 0.5-1)
                         )
+                        
                         right = beta - self.tau
 
                         return abs(left - right)
@@ -1188,11 +1261,25 @@ class Component:
                         bounds=[(0, self.c_in)],
                         tol=1e-7,
                     ).x[0]
-                    self.eff_an = 1 - (cl / self.c_in)
+                    if -n3*f+(n5*(cl/alpha + 1+n2*f) ** 0.5-1)<0:
+                        # raise ValueError("The argument of the log is negative")
+                        
+                        self.get_efficiency
+                        
+                        self.eff_an =self.eff
+                        return
+                    p_in=self.c_in/self.fluid.Solubility
+                    # corr_p=1-(p_out/p_in)
+                    self.eff_an = (1 - (cl / self.c_in))
                 else:
                     z = np.exp(beta_tau)
                     w = lambertw(z, tol=1e-10)
-                    self.eff_an = 1 - self.epsilon * (w ** 2 + 2 * w)
+                    p_in=self.c_in/self.fluid.Solubility
+                    print("P_out correlation is not implemented yet")
+                    corr_p1=1-(p_out/p_in)**0.5
+                    corr_p2=1-(p_out/p_in)
+                    
+                    self.eff_an = (1 - self.epsilon * (w ** 2 + 2 * w))
                     if self.eff_an.imag != 0:
                         raise ValueError("self.eff_an has a non-zero imaginary part")
                     else:
@@ -1221,9 +1308,12 @@ class Component:
                     (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
                 )
             )
-            self.eff_an = 1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
+            p_in=(self.c_in/self.fluid.Solubility)**2
+            corr_p=1-(p_out/p_in)**0.5
+            
+            self.eff_an = (1 - np.exp(-self.tau * self.zeta / (1 + self.zeta)))*corr_p
 
-    def get_flux(self, c: float = None, c_guess: float = 1e-9):
+    def get_flux(self, c: float = None, c_guess: float = 1e-9,p_out=1E-15):
         """
         Calculates the Tritium flux of the component.
         It can make some approximations based on W and H to make the solver faster
@@ -1247,7 +1337,7 @@ class Component:
                 # DIFFUSION LIMITED V // Surface limited X
                 if self.H / self.W > 1000:
                     # Mass transport limited V // Diffusion limited X
-                    self.J_perm = -2 * self.fluid.k_t * c  ## MS factor
+                    self.J_perm = -2 * self.fluid.k_t * (c-p_out*self.fluid.Solubility)  ## MS factor
                 elif self.H / self.W < 0.0001:
                     # Diffusion limited V // Mass Transport limited X
                     self.J_perm = -(
@@ -1261,7 +1351,7 @@ class Component:
                             )
                         )
                         * self.membrane.K_S
-                        * (c / self.fluid.Solubility) ** 0.5
+                        * ((c / self.fluid.Solubility) ** 0.5-p_out**0.5)
                     )
                 else:
                     # Mixed regime mass transport diffusion
@@ -1282,7 +1372,7 @@ class Component:
                             )
                             * (
                                 self.membrane.K_S
-                                * (c_wl / self.fluid.Solubility) ** 0.5
+                                * ((c_wl / self.fluid.Solubility) ** 0.5-p_out**0.5)
                             )
                         )
                         return abs(J_diff - J_mt)
@@ -1315,7 +1405,7 @@ class Component:
                 # Surface limited V // Diffusion Limited X
                 if self.H > 100:
                     # Mass transport limited V // Surface limited X
-                    self.J_perm = -2 * self.fluid.k_t * c  ## MS factor
+                    self.J_perm = -2 * self.fluid.k_t * (c-p_out*self.fluid.Solubility)  ## MS factor
                 elif self.H < 0.01:
                     # Surface limited V // Mass Transport limited X
                     self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
@@ -1329,7 +1419,7 @@ class Component:
                         J_mt = 2 * self.fluid.k_t * (c_bl - c_wl)  ## MS factor
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
+                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
                         )
 
                         return abs(J_mt - J_surf)
@@ -1353,9 +1443,9 @@ class Component:
                     return float(solution.x[0])
             else:
                 # Mixed Diffusion Surface
-                if self.H / self.W >1000:
+                if self.H / self.W > 1000:
                     # Mass transport limited V // Mixed Surface Diffusion Limited X
-                    self.J_perm = -2 * self.fluid.k_t * c  ## MS factor
+                    self.J_perm = -2 * self.fluid.k_t * (c-p_out*self.fluid.Solubility)  ## MS factor
                 elif self.H / self.W < 0.0001:
                     # Mixed Diffusion Surface
                     def equations(vars):
@@ -1365,7 +1455,7 @@ class Component:
                         c_bl = c
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
+                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
                         )
                         J_diff = (
                             self.membrane.D
@@ -1379,7 +1469,7 @@ class Component:
                             )
                             * (
                                 self.membrane.K_S
-                                * (c_wl / self.fluid.Solubility) ** 0.5
+                                * ((c_wl / self.fluid.Solubility) ** 0.5-p_out**0.5)
                             )
                         )
 
@@ -1412,7 +1502,7 @@ class Component:
                                 / (self.fluid.d_Hyd / 2)
                             )
                         )
-                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility) ** 0.5)
+                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility) ** 0.5-p_out**0.5)
                     )
                     return float(solution.x[0])
                 else:
@@ -1425,7 +1515,7 @@ class Component:
 
                         J_d = self.membrane.k_d * (
                             c_wl / self.membrane.K_S
-                        ) - self.membrane.k_d * self.membrane.K_S ** 2 * (c_ws ** 2)
+                        ) - self.membrane.k_d * self.membrane.K_S**2 * (c_ws**2)
                         J_diff = (
                             self.membrane.D
                             / (
@@ -1436,7 +1526,7 @@ class Component:
                                     / (self.fluid.d_Hyd / 2)
                                 )
                             )
-                            * (self.membrane.K_S * c_ws)
+                            * ((self.membrane.K_S * c_ws)-p_out**0.5)
                         )
                         eq1 = abs(J_mt - J_d)
                         eq2 = abs(J_mt - J_diff)
@@ -1466,7 +1556,7 @@ class Component:
                 # DIFFUSION LIMITED V // Surface limited X
                 if self.H / self.W > 1000:
                     # Mass transport limited V // Diffusion limited X
-                    self.J_perm = -self.fluid.k_t * c  ## LM factor
+                    self.J_perm = -self.fluid.k_t * (c-p_out**0.5*self.fluid.Solubility)  ## LM factor
                 elif self.H / self.W < 0.0001:
                     # Diffusion limited V // Mass Transport limited X
                     self.J_perm = -(
@@ -1479,14 +1569,14 @@ class Component:
                                 / (self.fluid.d_Hyd / 2)
                             )
                         )
-                        * self.membrane.K_S
-                        * (c / self.fluid.Solubility)
+                        * (self.membrane.K_S
+                        * (c / self.fluid.Solubility-p_out**0.5))
                     )
                 else:
                     # Mixed regime mass transport diffusion
                     def equations(vars):
                         c_wl = vars
-                        J_mt = self.fluid.k_t * (c - c_wl)
+                        J_mt = self.fluid.k_t * (c - c_wl)  ## LM factor
                         J_diff = (
                             self.membrane.D
                             / (
@@ -1497,7 +1587,7 @@ class Component:
                                     / (self.fluid.d_Hyd / 2)
                                 )
                             )
-                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility))
+                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility-p_out**0.5))
                         )
                         return abs((J_diff - J_mt))
 
@@ -1523,7 +1613,7 @@ class Component:
                 # Surface limited V // Diffusion Limited X
                 if self.H > 100:
                     # Mass transport limited V // Surface limited X
-                    self.J_perm = -self.fluid.k_t * c  ## LM factor
+                    self.J_perm = -self.fluid.k_t * (c-p_out**0.5*self.fluid.Solubility)  ## LM factor
                 elif self.H < 0.01:
                     # Surface limited V // Mass Transport limited X
                     self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
@@ -1532,10 +1622,10 @@ class Component:
                     def equations(vars):
                         c_wl = vars
                         c_bl = c
-                        J_mt = self.fluid.k_t * (c_bl - c_wl)  ## LM factor
+                        J_mt = self.fluid.k_t * (c_bl - c_wl-p_out**0.5*self.fluid.Solubility)  ## LM factor
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
+                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
                         )
 
                         return abs(J_mt - J_surf)
@@ -1555,12 +1645,12 @@ class Component:
                     )
                     c_bl = c
                     c_wl = solution.x[0]
-                    self.J_perm = self.fluid.k_t * (c_bl - c_wl)  ## LM factor
+                    self.J_perm = self.fluid.k_t * (c_bl - c_wl-p_out*self.fluid.Solubility)  ## LM factor
                     return float(solution.x[0])
             else:
                 if self.H / self.W < 0.0001:
                     # Mass transport limited V // Mixed Surface Diffusion  X
-                    self.J_perm = -self.fluid.k_t * c  ## LM factor
+                    self.J_perm = -self.fluid.k_t * (c-p_out**0.5*self.fluid.Solubility)  ## LM factor
                 elif self.H / self.W > 1000:
                     # Mixed Diffusion Surface V // Mass Transport limited X
                     def equations(vars):
@@ -1568,7 +1658,7 @@ class Component:
                         c_bl = c
                         J_surf = (
                             self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S ** 2 * c_wl ** 2
+                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
                         )
                         J_diff = (
                             self.membrane.D
@@ -1580,7 +1670,7 @@ class Component:
                                     / (self.fluid.d_Hyd / 2)
                                 )
                             )
-                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility))
+                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility-p_out**0.5))
                         )
 
                         return abs(J_diff - J_surf)
@@ -1612,7 +1702,7 @@ class Component:
                                 / (self.fluid.d_Hyd / 2)
                             )
                         )
-                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility))
+                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility-p_out**0.5))
                     )
                     return float(solution.x[0])
                 else:
@@ -1625,7 +1715,7 @@ class Component:
 
                         J_d = self.membrane.k_d * (
                             c_wl / self.membrane.K_S
-                        ) - self.membrane.k_d * self.membrane.K_S * (c_ws ** 2)
+                        ) - self.membrane.k_d * self.membrane.K_S * (c_ws**2)
                         J_diff = (
                             self.membrane.D
                             / (
@@ -1636,7 +1726,7 @@ class Component:
                                     / (self.fluid.d_Hyd / 2)
                                 )
                             )
-                            * (self.membrane.K_S * c_ws)
+                            * ((self.membrane.K_S * c_ws)-p_out**0.5)
                         )
                         eq1 = abs(J_mt - J_d)
                         eq2 = abs(J_mt - J_diff)
@@ -1674,13 +1764,315 @@ class Component:
         )
         Re = corr.Re(self.fluid.rho, self.fluid.U0, self.fluid.d_Hyd, self.fluid.mu)
         Pr = corr.Pr(self.fluid.cp, self.fluid.mu, self.fluid.k)
-        h_prim = corr.get_h_from_Nu(
-            corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
-        )
+        if self.geometry.turbulator is None:
+            h_prim = corr.get_h_from_Nu(
+                corr.Nu_DittusBoelter(Re, Pr), self.fluid.k, self.fluid.d_Hyd
+            )
+        else:
+            match self.geometry.turbulator.turbulator_type:
+                case "TwistedTape":
+                    print(
+                        str(self.geometry.turbulator.turbulator_type)
+                        + " is not implemented yet"
+                    )
+                    raise NotImplementedError("Twisted tape is not implemented yet")
+                case "WireCoil":
+                    h_prim = self.geometry.turbulator.h_t_correlation(
+                        Re=Re, Pr=Pr, d_hyd=self.fluid.d_Hyd, k=self.fluid.k
+                    )
+                case "Custom":
+                    h_prim = self.geometry.turbulator.h_t_correlation(
+                        Re=Re, Pr=Pr, d_hyd=self.fluid.d_Hyd, k=self.fluid.k
+                    )
         self.fluid.h_coeff = h_prim
         R_conv_prim = 1 / h_prim
         R_tot = R_conv_prim + R_cond + R_conv_sec
         self.U = 1 / R_tot
+        return
+
+    def get_solid_inventory(self):
+        def integrate_c_profile(self):
+            r_in = self.fluid.d_Hyd / 2
+            r_out = self.fluid.d_Hyd / 2 + self.membrane.thick
+            L_min = 0
+            L_max = self.geometry.L
+            N = 20
+
+            def integrand(r, L):
+                # return -c * np.log(r / r_out) / np.log(r_out / r_in) * 2 * np.pi * r
+                if self.fluid.k_t is None:
+                    self.fluid.get_kt(turbulator=self.geometry.turbulator)
+                if self.fluid.MS == False:
+                    c = self.c_in / self.fluid.Solubility * self.membrane.K_S
+                    dimless = (
+                        2
+                        * self.membrane.D
+                        * self.membrane.K_S
+                        / (
+                            self.fluid.k_t
+                            * self.fluid.Solubility
+                            * self.fluid.d_Hyd
+                            * np.log(
+                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                / self.fluid.d_Hyd
+                            )
+                        )
+                    )
+                    dimless2 = (
+                        2
+                        * self.membrane.D
+                        * self.membrane.K_S
+                        / (
+                            self.fluid.Solubility
+                            * self.fluid.d_Hyd
+                            * np.log(
+                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                / self.fluid.d_Hyd
+                            )
+                        )
+                    )
+                    L_ch = (
+                        -dimless
+                        / (1 + dimless)
+                        * 4
+                        * self.fluid.k_t
+                        / (self.fluid.U0 * self.fluid.d_Hyd)
+                    )
+                    conv_liquid_to_solid = self.membrane.K_S / self.fluid.Solubility
+                    c_w = (
+                        c * np.exp(L_ch * L) / (dimless2 / self.fluid.k_t + 1)
+                    )  # todo check this is liquid conc
+                    return (
+                        -c_w * np.log(r / r_out) / np.log(r_out / r_in) * 2 * np.pi * r
+                    )
+                else:
+                    tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
+                    self.epsilon = (
+                        1
+                        / self.c_in
+                        / self.fluid.Solubility
+                        * (
+                            0.5  ##TODO: Check this
+                            * self.membrane.K_S
+                            * self.membrane.D
+                            / (
+                                self.fluid.k_t
+                                * self.fluid.d_Hyd
+                                * np.log(
+                                    (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                    / self.fluid.d_Hyd
+                                )
+                            )
+                        )
+                        ** 2
+                    )
+
+                    beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
+                        (1 / self.epsilon + 1) ** 0.5 - 1
+                    )
+                    max_exp = np.log(np.finfo(np.float64).max)
+                    beta_tau = beta - tau - 1
+                    if beta_tau > max_exp:
+                        print(
+                            "Warning: Overflow encountered in exp, input too large.Approximation triggered. This will slow down the calculation"
+                        )
+
+                        w = beta_tau - np.log(beta_tau)
+                        
+                    else:
+                        z = np.exp(beta_tau)
+                        w = lambertw(z, tol=1e-10)
+                        if w.imag != 0:
+                            raise ValueError(
+                                "self.eff_an has a non-zero imaginary part"
+                            )
+                        w = w.real
+                    alpha = (
+                        1
+                        / self.fluid.Solubility
+                        * (
+                            (
+                                0.5  ## TODO: Check this
+                                * self.membrane.D
+                                * self.membrane.K_S
+                            )
+                            / (
+                                self.fluid.k_t
+                                * self.fluid.d_Hyd
+                                * np.log(
+                                    (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                    / self.fluid.d_Hyd
+                                )
+                            )
+                        )
+                        ** 2
+                    )
+                    conv = (
+                        self.c_in / self.fluid.Solubility
+                    ) ** 0.5 * self.membrane.K_S
+                    c_w_l = alpha * (w**2 + 2 * w) + alpha * (
+                        2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5  ## TODO: Check this
+                    )
+
+                    if c_w_l < 0:
+                        print("negative wall conc! = " + str(c_w_l))
+                        c_w_l = 1e-17
+                    return (
+                        -np.log(r / r_out)
+                        / np.log(r_out / r_in)
+                        * 2
+                        * np.pi
+                        * r
+                        * (c_w_l / self.fluid.Solubility) ** 0.5
+                        * self.membrane.K_S
+                    )
+
+            result, err = integrate.nquad(integrand, [[r_in, r_out], [L_min, L_max]])
+            return result
+        integral_pipe= integrate_c_profile(self)
+        print(str(integral_pipe)+ " is the integral ans the pipes are "+ str(self.geometry.n_pipes))
+        self.membrane.inv = integral_pipe * self.geometry.n_pipes
+        if math.isnan(self.membrane.inv):
+            print("Error: Inventory calculation failed")
+            self.inspect()
+        return
+
+        # from sympy import Integral, ln, symbols, init_printing, nsolve, exp
+
+        # # Define the symbolic variables
+        # r, L = symbols("r L")
+        # r_in = self.fluid.d_Hyd / 2
+        # r_out = self.fluid.d_Hyd / 2 + self.membrane.thick
+        # init_printing(use_unicode=True)
+        # if self.fluid.MS == True:
+        #     c = (self.c_in / self.fluid.Solubility) ** 0.5 / self.membrane.K_S
+        # else:
+        #     c = self.c_in / self.fluid.Solubility / self.membrane.K_S
+
+        # # Define the logarithmic function
+        # fun1 = -ln(r / r_out) / ln(r / r_in) * c *r * 2 * np.pi
+
+        # # fun2= c*exp(-4*L)
+        # fun2 = 1
+        # # Perform the integration with respect to r over the interval [r_in, r_out]
+        # integral1 = Integral(fun1, (r, r_in, r_out))
+        # integral2 = Integral(fun2, (L, 0, self.geometry.L))
+        # # Evaluate the integral
+        # # integral_value=nsolve(integral1,r, r_out)-nsolve(integral1,r, r_in)
+
+        # print(integral1)
+
+        # integral1.as_sum(5, method="midpoint")
+        # integral2.as_sum(5, method="midpoint")
+        # result = float(integral1.as_sum(100, method="midpoint")) * float(integral2.as_sum(
+        #     100, method="midpoint")
+        # )
+
+        # self.membrane.inv = float(result)
+        # return
+
+    def get_fluid_inventory(self):
+        r_in = self.fluid.d_Hyd / 2
+
+        L_min = 0
+        L_max = self.geometry.L
+        N = 100
+
+        def integrand(L):
+            if self.fluid.k_t is None:
+                self.fluid.get_kt(turbulator=self.geometry.turbulator)
+            if self.fluid.MS is False:
+                dimless = (
+                    2
+                    * self.membrane.D
+                    * self.membrane.K_S
+                    / (
+                        self.fluid.k_t
+                        * self.fluid.Solubility
+                        * self.fluid.d_Hyd
+                        * np.log(
+                            (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                            / self.fluid.d_Hyd
+                        )
+                    )
+                )
+
+                L_ch = (
+                    -dimless
+                    / (1 + dimless)
+                    * 4
+                    * self.fluid.k_t
+                    / (self.fluid.U0 * self.fluid.d_Hyd)
+                )
+
+                return self.c_in * np.exp(L_ch * L)
+            else:
+                tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
+                self.epsilon = (
+                    1
+                    / self.c_in
+                    / self.fluid.Solubility
+                    * (
+                        0.5  ##TODO: Check this
+                        * self.membrane.K_S
+                        * self.membrane.D
+                        / (
+                            self.fluid.k_t
+                            * self.fluid.d_Hyd
+                            * np.log(
+                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                / self.fluid.d_Hyd
+                            )
+                        )
+                    )
+                    ** 2
+                )
+
+                beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
+                    (1 / self.epsilon + 1) ** 0.5 - 1
+                )
+                max_exp = np.log(np.finfo(np.float64).max)
+                beta_tau = beta - tau - 1
+                if beta_tau > max_exp:
+                    # print(
+                    #     "Warning: Overflow encountered in exp, input too large.Approximation triggered"
+                    # )
+
+                    w = beta_tau - np.log(beta_tau)
+                else:
+                    z = np.exp(beta_tau)
+                    w = lambertw(z, tol=1e-10)
+                    if w.imag != 0:
+                        raise ValueError("self.eff_an has a non-zero imaginary part")
+                    w = w.real
+                alpha = (
+                    1
+                    / self.fluid.Solubility
+                    * (
+                        (0.5 * self.membrane.D * self.membrane.K_S)  ## TODO: Check this
+                        / (
+                            self.fluid.k_t
+                            * self.fluid.d_Hyd
+                            * np.log(
+                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                / self.fluid.d_Hyd
+                            )
+                        )
+                    )
+                    ** 2
+                )
+                conv = (self.c_in / self.fluid.Solubility) ** 0.5 * self.membrane.K_S
+                c_w_l = alpha * (w**2 + 2 * w)
+                return c_w_l
+
+        result, err = integrate.nquad(integrand, [[L_min, L_max]])
+        self.fluid.inv = result * np.pi * r_in**2 * self.n_pipes
+        return
+
+    def get_inventory(self):
+        self.get_solid_inventory()
+        self.get_fluid_inventory()
+        self.inv = self.fluid.inv + self.membrane.inv
         return
 
 
@@ -1702,6 +2094,7 @@ class Fluid:
         mu (float, optional): Viscosity of the fluid. Defaults to None.
         rho (float, optional): Density of the fluid. Defaults to None.
         U0 (float, optional): Velocity of the fluid. Defaults to None.
+        inv (float, optional): Inventory of the fluid. Defaults to None.
         recirculation(float,optional): fraction of recirculated flowrate. Defaults to 0. 1 = 100%, 0.5=50%. 
     """
 
@@ -1722,6 +2115,7 @@ class Fluid:
         U0: float = None,
         k: float = None,
         cp: float = None,
+        inv: float = None,
         recirculation: float = 0,   
     ):
         """
@@ -1760,7 +2154,7 @@ class Fluid:
             self.U0=U0*(1+self.recirculation)
         self.k = k
         self.cp = cp
-        
+        self.inv = inv
 
     def update_attribute(
         self, attr_name: str = None, new_value: Union[float, "FluidMaterial"] = None
@@ -1797,7 +2191,7 @@ class Fluid:
         self.cp = fluid_material.cp
         self.k = fluid_material.k
 
-    def get_kt(self):
+    def get_kt(self, turbulator=None):
         """
         Calculates the mass transport coefficient (k_t) for the fluid.
 
@@ -1811,25 +2205,249 @@ class Fluid:
             if self.k_t is None:
                 Re = corr.Re(rho=self.rho, u=self.U0, L=self.d_Hyd, mu=self.mu)
                 Sc = corr.Schmidt(D=self.D, mu=self.mu, rho=self.rho)
-                # if Re < 1e4 and Re > 2030:
-                #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
-                if Re > 2030:
-                    Sh = 0.0096 * Re ** 0.913 * Sc ** 0.346  ##Getthem paper
-                    #Sh=0.026*Re**0.8*Sc**0.33
-                else:
-                    print(str(Re)+" indicates laminar flow")
-                    Sh=3.66
-                    # raise ValueError("Reynolds number is too low")
-                self.k_t = corr.get_k_from_Sh(
-                    Sh=Sh,
-                    L=self.d_Hyd,
-                    D=self.D,
-                )
+                if turbulator is None:
 
-            else:
-                print("k_t is already defined")
+                    # if Re < 1e4 and Re > 2030:
+                    #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
+                    if Re > 2030:
+                        Sh = 0.0096 * Re**0.913 * Sc**0.346  ##Getthem paper
+                        # Sh = 0.023 * Re**0.8 * Sc**0.33
+                    else:
+                        print(str(Re) + " indicates laminar flow")
+                        Sh = 3.66
+                        # raise ValueError("Reynolds number is too low")
+                    self.k_t = corr.get_k_from_Sh(
+                        Sh=Sh,
+                        L=self.d_Hyd,
+                        D=self.D,
+                    )
+                else:
+                    match turbulator.turbulator_type:
+                        case "WireCoil":
+
+                            self.k_t = turbulator.k_t_correlation(
+                                Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
+                            )
+                        case "TwistedTape":
+                            raise NotImplementedError(
+                                "Twisted Tape not implemented yet"
+                            )
+                        case "Custom":
+                            self.k_t = turbulator.k_t_correlation(
+                                Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
+                            )
+
+            # else:
+            #     # print("k_t is already defined")
         else:
             print("Hydraulic Diameter is not defined")
+
+
+class Turbulator:
+    """
+    Represents a turbulator in a component for Tritium transport analysis
+
+    Args:
+        turbulator_type (str): Type of the turbulator.
+        turbulator_params (dict): Parameters of the turbulator.
+    """
+
+    def __init__(
+        self,
+        turbulator_type: str = None,
+    ):
+        """
+        Initializes a new instance of the Turbulator class.
+
+        Args:
+            turbulator_type (str): Type of the turbulator.
+            turbulator_params (dict): Parameters of the turbulator.
+        """
+        self.turbulator_type = turbulator_type
+
+    def update_attribute(
+        self, attr_name: str = None, new_value: Union[str, dict] = None
+    ):
+        """
+        Updates the value of the specified attribute.
+
+        Args:
+            attr_name (str): The name of the attribute to update.
+            new_value: The new value for the attribute.
+        """
+        set_attribute(self, attr_name, new_value)
+
+    def inspect(self, variable_names=None):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self, variable_names)
+
+
+class WireCoil(Turbulator):
+    """
+    Represents a wire coil turbulator in a component for Tritium transport analysis
+
+    Args:
+        turbulator_type (str): Type of the turbulator.
+        turbulator_params (dict): Parameters of the turbulator.
+    """
+
+    def __init__(
+        self,
+        turbulator_type: str = "WireCoil",
+        pitch: float = None,
+    ):
+        """
+        Initializes a new instance of the WireCoil class.
+
+        Args:
+            turbulator_type (str): Type of the turbulator.
+            pitch (float): Pitch of the wire coil.
+        """
+        super().__init__(turbulator_type)
+        self.pitch = pitch
+
+    def k_t_correlation(
+        self, Re: float = None, Sc: float = None, d_hyd: float = None, D: float = None
+    ):
+        """
+        Calculates the mass transport coefficient (k_t) for the fluid with a wire coil turbulator.
+
+        Args:
+            Re (float): Reynolds number of the fluid.
+            Sc (float): Schmidt number of the fluid.
+
+        Returns:
+            float: The mass transport coefficient.
+        """
+        if Re > 2030:
+            Sh = 0.132 * Re**0.72 * Sc**0.37 * (self.pitch / d_hyd) ** -0.372
+        else:
+            Sh = 3.66
+        k_t = corr.get_k_from_Sh(Sh=Sh, L=self.pitch, D=D)
+        return k_t
+
+    def h_t_correlation(
+        self, Re: float = None, Pr: float = None, d_hyd: float = None, k=None
+    ):
+        """
+        Calculates the heat transfer coefficient (h_t) for the fluid with a wire coil turbulator.
+
+        Args:
+            Re (float): Reynolds number of the fluid.
+            Pr (float): Prandtl number of the fluid.
+
+        Returns:
+            float: The heat transfer coefficient.
+        """
+        if Re > 2030:
+            Nu = 0.132 * Re**0.72 * Pr**0.37 * (self.pitch / d_hyd) ** -0.372
+        else:
+            Nu = 3.66
+        h_t = corr.get_h_from_Nu(Nu=Nu, k=k, D=d_hyd)
+        return h_t
+
+    def update_attribute(
+        self, attr_name: str = None, new_value: Union[str, dict] = None
+    ):
+        """
+        Updates the value of the specified attribute.
+
+        Args:
+            attr_name (str): The name of the attribute to update.
+            new_value: The new value for the attribute.
+        """
+        set_attribute(self, attr_name, new_value)
+
+    def inspect(self, variable_names=None):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self, variable_names)
+
+
+class CustomTurbulator(Turbulator):
+    """
+    Represents a custom turbulator in a component for Tritium transport analysis
+    """
+
+    def __init__(
+        self,
+        turbulator_type: str = "Custom",
+        a: float = None,
+        b: float = None,
+        c: float = None,
+    ):
+        """
+        Initializes a new instance of the CustomTurbulator class.
+
+        Args:
+            turbulator_type (str): Type of the turbulator.
+            turbulator_params (dict): Parameters of the turbulator.
+        """
+        super().__init__(turbulator_type)
+        self.a = a
+        self.b = b
+        self.c = c
+
+    def update_attribute(
+        self, attr_name: str = None, new_value: Union[str, dict] = None
+    ):
+        """
+        Updates the value of the specified attribute.
+
+        Args:
+            attr_name (str): The name of the attribute to update.
+            new_value: The new value for the attribute.
+        """
+        set_attribute(self, attr_name, new_value)
+
+    def inspect(self, variable_names=None):
+        """
+        Prints the attributes of the component.
+        """
+        print_class_variables(self, variable_names)
+
+    def k_t_correlation(
+        self, Re: float = None, Sc: float = None, d_hyd: float = None, D: float = None
+    ):
+        """
+        Calculates the mass transport coefficient (k_t) for the fluid with a custom turbulator.
+
+        Args:
+            Re (float): Reynolds number of the fluid.
+            Sc (float): Schmidt number of the fluid.
+
+        Returns:
+            float: The mass transport coefficient.
+        """
+        if Re > 2030:
+            Sh = self.a * Re**self.b * Sc**self.c
+        else:
+            Sh = 3.66
+        k_t = corr.get_k_from_Sh(Sh=Sh, L=d_hyd, D=self.D)
+        return k_t
+
+    def h_t_correlation(
+        self, Re: float = None, Pr: float = None, d_hyd: float = None, k: float = None
+    ):
+        """
+        Calculates the heat transfer coefficient (h_t) for the fluid with a custom turbulator.
+
+        Args:
+            Re (float): Reynolds number of the fluid.
+            Pr (float): Prandtl number of the fluid.
+
+        Returns:
+            float: The heat transfer coefficient.
+        """
+        if Re > 2030:
+            Nu = self.a * Re**self.b * Pr**self.c
+        else:
+            Nu = 3.66
+        h_t = corr.get_h_from_Nu(Nu=Nu, k=k, L=self.pitch)
+        return h_t
 
 
 class Membrane:
@@ -1848,6 +2466,7 @@ class Membrane:
         E_d (float, optional): Activation energy of the diffusivity in the membrane in eV. Defaults to None. Overwrites D if defined
         K_S_0 (float, optional): Pre-exponential factor of the solubility in the membrane. Defaults to None.Overwrites K_S if defined
         E_S (float, optional): Activation energy of the solubility in the membrane in eV. Defaults to None. Overwrites K_S if defined
+        inv (float, optional): Inventory of the membrane in mol. Defaults to None.
     """
 
     def __init__(
@@ -1863,6 +2482,7 @@ class Membrane:
         E_d: float = None,
         K_S_0: float = None,
         E_S: float = None,
+        inv: float = None,
     ):
         """
         Initializes a new instance of the Membrane class.
@@ -1890,6 +2510,7 @@ class Membrane:
         self.k = k
         self.D_0 = D_0
         self.E_d = E_d
+        self.inv = inv
 
     def update_attribute(
         self, attr_name: str = None, new_value: Union[float, "SolidMaterial"] = None
@@ -2233,7 +2854,7 @@ class BreedingBlanket:
         ax2.text(
             0.3,
             0.8,
-            fr"$c_o$={self.c_out:.4g}$mol/m^3$",
+            rf"$c_o$={self.c_out:.4g}$mol/m^3$",
             color="black",
             ha="center",
             va="center",
