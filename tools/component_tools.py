@@ -213,6 +213,22 @@ class Circuit:
         else:
             self.components.append(component)
 
+    def get_circuit_pumping_power(self):
+        """
+        Calculates the pumping power required for the circuit.
+
+        Returns:
+            float: The pumping power required for the circuit in W.
+        """
+        pumping_power = 0
+        for component in self.components:
+            if isinstance(component, Component):
+                component.get_pressure_drop()
+                component.get_pumping_power()
+                pumping_power += component.pumping_power
+        self.pumping_power = pumping_power
+        return self.pumping_power
+
     def get_eff_circuit(self):
         """
         Calculates the efficiency of the circuit based on the components present.
@@ -508,7 +524,7 @@ class Circuit:
                 ax.set_ylim(0.2, 0.8)
         return fig
 
-    def get_inventory(self):
+    def get_inventory(self,flag_an=True):
         """
         Calculates the inventory (in mol) of the circuit based on the components present.
 
@@ -525,7 +541,7 @@ class Circuit:
         inventory = 0
         for component in self.components:
             if isinstance(component, Component):
-                component.get_inventory()
+                component.get_inventory(flag_an=flag_an)
                 inventory += component.inv
         self.inv = inventory
 
@@ -610,6 +626,9 @@ class Component:
         p_out: float = 1e-15,
         loss: bool = False,
         inv: float = None,
+        delta_p: float = None,
+        pumping_power: float = None,
+        
     ):
         """
         Initializes a new instance of the Component class.
@@ -633,6 +652,8 @@ class Component:
         self.loss = loss
         self.inv = inv
         self.p_out = p_out
+        self.delta_p = delta_p
+        self.pumping_power = pumping_power
         # if (
         #     isinstance(self.fluid, Fluid)
         #     and isinstance(self.membrane, Membrane)
@@ -644,6 +665,53 @@ class Component:
         #         print("overwriting Fluid Hydraulic diameter with Geometry Diameter")
         # self.membrane.thick = self.geometry.thick
         # self.fluid.d_Hyd = self.geometry.D
+
+    def friction_factor(self, Re: float) -> float:
+        """
+        Calculates the friction factor for the component.
+
+        Args:
+            Re (float): Reynolds number.
+
+        Returns:
+            float: The friction factor.
+        """
+        if Re < 2300:
+            f = 64 / Re  ## laminar darcy
+        else:
+            f = 0.316 / Re**0.25  ## Blasius for smooth pipes
+        return f
+
+    def get_pressure_drop(self) -> float:
+        """
+        Calculates the pressure drop across the component.
+
+        Returns:
+            float: The pressure drop across the component.
+        """
+        rho = self.fluid.rho
+        U = self.fluid.U0
+        D = self.geometry.D
+        mu = self.fluid.mu
+        L = self.geometry.L
+        Re = corr.Re(rho, U, D, mu)
+        f = self.friction_factor(Re)
+        self.delta_p = f * (L / D) * (rho * U**2) / 2
+        return self.delta_p
+
+    def get_pumping_power(self) -> float:
+        """
+        Calculates the pumping power required for the component.
+
+        Returns:
+            float: The pumping power required for the component in W.
+        """
+        if self.delta_p is None:
+            self.get_pressure_drop()
+        self.pumping_power = (
+            self.delta_p * self.get_pipe_flowrate() * self.geometry.n_pipes
+        )
+        return self.pumping_power
 
     def update_attribute(
         self,
@@ -1284,10 +1352,6 @@ class Component:
                     z = np.exp(beta_tau)
                     w = lambertw(z, tol=1e-10)
                     p_in = self.c_in / self.fluid.Solubility
-                    print("P_out correlation is not implemented yet")
-                    corr_p1 = 1 - (p_out / p_in) ** 0.5
-                    corr_p2 = 1 - (p_out / p_in)
-
                     self.eff_an = 1 - self.epsilon * (w**2 + 2 * w)
                     if self.eff_an.imag != 0:
                         raise ValueError("self.eff_an has a non-zero imaginary part")
@@ -1969,7 +2033,6 @@ class Component:
                 c_w_l = alpha * (w**2 + 2 * w) + alpha * (
                     2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5
                 )  ## TODO: Check this
-                print("alpha", alpha)
                 K = (
                     alpha**0.5
                     / self.fluid.Solubility**0.5
@@ -2184,11 +2247,6 @@ class Component:
             return result
 
         integral_pipe = integrate_c_profile(self)
-        print(
-            str(integral_pipe)
-            + " is the integral ans the pipes are "
-            + str(self.geometry.n_pipes)
-        )
         self.membrane.inv = integral_pipe * self.geometry.n_pipes
         if math.isnan(self.membrane.inv):
             print("Error: Inventory calculation failed")
@@ -2382,9 +2440,9 @@ class Component:
         self.fluid.inv = result * np.pi * r_in**2 * self.geometry.n_pipes
         return self.fluid.inv
 
-    def get_inventory(self):
-        self.get_solid_inventory()
-        self.get_fluid_inventory()
+    def get_inventory(self,flag_an=True,p_out=0):
+        self.get_solid_inventory(flag_an=flag_an,p_out=p_out)
+        self.get_fluid_inventory(flag_an=flag_an,p_out=p_out)
         self.inv = self.fluid.inv + self.membrane.inv
         return
 
