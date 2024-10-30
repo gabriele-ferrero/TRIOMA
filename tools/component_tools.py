@@ -223,6 +223,7 @@ class Circuit:
         pumping_power = 0
         for component in self.components:
             if isinstance(component, Component):
+                component.get_pressure_drop()
                 component.get_pumping_power()
                 pumping_power += component.pumping_power
         self.pumping_power = pumping_power
@@ -625,6 +626,9 @@ class Component:
         p_out: float = 1e-15,
         loss: bool = False,
         inv: float = None,
+        delta_p: float = None,
+        pumping_power: float = None,
+        
     ):
         """
         Initializes a new instance of the Component class.
@@ -648,6 +652,8 @@ class Component:
         self.loss = loss
         self.inv = inv
         self.p_out = p_out
+        self.delta_p = delta_p
+        self.pumping_power = pumping_power
         # if (
         #     isinstance(self.fluid, Fluid)
         #     and isinstance(self.membrane, Membrane)
@@ -700,6 +706,8 @@ class Component:
         Returns:
             float: The pumping power required for the component in W.
         """
+        if self.delta_p is None:
+            self.get_pressure_drop()
         self.pumping_power = (
             self.delta_p * self.get_pipe_flowrate() * self.geometry.n_pipes
         )
