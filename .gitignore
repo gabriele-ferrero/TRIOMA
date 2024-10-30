@@ -11,6 +11,7 @@ plantParametric.ipynb
 *.mph
 *debug.ipynb
 *DoubleSweep*
+*SOFT2024ferrero*
 # Distribution / packaging
 .Python
 build/
