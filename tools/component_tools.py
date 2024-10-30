@@ -1150,12 +1150,42 @@ class Component:
                 corr_p=1-(p_out/p_in)**0.5
                 self.eff_an = (1 - (1 - self.tau * self.epsilon ** 0.5) ** 2)*corr_p
             else:
-                beta = (1 / self.epsilon + 1) ** 0.5 + np.log(
-                    (1 / self.epsilon + 1) ** 0.5 - 1
-                )
+                # n1=1
+                # n2=2
+                # e=n1*(alpha*p_out*self.fluid.Solubility)**0.5
+                # f=e/alpha
+                # # P_out_term=0
+                # # P_out_term2=0
+                # delta=(1/self.epsilon+1+n2*f)**0.5
+                # beta = delta + (1+f)*np.log(+delta-1-f)
+                # max_exp = np.log(np.finfo(np.float64).max)
+                # beta_tau = beta - self.tau*(1) - 1
+                # if beta_tau > max_exp or p_out>1E-5:
+                #     print(
+                #         "Warning: Overflow encountered in exp, input too large.Iterative solver triggered"
+                #     )
+                #     # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
+
+                #     def eq(var):
+                #         cl = var
+                #         alpha = self.epsilon * self.c_in
+                #         left = (cl / alpha + 1+n2*f) ** 0.5 +(1+f)* np.log(-f+((cl/alpha + 1+n2*f) ** 0.5-1)
+                #         )
+                A=2
+                n1=1
+                n2=2
+                n3=1
+                n4=1
+                n5=1
+                e=n1*(alpha*p_out*self.fluid.Solubility)**0.5
+                f=e/alpha
+                # P_out_term=0
+                # P_out_term2=0
+                delta=(1/self.epsilon+1+n2*f)**0.5
+                beta = delta + (1+n4*f)*np.log(+n5*delta-1-n3*f)
                 max_exp = np.log(np.finfo(np.float64).max)
-                beta_tau = beta - self.tau - 1
-                if beta_tau > max_exp:
+                beta_tau = beta - self.tau- 1
+                if beta_tau > max_exp or p_out>1E-5:
                     print(
                         "Warning: Overflow encountered in exp, input too large.Iterative solver triggered"
                     )
@@ -1164,9 +1194,10 @@ class Component:
                     def eq(var):
                         cl = var
                         alpha = self.epsilon * self.c_in
-                        left = (cl / alpha + 1) ** 0.5 + np.log(
-                            (cl / alpha + 1) ** 0.5 - 1 + 1e-10
+                        
+                        left = (cl / alpha + 1+n2*f) ** 0.5 +(1+n4*f)* np.log(-n3*f+(n5*(cl/alpha + 1+n2*f) ** 0.5-1)
                         )
+                        
                         right = beta - self.tau
 
                         return abs(left - right)
@@ -1178,16 +1209,25 @@ class Component:
                         bounds=[(0, self.c_in)],
                         tol=1e-7,
                     ).x[0]
+                    if -n3*f+(n5*(cl/alpha + 1+n2*f) ** 0.5-1)<0:
+                        # raise ValueError("The argument of the log is negative")
+                        
+                        self.get_efficiency
+                        
+                        self.eff_an =self.eff
+                        return
                     p_in=self.c_in/self.fluid.Solubility
-                    corr_p=1-(p_out/p_in)
-                    self.eff_an = (1 - (cl / self.c_in))*corr_p
+                    # corr_p=1-(p_out/p_in)
+                    self.eff_an = (1 - (cl / self.c_in))
                 else:
                     z = np.exp(beta_tau)
                     w = lambertw(z, tol=1e-10)
                     p_in=self.c_in/self.fluid.Solubility
                     print("P_out correlation is not implemented yet")
-                    corr_p=1-(p_out/p_in)
-                    self.eff_an = (1 - self.epsilon * (w ** 2 + 2 * w))*corr_p
+                    corr_p1=1-(p_out/p_in)**0.5
+                    corr_p2=1-(p_out/p_in)
+                    
+                    self.eff_an = (1 - self.epsilon * (w ** 2 + 2 * w))
                     if self.eff_an.imag != 0:
                         raise ValueError("self.eff_an has a non-zero imaginary part")
                     else:
