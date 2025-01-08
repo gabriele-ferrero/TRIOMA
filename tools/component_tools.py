@@ -1250,7 +1250,7 @@ class Component:
         )
         match self.fluid.MS:
             case True:
-                alpha = (
+                self.alpha = (
                     1
                     / (self.fluid.Solubility)
                     * (
@@ -1268,7 +1268,7 @@ class Component:
                     )
                     ** 2
                 )
-                self.xi = alpha / self.c_in
+                self.xi = self.alpha / self.c_in
                 p_in = self.c_in / self.fluid.Solubility
                 match (self.xi, self.tau):
                     case (self.xi, self.tau) if self.xi > 1e5:
@@ -1281,8 +1281,8 @@ class Component:
                         corr_p = 1 - (p_out / p_in) ** 0.5
                         self.eff_an = (1 - (1 - self.tau * self.xi**0.5) ** 2) * corr_p
                     case _:
-                        e = (alpha * p_out * self.fluid.Solubility) ** 0.5
-                        f = e / alpha
+                        e = (self.alpha * p_out * self.fluid.Solubility) ** 0.5
+                        f = e / self.alpha
                         delta = (1 / self.xi + 1 + 2 * f) ** 0.5
                         beta = delta + (1 + f) * np.log(delta - 1 - f)
                         max_exp = np.log(np.finfo(np.float64).max)
@@ -1295,11 +1295,13 @@ class Component:
 
                             def eq(var):
                                 cl = var
-                                alpha = self.xi * self.c_in
+                                self.alpha = self.xi * self.c_in
 
-                                left = (cl / alpha + 1 + 2 * f) ** 0.5 + (
+                                left = (cl / self.alpha + 1 + 2 * f) ** 0.5 + (
                                     1 + f
-                                ) * np.log(-f + ((cl / alpha + 1 + 2 * f) ** 0.5 - 1))
+                                ) * np.log(
+                                    -f + ((cl / self.alpha + 1 + 2 * f) ** 0.5 - 1)
+                                )
 
                                 right = beta - self.tau
 
@@ -1312,7 +1314,7 @@ class Component:
                                 bounds=[(0, self.c_in)],
                                 tol=1e-7,
                             ).x[0]
-                            if -f + ((cl / alpha + 1 + 2 * f) ** 0.5 - 1) < 0:
+                            if -f + ((cl / self.alpha + 1 + 2 * f) ** 0.5 - 1) < 0:
                                 # raise ValueError("The argument of the log is negative")
 
                                 self.get_efficiency
@@ -2336,6 +2338,8 @@ class Component:
                     c_ext = p_out**0.5 * self.fluid.Solubility
                     return (self.c_in - c_ext) * np.exp(L_ch * L) + c_ext
                 case True:
+                    if self.tau is None or self.xi is None:
+                        self.analytical_efficiency(p_out=p_out)
                     tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
                     self.xi = (
                         1
