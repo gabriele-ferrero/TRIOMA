@@ -2241,6 +2241,7 @@ class Component:
 
     def analytical_fluid_inventory(self, p_out=0):
         if self.fluid.k_t is None:
+            print("computing mass transfer coefficient")
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
         if self.fluid.MS == False:
 
