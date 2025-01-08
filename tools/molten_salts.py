@@ -54,19 +54,19 @@ def get_regime(k_d, D, thick, K_S, c0, k_t, k_H, print_var: bool = False):
     """
     W = ms.W(k_d, D, thick, K_S, c0=c0, k_H=k_H)
     H = ms.H(k_t, k_H, k_d)
+    result = None  ## initialize the result variable
+    match (H, W):
+        case (H, W) if H > 10 and H / W > 10:
+            result = "Mass transport limited"
+        case (H, W) if H < 0.1 and W < 0.1:
+            result = "Surface limited"
+        case (H, W) if W > 10 and H / W < 0.1:
+            result = "Diffusion Limited"
+        case _:
+            result = "Mixed regime"
     if print_var:
         print("H is equal to", H)
         print("W is equal to", W)
         print("H/W is equal to", H / W)
-    if H > 10 and H / W > 10:
-        print("Mass transport limited")
-        return "Mass transport limited"
-    elif H < 0.1 and W < 0.1:
-        print("Surface limited")
-        return "Surface limited"
-    elif W > 10 and H / W < 0.1:
-        print("Diffusion Limited")
-        return "Diffusion Limited"
-    else:
-        print("Mixed regime")
-        return "Mixed regime"
+        print(result)
+    return result
