@@ -1270,64 +1270,68 @@ class Component:
                 )
                 self.xi = alpha / self.c_in
                 p_in = self.c_in / self.fluid.Solubility
-                if self.xi > 1e5:
-                    corr_p = 1 - (p_out / p_in)
-                    self.eff_an = (1 - np.exp(-self.tau)) * corr_p
-                elif self.xi**0.5 < 1e-2 and self.tau < 1 / self.xi**0.5:
-                    corr_p = 1 - (p_out / p_in) ** 0.5
-                    self.eff_an = (1 - (1 - self.tau * self.xi**0.5) ** 2) * corr_p
-                else:
-                    e = (alpha * p_out * self.fluid.Solubility) ** 0.5
-                    f = e / alpha
-                    delta = (1 / self.xi + 1 + 2 * f) ** 0.5
-                    beta = delta + (1 + f) * np.log(delta - 1 - f)
-                    max_exp = np.log(np.finfo(np.float64).max)
-                    beta_tau = beta - self.tau - 1
-                    if beta_tau > max_exp or p_out > 1e-5:
-                        print(
-                            "Warning: Overflow encountered in exp, input too large.Iterative solver triggered"
-                        )
-                        # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
-
-                        def eq(var):
-                            cl = var
-                            alpha = self.xi * self.c_in
-
-                            left = (cl / alpha + 1 + 2 * f) ** 0.5 + (1 + f) * np.log(
-                                -f + ((cl / alpha + 1 + 2 * f) ** 0.5 - 1)
+                match (self.xi, self.tau):
+                    case (self.xi, self.tau) if self.xi > 1e-5:
+                        corr_p = 1 - (p_out / p_in)
+                        self.eff_an = (1 - np.exp(-self.tau)) * corr_p
+                    case (
+                        self.xi,
+                        self.tau,
+                    ) if self.xi ** 0.5 < 1e-2 and self.tau > 1 / self.xi**0.5:
+                        corr_p = 1 - (p_out / p_in) ** 0.5
+                        self.eff_an = (1 - (1 - self.tau * self.xi**0.5) ** 2) * corr_p
+                    case _:
+                        e = (alpha * p_out * self.fluid.Solubility) ** 0.5
+                        f = e / alpha
+                        delta = (1 / self.xi + 1 + 2 * f) ** 0.5
+                        beta = delta + (1 + f) * np.log(delta - 1 - f)
+                        max_exp = np.log(np.finfo(np.float64).max)
+                        beta_tau = beta - self.tau - 1
+                        if beta_tau > max_exp or p_out > 1e-5:
+                            print(
+                                "Warning: Overflow encountered in exp, input too large.Iterative solver triggered"
                             )
+                            # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
 
-                            right = beta - self.tau
+                            def eq(var):
+                                cl = var
+                                alpha = self.xi * self.c_in
 
-                            return abs(left - right)
+                                left = (cl / alpha + 1 + 2 * f) ** 0.5 + (
+                                    1 + f
+                                ) * np.log(-f + ((cl / alpha + 1 + 2 * f) ** 0.5 - 1))
 
-                        cl = minimize(
-                            eq,
-                            self.c_in / 2,
-                            method="Powell",
-                            bounds=[(0, self.c_in)],
-                            tol=1e-7,
-                        ).x[0]
-                        if -f + ((cl / alpha + 1 + 2 * f) ** 0.5 - 1) < 0:
-                            # raise ValueError("The argument of the log is negative")
+                                right = beta - self.tau
 
-                            self.get_efficiency
+                                return abs(left - right)
 
-                            self.eff_an = self.eff
-                            return
-                        p_in = self.c_in / self.fluid.Solubility
-                        # corr_p=1-(p_out/p_in)
-                        self.eff_an = 1 - (cl / self.c_in)
-                    else:
-                        z = np.exp(beta_tau)
-                        w = lambertw(z, tol=1e-10)
-                        self.eff_an = 1 - self.xi * (w**2 + 2 * w)
-                        if self.eff_an.imag != 0:
-                            raise ValueError(
-                                "self.eff_an has a non-zero imaginary part"
-                            )
+                            cl = minimize(
+                                eq,
+                                self.c_in / 2,
+                                method="Powell",
+                                bounds=[(0, self.c_in)],
+                                tol=1e-7,
+                            ).x[0]
+                            if -f + ((cl / alpha + 1 + 2 * f) ** 0.5 - 1) < 0:
+                                # raise ValueError("The argument of the log is negative")
+
+                                self.get_efficiency
+
+                                self.eff_an = self.eff
+                                return
+                            p_in = self.c_in / self.fluid.Solubility
+                            # corr_p=1-(p_out/p_in)
+                            self.eff_an = 1 - (cl / self.c_in)
                         else:
-                            self.eff_an = self.eff_an.real  # get rid of 0*j
+                            z = np.exp(beta_tau)
+                            w = lambertw(z, tol=1e-10)
+                            self.eff_an = 1 - self.xi * (w**2 + 2 * w)
+                            if self.eff_an.imag != 0:
+                                raise ValueError(
+                                    "self.eff_an has a non-zero imaginary part"
+                                )
+                            else:
+                                self.eff_an = self.eff_an.real  # get rid of 0*j
 
             # max_exp = np.log(np.finfo(np.float64).max)
             # beta_tau = beta - self.tau - 1
