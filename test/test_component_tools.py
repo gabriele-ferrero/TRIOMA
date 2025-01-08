@@ -2,11 +2,8 @@ import unittest
 import sys
 import os
 
-
 sys.path.append(os.path.abspath("."))
-from operator import ge
 import unittest
-
 from tools.component_tools import (
     Component,
     Fluid,
@@ -21,7 +18,6 @@ from tools.materials import Flibe, Steel, Sodium, LiPb
 from io import StringIO
 from unittest.mock import patch
 import pytest
-from tools.materials import Flibe
 import numpy as np
 
 

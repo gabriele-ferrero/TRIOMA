@@ -1,15 +1,9 @@
-from ast import Raise
-from re import S
-from operator import inv
 import numpy as np
 import math
-
-# from example_simulation import TBR
 import tools.molten_salts as MS
 import tools.liquid_metals as LM
 import tools.correlations as corr
 import matplotlib.pyplot as plt
-import tools.extractor as extractor
 from scipy.constants import N_A
 from scipy.constants import physical_constants
 from scipy.optimize import minimize
