@@ -74,8 +74,8 @@ def get_regime(D, k_t, K_S_S, K_S_L, k_r, thick, c0, print_var: bool = None):
         case _:
             result = "Mixed regime"
     if print_var:
-        print("H is equal to", partition_param)
+        print("H is equal to", partition_param * W)
         print("W is equal to", W)
-        print("H/W is equal to", partition_param / W)
+        print("H/W is equal to", partition_param)
         print(result)
     return result
