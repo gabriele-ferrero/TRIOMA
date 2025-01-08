@@ -1008,7 +1008,7 @@ class Component(TriomaClass):
             print("No fluid selected")
             return
         if self.fluid.k_t is None:
-            print("computing mass transfer coefficient")
+
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
         if self.membrane is None:
             print("No membrane selected")
@@ -1075,7 +1075,7 @@ class Component(TriomaClass):
             print("No fluid selected")
             return
         if self.fluid.k_t is None:
-            print("computing mass transfer coefficient")
+
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
         match self.fluid.MS:
             case True:
@@ -1194,7 +1194,7 @@ class Component(TriomaClass):
         The output of the function is the analytical efficiency of the component as Component.eff_an.
         """
         if self.fluid.k_t is None:
-            print("computing mass transfer coefficient")
+
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
         self.tau = (
             4 * self.fluid.k_t * self.geometry.L / (self.fluid.U0 * self.fluid.d_Hyd)
@@ -1807,7 +1807,7 @@ class Component(TriomaClass):
 
     def analytical_solid_inventory(self, p_out: float = 0):
         if self.fluid.k_t is None:
-            print("computing mass transfer coefficient")
+
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
         match self.fluid.MS:
             case False:
@@ -2154,7 +2154,7 @@ class Component(TriomaClass):
 
     def analytical_fluid_inventory(self, p_out=0):
         if self.fluid.k_t is None:
-            print("computing mass transfer coefficient")
+
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
         match self.fluid.MS:
             case False:
