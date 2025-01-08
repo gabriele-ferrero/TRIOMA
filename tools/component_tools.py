@@ -1120,10 +1120,14 @@ class Component:
 
         Updates the H and W attributes of the Component object.
         """
+        if self.fluid is None:
+            print("No fluid selected")
+            return
         if self.fluid.k_t is None:
+            print("computing mass transfer coefficient")
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
-        if self.fluid is not None:
-            if self.fluid.MS:
+        match self.fluid.MS:
+            case True:
                 self.H = MS.H(
                     k_t=self.fluid.k_t, k_H=self.fluid.Solubility, k_d=self.membrane.k_d
                 )
@@ -1135,7 +1139,7 @@ class Component:
                     c0=self.c_in,
                     k_H=self.fluid.Solubility,
                 )
-            else:
+            case False:
                 self.H = LM.W(
                     k_r=self.membrane.k_r,
                     D=self.membrane.D,
