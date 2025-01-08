@@ -1939,37 +1939,14 @@ class Component:
                 print("not implemented yet")
 
                 def ms_integral(self, p_out: float = 0, L: float = 0):
-                    tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
-                    self.xi = (
-                        1
-                        / self.c_in
-                        / self.fluid.Solubility
-                        * (
-                            0.5  ##TODO: Check this
-                            * self.membrane.K_S
-                            * self.membrane.D
-                            / (
-                                self.fluid.k_t
-                                * self.fluid.d_Hyd
-                                * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                                    / self.fluid.d_Hyd
-                                )
-                            )
-                        )
-                        ** 2
-                    )
-
+                    if self.tau is None or self.xi is None or self.alpha is None:
+                        self.analytical_efficiency(p_out=p_out)
                     beta = (1 / self.xi + 1) ** 0.5 + np.log(
                         (1 / self.xi + 1) ** 0.5 - 1
                     )
                     max_exp = np.log(np.finfo(np.float64).max)
-                    beta_tau = beta - tau - 1
+                    beta_tau = beta - self.tau - 1
                     if beta_tau > max_exp:
-                        # print(
-                        #     "Warning: Overflow encountered in exp, input too large.Approximation triggered. This will slow down the calculation"
-                        # )
-
                         w = beta_tau - np.log(beta_tau)
                         w2 = -beta_tau
 
@@ -1988,33 +1965,15 @@ class Component:
                             )
                         w = w.real
                         w2 = w2.real
-                    alpha = (
-                        1
-                        / self.fluid.Solubility
-                        * (
-                            (
-                                0.5 * self.membrane.D * self.membrane.K_S
-                            )  ## TODO: Check this
-                            / (
-                                self.fluid.k_t
-                                * self.fluid.d_Hyd
-                                * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                                    / self.fluid.d_Hyd
-                                )
-                            )
-                        )
-                        ** 2
-                    )
                     c_ext = p_out**0.5 * self.membrane.K_S
                     conv = (
                         self.c_in / self.fluid.Solubility
                     ) ** 0.5 * self.membrane.K_S
-                    c_w_l = alpha * (w**2 + 2 * w) + alpha * (
+                    c_w_l = self.alpha * (w**2 + 2 * w) + self.alpha * (
                         2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5
-                    )  ## TODO: Check this
+                    )
                     K = (
-                        alpha**0.5
+                        self.alpha**0.5
                         / self.fluid.Solubility**0.5
                         * (
                             -beta_tau
@@ -2086,6 +2045,7 @@ class Component:
             def integrand(r, L, p_out=p_out):
                 # return -c * np.log(r / r_out) / np.log(r_out / r_in) * 2 * np.pi * r
                 if self.fluid.k_t is None:
+
                     self.fluid.get_kt(turbulator=self.geometry.turbulator)
                 if self.fluid.MS == False:
                     c = self.c_in / self.fluid.Solubility * self.membrane.K_S
