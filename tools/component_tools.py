@@ -1271,7 +1271,7 @@ class Component:
                 self.xi = alpha / self.c_in
                 p_in = self.c_in / self.fluid.Solubility
                 match (self.xi, self.tau):
-                    case (self.xi, self.tau) if self.xi > 1e-5:
+                    case (self.xi, self.tau) if self.xi > 1e5:
                         corr_p = 1 - (p_out / p_in)
                         self.eff_an = (1 - np.exp(-self.tau)) * corr_p
                     case (
