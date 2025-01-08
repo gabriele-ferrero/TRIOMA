@@ -2243,54 +2243,59 @@ class Component:
         if self.fluid.k_t is None:
             print("computing mass transfer coefficient")
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
-        if self.fluid.MS == False:
+        match self.fluid.MS:
+            case False:
 
-            def circle(r):
-                return np.pi * r**2
+                def circle(r):
+                    return np.pi * r**2
 
-            dimless = (
-                2
-                * self.membrane.D
-                * self.membrane.K_S
-                / (
-                    self.fluid.k_t
-                    * self.fluid.Solubility
-                    * self.fluid.d_Hyd
-                    * np.log(
-                        (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
+                dimless = (
+                    2
+                    * self.membrane.D
+                    * self.membrane.K_S
+                    / (
+                        self.fluid.k_t
+                        * self.fluid.Solubility
+                        * self.fluid.d_Hyd
+                        * np.log(
+                            (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                            / self.fluid.d_Hyd
+                        )
                     )
                 )
-            )
-            dimless2 = (
-                2
-                * self.membrane.D
-                * self.membrane.K_S
-                / (
-                    self.fluid.Solubility
-                    * self.fluid.d_Hyd
-                    * np.log(
-                        (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
+                dimless2 = (
+                    2
+                    * self.membrane.D
+                    * self.membrane.K_S
+                    / (
+                        self.fluid.Solubility
+                        * self.fluid.d_Hyd
+                        * np.log(
+                            (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                            / self.fluid.d_Hyd
+                        )
                     )
                 )
-            )
-            L_ch = (
-                -dimless
-                / (1 + dimless)
-                * 4
-                * self.fluid.k_t
-                / (self.fluid.U0 * self.fluid.d_Hyd)
-            )
-            c_ext = p_out**0.5 * self.fluid.Solubility
-            K = self.c_in - c_ext
+                L_ch = (
+                    -dimless
+                    / (1 + dimless)
+                    * 4
+                    * self.fluid.k_t
+                    / (self.fluid.U0 * self.fluid.d_Hyd)
+                )
+                c_ext = p_out**0.5 * self.fluid.Solubility
+                K = self.c_in - c_ext
 
-            L_factor = (np.exp(L_ch * self.geometry.L) - 1) / L_ch
-            K = K * L_factor
-            integral = (K) * circle(self.geometry.D / 2) + c_ext * circle(
-                self.geometry.D / 2
-            ) * self.geometry.L
-            inventory = integral
-            self.fluid.inv = inventory
-            return inventory
+                L_factor = (np.exp(L_ch * self.geometry.L) - 1) / L_ch
+                K = K * L_factor
+                integral = (K) * circle(self.geometry.D / 2) + c_ext * circle(
+                    self.geometry.D / 2
+                ) * self.geometry.L
+                inventory = integral
+                self.fluid.inv = inventory
+                return inventory
+            case True:
+                print("not implemented yet")
 
     def get_fluid_inventory(self, flag_an=False, p_out=0):
         if flag_an == True:
