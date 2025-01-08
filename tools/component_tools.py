@@ -524,7 +524,7 @@ class Circuit:
                 ax.set_ylim(0.2, 0.8)
         return fig
 
-    def get_inventory(self,flag_an=True):
+    def get_inventory(self, flag_an=True):
         """
         Calculates the inventory (in mol) of the circuit based on the components present.
 
@@ -628,7 +628,6 @@ class Component:
         inv: float = None,
         delta_p: float = None,
         pumping_power: float = None,
-        
     ):
         """
         Initializes a new instance of the Component class.
@@ -1056,42 +1055,40 @@ class Component:
         Returns:
             str: The regime of the component.
         """
-        if self.fluid is not None:
-            if self.fluid.k_t is None:
-                self.fluid.get_kt(turbulator=self.geometry.turbulator)
-            if self.fluid.MS == True:
-                if self.membrane is not None:
-
-                    result = MS.get_regime(
-                        k_d=self.membrane.k_d,
-                        D=self.membrane.D,
-                        thick=self.membrane.thick,
-                        K_S=self.membrane.K_S,
-                        c0=self.c_in,
-                        k_t=self.fluid.k_t,
-                        k_H=self.fluid.Solubility,
-                        print_var=print_var,
-                    )
-                    return result
-                else:
-                    return "No membrane selected"
-            else:
-                if self.membrane is not None:
-                    result = LM.get_regime(
-                        D=self.membrane.D,
-                        k_t=self.fluid.k_t,
-                        K_S_S=self.membrane.K_S,
-                        K_S_L=self.fluid.Solubility,
-                        k_r=self.membrane.k_r,
-                        thick=self.membrane.thick,
-                        c0=self.c_in,
-                        print_var=print_var,
-                    )
-                    return result
-                else:
-                    return "No membrane selected"
-        else:
-            return "No fluid selected"
+        if self.fluid is None:
+            print("No fluid selected")
+            return
+        if self.fluid.k_t is None:
+            print("computing mass transfer coefficient")
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
+        if self.membrane is None:
+            print("No membrane selected")
+            return
+        match self.fluid.MS:
+            case True:
+                result = MS.get_regime(
+                    k_d=self.membrane.k_d,
+                    D=self.membrane.D,
+                    thick=self.membrane.thick,
+                    K_S=self.membrane.K_S,
+                    c0=self.c_in,
+                    k_t=self.fluid.k_t,
+                    k_H=self.fluid.Solubility,
+                    print_var=print_var,
+                )
+                return result
+            case False:
+                result = LM.get_regime(
+                    D=self.membrane.D,
+                    k_t=self.fluid.k_t,
+                    K_S_S=self.membrane.K_S,
+                    K_S_L=self.fluid.Solubility,
+                    k_r=self.membrane.k_r,
+                    thick=self.membrane.thick,
+                    c0=self.c_in,
+                    print_var=print_var,
+                )
+                return result
 
     def get_pipe_flowrate(self):
         """
@@ -2440,9 +2437,9 @@ class Component:
         self.fluid.inv = result * np.pi * r_in**2 * self.geometry.n_pipes
         return self.fluid.inv
 
-    def get_inventory(self,flag_an=True,p_out=0):
-        self.get_solid_inventory(flag_an=flag_an,p_out=p_out)
-        self.get_fluid_inventory(flag_an=flag_an,p_out=p_out)
+    def get_inventory(self, flag_an=True, p_out=0):
+        self.get_solid_inventory(flag_an=flag_an, p_out=p_out)
+        self.get_fluid_inventory(flag_an=flag_an, p_out=p_out)
         self.inv = self.fluid.inv + self.membrane.inv
         return
 
