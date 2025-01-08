@@ -19,62 +19,65 @@ import matplotlib.pyplot as plt
 from scipy import integrate
 
 
-def print_class_variables(instance, variable_names=None, tab: int = 0):
-    """
-    Prints specified variables of a class. If a variable is a class itself,
-    calls this function recursively for the internal class. If variable_names is None,
-    prints all variables.
+class TriomaClass:
+    def inspect(self, variable_names=None, tab: int = 0):
+        """
+        Prints specified variables of a class. If a variable is a class itself,
+        calls this function recursively for the internal class. If variable_names is None,
+        prints all variables.
 
-    Args:
-        instance: The class instance.
-        variable_names (list of str, optional): Names of the variables to print. Prints all if None.
-    """
-    built_in_types = [
-        Component,
-        Fluid,
-        Membrane,
-        FluidMaterial,
-        SolidMaterial,
-        BreedingBlanket,
-        Geometry,
-        Turbulator,
-    ]
-    indent = "    " * tab  # Define the indentation as four spaces per tab level
-    for attr_name, attr_value in instance.__dict__.items():
-        if variable_names is None or attr_name.lower() == variable_names.lower():
-            if type(attr_value) in built_in_types:
-                tab += 1
-                print(
-                    f"{indent}{attr_name} is a {type(attr_value)} class, printing its variables:"
-                )
-                print_class_variables(attr_value, variable_names, tab=tab)
-                tab -= 1
-            else:
-                print(f"{indent}{attr_name}: {attr_value}")
+        Args:
+            instance: The class instance.
+            variable_names (list of str, optional): Names of the variables to print. Prints all if None.
+        """
+        built_in_types = [
+            Component,
+            Fluid,
+            Membrane,
+            FluidMaterial,
+            SolidMaterial,
+            BreedingBlanket,
+            Geometry,
+            Turbulator,
+        ]
+        indent = "    " * tab  # Define the indentation as four spaces per tab level
+        for attr_name, attr_value in self.__dict__.items():
+            if variable_names is None or attr_name.lower() == variable_names.lower():
+                if type(attr_value) in built_in_types:
+                    tab += 1
+                    print(
+                        f"{indent}{attr_name} is a {type(attr_value)} class, printing its variables:"
+                    )
+                    TriomaClass.inspect(attr_value, variable_names, tab=tab)
+                    tab -= 1
+                else:
+                    print(f"{indent}{attr_name}: {attr_value}")
+
+    def update_attribute(self, attr_name: str, new_value: float):
+        """
+        Sets the specified attribute to a new value.
+
+        Args:
+            attr_name (str): The name of the attribute to set.
+            new_value: The new value for the attribute.
+        """
+        if hasattr(self, attr_name):
+            setattr(self, attr_name, new_value)
+        else:
+            for attr, value in self.__dict__.items():
+                if isinstance(value, object) and hasattr(value, attr_name):
+                    setattr(value, attr_name, new_value)
+                    return
+            raise ValueError(
+                f"'{attr_name}' is not an attribute of {self.__class__.__name__}"
+            )
+        if isinstance(self, Membrane):
+            if self.D_0 is not None and self.E_d is not None:
+
+                self.D = self.D_0 * np.exp(-self.E_d / (8.617333262145e-5 * self.T))
 
 
-def set_attribute(instance, attr_name, new_value):
-    """
-    Sets the specified attribute to a new value.
-
-    Args:
-        instance: The class instance.
-        attr_name (str): The name of the attribute to set.
-        new_value: The new value for the attribute.
-    """
-    if hasattr(instance, attr_name):
-        setattr(instance, attr_name, new_value)
-    else:
-        for attr, value in instance.__dict__.items():
-            if isinstance(value, object) and hasattr(value, attr_name):
-                setattr(value, attr_name, new_value)
-                return
-        raise ValueError(
-            f"'{attr_name}' is not an attribute of {instance.__class__.__name__}"
-        )
-
-
-class Geometry:
+class Geometry(TriomaClass):
     """
     Represents the geometry of a component.
 
@@ -100,22 +103,6 @@ class Geometry:
         self.n_pipes = n_pipes
         self.turbulator = turbulator
 
-    def update_attribute(self, attr_name: str, new_value: float):
-        """
-        Updates the value of the specified attribute.
-
-        Args:
-            attr_name (str): The name of the attribute to update.
-            new_value: The new value for the attribute.
-        """
-        set_attribute(self, attr_name, new_value)
-
-    def inspect(self):
-        """
-        Prints the attributes of the component.
-        """
-        print_class_variables(self)
-
     def get_fluid_volume(self):
         """
         Calculates the volume of the fluid component.
@@ -136,7 +123,7 @@ class Geometry:
         return self.get_fluid_volume() + self.get_solid_volume()
 
 
-class Circuit:
+class Circuit(TriomaClass):
     """
     Represent a circuit of components connected in series
 
@@ -187,16 +174,6 @@ class Circuit:
                     raise ValueError("Invalid component type")
         self.components = vec_components
         self.closed = closed
-
-    def update_attribute(self, attr_name: str, new_value: Union[float, bool]):
-        """
-        Updates the value of the specified attribute.
-
-        Args:
-            attr_name (str): The name of the attribute to update.
-            new_value: The new value for the attribute.
-        """
-        set_attribute(self, attr_name, new_value)
 
     def add_component(
         self, component: Union["Component", "BreedingBlanket", "Circuit"]
@@ -604,7 +581,7 @@ class Circuit:
                     component.inspect()
 
 
-class Component:
+class Component(TriomaClass):
     """
     Represents a component in a plant to make a high level T transport analysis.
 
@@ -712,26 +689,6 @@ class Component:
             self.delta_p * self.get_pipe_flowrate() * self.geometry.n_pipes
         )
         return self.pumping_power
-
-    def update_attribute(
-        self,
-        attr_name: str = None,
-        new_value: Union[float, "Fluid", "Membrane", "Geometry"] = None,
-    ):
-        """
-        Updates the value of the specified attribute.
-
-        Args:
-            attr_name (str): The name of the attribute to update.
-            new_value: The new value for the attribute.
-        """
-        set_attribute(self, attr_name, new_value)
-
-    def inspect(self, variable_names=None):
-        """
-        Prints the attributes of the component.
-        """
-        print_class_variables(self, variable_names)
 
     def connect_to_component(
         self, component2: Union["Component", "BreedingBlanket"] = None
@@ -2376,7 +2333,7 @@ class Component:
         return
 
 
-class Fluid:
+class Fluid(TriomaClass):
     """
     Represents a fluid in a component for Tritium transport analysis
 
@@ -2457,24 +2414,6 @@ class Fluid:
         self.cp = cp
         self.inv = inv
 
-    def update_attribute(
-        self, attr_name: str = None, new_value: Union[float, "FluidMaterial"] = None
-    ):
-        """
-        Updates the value of the specified attribute.
-
-        Args:
-            attr_name (str): The name of the attribute to update.
-            new_value: The new value for the attribute.
-        """
-        set_attribute(self, attr_name, new_value)
-
-    def inspect(self, variable_names=None):
-        """
-        Prints the attributes of the component.
-        """
-        print_class_variables(self, variable_names)
-
     def set_properties_from_fluid_material(
         self, fluid_material: "FluidMaterial" = None
     ):
@@ -2542,7 +2481,7 @@ class Fluid:
             print("k_t is already defined")
 
 
-class Turbulator:
+class Turbulator(TriomaClass):
     """
     Represents a turbulator in a component for Tritium transport analysis
 
@@ -2563,24 +2502,6 @@ class Turbulator:
             turbulator_params (dict): Parameters of the turbulator.
         """
         self.turbulator_type = turbulator_type
-
-    def update_attribute(
-        self, attr_name: str = None, new_value: Union[str, dict] = None
-    ):
-        """
-        Updates the value of the specified attribute.
-
-        Args:
-            attr_name (str): The name of the attribute to update.
-            new_value: The new value for the attribute.
-        """
-        set_attribute(self, attr_name, new_value)
-
-    def inspect(self, variable_names=None):
-        """
-        Prints the attributes of the component.
-        """
-        print_class_variables(self, variable_names)
 
 
 class WireCoil(Turbulator):
@@ -2647,24 +2568,6 @@ class WireCoil(Turbulator):
         h_t = corr.get_h_from_Nu(Nu=Nu, k=k, D=d_hyd)
         return h_t
 
-    def update_attribute(
-        self, attr_name: str = None, new_value: Union[str, dict] = None
-    ):
-        """
-        Updates the value of the specified attribute.
-
-        Args:
-            attr_name (str): The name of the attribute to update.
-            new_value: The new value for the attribute.
-        """
-        set_attribute(self, attr_name, new_value)
-
-    def inspect(self, variable_names=None):
-        """
-        Prints the attributes of the component.
-        """
-        print_class_variables(self, variable_names)
-
 
 class CustomTurbulator(Turbulator):
     """
@@ -2689,24 +2592,6 @@ class CustomTurbulator(Turbulator):
         self.a = a
         self.b = b
         self.c = c
-
-    def update_attribute(
-        self, attr_name: str = None, new_value: Union[str, dict] = None
-    ):
-        """
-        Updates the value of the specified attribute.
-
-        Args:
-            attr_name (str): The name of the attribute to update.
-            new_value: The new value for the attribute.
-        """
-        set_attribute(self, attr_name, new_value)
-
-    def inspect(self, variable_names=None):
-        """
-        Prints the attributes of the component.
-        """
-        print_class_variables(self, variable_names)
 
     def k_t_correlation(
         self, Re: float = None, Sc: float = None, d_hyd: float = None, D: float = None
@@ -2749,7 +2634,7 @@ class CustomTurbulator(Turbulator):
         return h_t
 
 
-class Membrane:
+class Membrane(TriomaClass):
     """
     Represents a metallic membrane of a component for H transport.
 
@@ -2812,27 +2697,6 @@ class Membrane:
         self.E_d = E_d
         self.inv = inv
 
-    def update_attribute(
-        self, attr_name: str = None, new_value: Union[float, "SolidMaterial"] = None
-    ):
-        """
-        Updates the value of the specified attribute.
-
-        Args:
-            attr_name (str): The name of the attribute to update.
-            new_value: The new value for the attribute.
-        """
-        set_attribute(self, attr_name, new_value)
-        if self.D_0 is not None and self.E_d is not None:
-            if attr_name == "T" and new_value is not None:
-                self.D = self.D_0 * np.exp(-self.E_d / (8.617333262145e-5 * self.T))
-
-    def inspect(self, variable_names=None):
-        """
-        Prints the attributes of the component.
-        """
-        print_class_variables(self, variable_names)
-
     def set_properties_from_solid_material(
         self, solid_material: "SolidMaterial" = None
     ):
@@ -2847,7 +2711,7 @@ class Membrane:
         self.K_S = solid_material.K_S
 
 
-# class GLC_Gas:
+# class GLC_Gas(TriomaClass):
 #     """
 #     GLC_Gas class represents a sweep gas in a GLC (Gas-Liquid Contactor) system.
 
@@ -2878,22 +2742,6 @@ class Membrane:
 #         self.pg_in = pg_in
 #         self.p_tot = p_tot
 #         self.kla = kla
-
-#     def update_attribute(self, attr_name: str, new_value: float):
-#         """
-#         Updates the value of the specified attribute.
-
-#         Args:
-#             attr_name (str): The name of the attribute to update.
-#             new_value: The new value for the attribute.
-#         """
-#         set_attribute(self, attr_name, new_value)
-
-#     def inspect(self, variable_names=None):
-#         """
-#         Prints the attributes of the component.
-#         """
-#         print_class_variables(self, variable_names)
 
 
 # class GLC(Component):
@@ -2973,14 +2821,8 @@ class Membrane:
 #             D=self.fluid.D,
 #         )
 
-#     def inspect(self, variable_names=None):
-#         """
-#         Prints the attributes of the component.
-#         """
-#         print_class_variables(self, variable_names)
 
-
-class FluidMaterial:
+class FluidMaterial(TriomaClass):
     """
     Represents a fluid material with various properties.
 
@@ -3015,24 +2857,8 @@ class FluidMaterial:
         self.k = k
         self.cp = cp
 
-    def inspect(self, variable_names=None):
-        """
-        Prints the attributes of the component.
-        """
-        print_class_variables(self, variable_names)
 
-    def update_attribute(self, attr_name: str, new_value: float):
-        """
-        Updates the value of the specified attribute.
-
-        Args:
-            attr_name (str): The name of the attribute to update.
-            new_value: The new value for the attribute.
-        """
-        set_attribute(self, attr_name, new_value)
-
-
-class SolidMaterial:
+class SolidMaterial(TriomaClass):
     """
     Represents a solid material used in a component.
 
@@ -3049,24 +2875,8 @@ class SolidMaterial:
         self.K_S = K_S
         self.k = k
 
-    def inspect(self, variable_names=None):
-        """
-        Prints the attributes of the component.
-        """
-        print_class_variables(self, variable_names)
 
-    def update_attribute(self, attr_name: str, new_value: float):
-        """
-        Updates the value of the specified attribute.
-
-        Args:
-            attr_name (str): The name of the attribute to update.
-            new_value: The new value for the attribute.
-        """
-        set_attribute(self, attr_name, new_value)
-
-
-class BreedingBlanket:
+class BreedingBlanket(TriomaClass):
     """
     Represents a breeding blanket component in a fuel cycle system.
 
@@ -3163,22 +2973,6 @@ class BreedingBlanket:
         # Display the plot
         fig.tight_layout()
         return fig
-
-    def inspect(self, variable_names=None):
-        """
-        Prints the attributes of the component.
-        """
-        print_class_variables(self, variable_names)
-
-    def update_attribute(self, attr_name: str, new_value: float):
-        """
-        Updates the value of the specified attribute.
-
-        Args:
-            attr_name (str): The name of the attribute to update.
-            new_value: The new value for the attribute.
-        """
-        set_attribute(self, attr_name, new_value)
 
     def get_flowrate(self):
         """
