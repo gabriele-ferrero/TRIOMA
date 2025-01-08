@@ -2309,43 +2309,15 @@ class Component:
         def integrand(L):
             if self.fluid.k_t is None:
                 self.fluid.get_kt(turbulator=self.geometry.turbulator)
-            if self.fluid.MS is False:
-                dimless = (
-                    2
-                    * self.membrane.D
-                    * self.membrane.K_S
-                    / (
-                        self.fluid.k_t
-                        * self.fluid.Solubility
-                        * self.fluid.d_Hyd
-                        * np.log(
-                            (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                            / self.fluid.d_Hyd
-                        )
-                    )
-                )
-
-                L_ch = (
-                    -dimless
-                    / (1 + dimless)
-                    * 4
-                    * self.fluid.k_t
-                    / (self.fluid.U0 * self.fluid.d_Hyd)
-                )
-                c_ext = p_out**0.5 * self.fluid.Solubility
-                return (self.c_in - c_ext) * np.exp(L_ch * L) + c_ext
-            else:
-                tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
-                self.xi = (
-                    1
-                    / self.c_in
-                    / self.fluid.Solubility
-                    * (
-                        0.5  ##TODO: Check this
-                        * self.membrane.K_S
+            match self.fluid.MS:
+                case False:
+                    dimless = (
+                        2
                         * self.membrane.D
+                        * self.membrane.K_S
                         / (
                             self.fluid.k_t
+                            * self.fluid.Solubility
                             * self.fluid.d_Hyd
                             * np.log(
                                 (self.fluid.d_Hyd + 2 * self.membrane.thick)
@@ -2353,43 +2325,80 @@ class Component:
                             )
                         )
                     )
-                    ** 2
-                )
 
-                beta = (1 / self.xi + 1) ** 0.5 + np.log((1 / self.xi + 1) ** 0.5 - 1)
-                max_exp = np.log(np.finfo(np.float64).max)
-                beta_tau = beta - tau - 1
-                if beta_tau > max_exp:
-                    # print(
-                    #     "Warning: Overflow encountered in exp, input too large.Approximation triggered"
-                    # )
-
-                    w = beta_tau - np.log(beta_tau)
-                else:
-                    z = np.exp(beta_tau)
-                    w = lambertw(z, tol=1e-10)
-                    if w.imag != 0:
-                        raise ValueError("self.eff_an has a non-zero imaginary part")
-                    w = w.real
-                alpha = (
-                    1
-                    / self.fluid.Solubility
-                    * (
-                        (0.5 * self.membrane.D * self.membrane.K_S)  ## TODO: Check this
-                        / (
-                            self.fluid.k_t
-                            * self.fluid.d_Hyd
-                            * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                                / self.fluid.d_Hyd
+                    L_ch = (
+                        -dimless
+                        / (1 + dimless)
+                        * 4
+                        * self.fluid.k_t
+                        / (self.fluid.U0 * self.fluid.d_Hyd)
+                    )
+                    c_ext = p_out**0.5 * self.fluid.Solubility
+                    return (self.c_in - c_ext) * np.exp(L_ch * L) + c_ext
+                case True:
+                    tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
+                    self.xi = (
+                        1
+                        / self.c_in
+                        / self.fluid.Solubility
+                        * (
+                            0.5  ##TODO: Check this
+                            * self.membrane.K_S
+                            * self.membrane.D
+                            / (
+                                self.fluid.k_t
+                                * self.fluid.d_Hyd
+                                * np.log(
+                                    (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                    / self.fluid.d_Hyd
+                                )
                             )
                         )
+                        ** 2
                     )
-                    ** 2
-                )
-                conv = (self.c_in / self.fluid.Solubility) ** 0.5 * self.membrane.K_S
-                c_w_l = alpha * (w**2 + 2 * w)
-                return c_w_l
+
+                    beta = (1 / self.xi + 1) ** 0.5 + np.log(
+                        (1 / self.xi + 1) ** 0.5 - 1
+                    )
+                    max_exp = np.log(np.finfo(np.float64).max)
+                    beta_tau = beta - tau - 1
+                    if beta_tau > max_exp:
+                        # print(
+                        #     "Warning: Overflow encountered in exp, input too large.Approximation triggered"
+                        # )
+
+                        w = beta_tau - np.log(beta_tau)
+                    else:
+                        z = np.exp(beta_tau)
+                        w = lambertw(z, tol=1e-10)
+                        if w.imag != 0:
+                            raise ValueError(
+                                "self.eff_an has a non-zero imaginary part"
+                            )
+                        w = w.real
+                    alpha = (
+                        1
+                        / self.fluid.Solubility
+                        * (
+                            (
+                                0.5 * self.membrane.D * self.membrane.K_S
+                            )  ## TODO: Check this
+                            / (
+                                self.fluid.k_t
+                                * self.fluid.d_Hyd
+                                * np.log(
+                                    (self.fluid.d_Hyd + 2 * self.membrane.thick)
+                                    / self.fluid.d_Hyd
+                                )
+                            )
+                        )
+                        ** 2
+                    )
+                    conv = (
+                        self.c_in / self.fluid.Solubility
+                    ) ** 0.5 * self.membrane.K_S
+                    c_w_l = alpha * (w**2 + 2 * w)
+                    return c_w_l
 
         result, err = integrate.nquad(integrand, [[L_min, L_max]])
         print(result)
