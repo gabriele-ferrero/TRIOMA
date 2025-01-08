@@ -2502,46 +2502,44 @@ class Fluid:
         Returns:
             None
         """
-        if self.d_Hyd:
-            if self.k_t is None:
-                Re = corr.Re(rho=self.rho, u=self.U0, L=self.d_Hyd, mu=self.mu)
-                Sc = corr.Schmidt(D=self.D, mu=self.mu, rho=self.rho)
-                if turbulator is None:
-
-                    # if Re < 1e4 and Re > 2030:
-                    #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
-                    if Re > 2030:
-                        Sh = 0.0096 * Re**0.913 * Sc**0.346  ##Getthem paper
-                        # Sh = 0.023 * Re**0.8 * Sc**0.33
-                    else:
-                        print(str(Re) + " indicates laminar flow")
-                        Sh = 3.66
-                        # raise ValueError("Reynolds number is too low")
-                    self.k_t = corr.get_k_from_Sh(
-                        Sh=Sh,
-                        L=self.d_Hyd,
-                        D=self.D,
-                    )
-                else:
-                    match turbulator.turbulator_type:
-                        case "WireCoil":
-
-                            self.k_t = turbulator.k_t_correlation(
-                                Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
-                            )
-                        case "TwistedTape":
-                            raise NotImplementedError(
-                                "Twisted Tape not implemented yet"
-                            )
-                        case "Custom":
-                            self.k_t = turbulator.k_t_correlation(
-                                Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
-                            )
-
-            # else:
-            #     # print("k_t is already defined")
-        else:
+        if self.d_Hyd is None:
             print("Hydraulic Diameter is not defined")
+            return
+        if self.k_t is None:
+            Re = corr.Re(rho=self.rho, u=self.U0, L=self.d_Hyd, mu=self.mu)
+            Sc = corr.Schmidt(D=self.D, mu=self.mu, rho=self.rho)
+            if turbulator is None:
+
+                # if Re < 1e4 and Re > 2030:
+                #     Sh = 0.015 * Re**0.83 * Sc**0.42  ## Stempien Thesis pg 155-157 TODO implement different Re ranges
+                if Re > 2030:
+                    Sh = 0.0096 * Re**0.913 * Sc**0.346  ##Getthem paper
+                    # Sh = 0.023 * Re**0.8 * Sc**0.33
+                else:
+                    print(str(Re) + " indicates laminar flow")
+                    Sh = 3.66
+                    # raise ValueError("Reynolds number is too low")
+                self.k_t = corr.get_k_from_Sh(
+                    Sh=Sh,
+                    L=self.d_Hyd,
+                    D=self.D,
+                )
+            else:
+                match turbulator.turbulator_type:
+                    case "WireCoil":
+
+                        self.k_t = turbulator.k_t_correlation(
+                            Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
+                        )
+                    case "TwistedTape":
+                        raise NotImplementedError("Twisted Tape not implemented yet")
+                    case "Custom":
+                        self.k_t = turbulator.k_t_correlation(
+                            Re=Re, Sc=Sc, d_hyd=self.d_Hyd, D=self.D
+                        )
+
+        else:
+            print("k_t is already defined")
 
 
 class Turbulator:
