@@ -2239,40 +2239,6 @@ class Component:
             self.inspect()
         return self.membrane.inv
 
-        # from sympy import Integral, ln, symbols, init_printing, nsolve, exp
-
-        # # Define the symbolic variables
-        # r, L = symbols("r L")
-        # r_in = self.fluid.d_Hyd / 2
-        # r_out = self.fluid.d_Hyd / 2 + self.membrane.thick
-        # init_printing(use_unicode=True)
-        # if self.fluid.MS == True:
-        #     c = (self.c_in / self.fluid.Solubility) ** 0.5 / self.membrane.K_S
-        # else:
-        #     c = self.c_in / self.fluid.Solubility / self.membrane.K_S
-
-        # # Define the logarithmic function
-        # fun1 = -ln(r / r_out) / ln(r / r_in) * c *r * 2 * np.pi
-
-        # # fun2= c*exp(-4*L)
-        # fun2 = 1
-        # # Perform the integration with respect to r over the interval [r_in, r_out]
-        # integral1 = Integral(fun1, (r, r_in, r_out))
-        # integral2 = Integral(fun2, (L, 0, self.geometry.L))
-        # # Evaluate the integral
-        # # integral_value=nsolve(integral1,r, r_out)-nsolve(integral1,r, r_in)
-
-        # print(integral1)
-
-        # integral1.as_sum(5, method="midpoint")
-        # integral2.as_sum(5, method="midpoint")
-        # result = float(integral1.as_sum(100, method="midpoint")) * float(integral2.as_sum(
-        #     100, method="midpoint")
-        # )
-
-        # self.membrane.inv = float(result)
-        # return
-
     def analytical_fluid_inventory(self, p_out=0):
         if self.fluid.k_t is None:
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
