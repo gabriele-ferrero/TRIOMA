@@ -912,9 +912,6 @@ class Component:
 
         deltaTML = corr.get_deltaTML(T_in_hot, T_out_hot, T_in_cold, T_out_cold)
         self.get_global_HX_coeff(R_sec)
-        L_tot = corr.get_length_HX(
-            deltaTML=deltaTML, d_hyd=self.geometry.D, U=self.U, Q=Q
-        )
         ratio_ps = (T_in_hot - T_out_hot) / (
             T_out_cold - T_in_cold
         )  # gets the ratio between flowrate and heat capacity of primary and secondary fluid
