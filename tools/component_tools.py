@@ -1332,21 +1332,6 @@ class Component:
                                 )
                             else:
                                 self.eff_an = self.eff_an.real  # get rid of 0*j
-
-            # max_exp = np.log(np.finfo(np.float64).max)
-            # beta_tau = beta - self.tau - 1
-            # if beta_tau > max_exp:
-            #     print("Warning: Overflow encountered in exp, input too large.")
-            #     # Handle the overflow case here, e.g., by setting a maximum value
-            #     z = np.finfo(np.float64).max
-            # else:
-            #     z = np.exp(beta_tau)
-            # w = lambertw(z, tol=1e-10)
-            # self.eff_an = 1 - self.xi * (w**2 + 2 * w)
-            # if self.eff_an.imag != 0:
-            #     raise ValueError("self.eff_an has a non-zero imaginary part")
-            # else:
-            #     self.eff_an = self.eff_an.real  # get rid of 0*j
             case False:  # Liquid Metal
                 self.zeta = (2 * self.membrane.K_S * self.membrane.D) / (
                     self.fluid.k_t
