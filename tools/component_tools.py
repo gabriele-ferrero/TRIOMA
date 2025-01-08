@@ -1269,49 +1269,18 @@ class Component:
                     ** 2
                 )
                 self.xi = alpha / self.c_in
-
+                p_in = self.c_in / self.fluid.Solubility
                 if self.xi > 1e5:
-                    p_in = self.c_in / self.fluid.Solubility
                     corr_p = 1 - (p_out / p_in)
                     self.eff_an = (1 - np.exp(-self.tau)) * corr_p
                 elif self.xi**0.5 < 1e-2 and self.tau < 1 / self.xi**0.5:
-                    p_in = self.c_in / self.fluid.Solubility
                     corr_p = 1 - (p_out / p_in) ** 0.5
                     self.eff_an = (1 - (1 - self.tau * self.xi**0.5) ** 2) * corr_p
                 else:
-                    # n1=1
-                    # n2=2
-                    # e=n1*(alpha*p_out*self.fluid.Solubility)**0.5
-                    # f=e/alpha
-                    # # P_out_term=0
-                    # # P_out_term2=0
-                    # delta=(1/self.xi+1+n2*f)**0.5
-                    # beta = delta + (1+f)*np.log(+delta-1-f)
-                    # max_exp = np.log(np.finfo(np.float64).max)
-                    # beta_tau = beta - self.tau*(1) - 1
-                    # if beta_tau > max_exp or p_out>1E-5:
-                    #     print(
-                    #         "Warning: Overflow encountered in exp, input too large.Iterative solver triggered"
-                    #     )
-                    #     # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
-
-                    #     def eq(var):
-                    #         cl = var
-                    #         alpha = self.xi * self.c_in
-                    #         left = (cl / alpha + 1+n2*f) ** 0.5 +(1+f)* np.log(-f+((cl/alpha + 1+n2*f) ** 0.5-1)
-                    #         )
-                    A = 2
-                    n1 = 1
-                    n2 = 2
-                    n3 = 1
-                    n4 = 1
-                    n5 = 1
-                    e = n1 * (alpha * p_out * self.fluid.Solubility) ** 0.5
+                    e = (alpha * p_out * self.fluid.Solubility) ** 0.5
                     f = e / alpha
-                    # P_out_term=0
-                    # P_out_term2=0
-                    delta = (1 / self.xi + 1 + n2 * f) ** 0.5
-                    beta = delta + (1 + n4 * f) * np.log(+n5 * delta - 1 - n3 * f)
+                    delta = (1 / self.xi + 1 + 2 * f) ** 0.5
+                    beta = delta + (1 + f) * np.log(delta - 1 - f)
                     max_exp = np.log(np.finfo(np.float64).max)
                     beta_tau = beta - self.tau - 1
                     if beta_tau > max_exp or p_out > 1e-5:
@@ -1324,10 +1293,8 @@ class Component:
                             cl = var
                             alpha = self.xi * self.c_in
 
-                            left = (cl / alpha + 1 + n2 * f) ** 0.5 + (
-                                1 + n4 * f
-                            ) * np.log(
-                                -n3 * f + (n5 * (cl / alpha + 1 + n2 * f) ** 0.5 - 1)
+                            left = (cl / alpha + 1 + 2 * f) ** 0.5 + (1 + f) * np.log(
+                                -f + ((cl / alpha + 1 + 2 * f) ** 0.5 - 1)
                             )
 
                             right = beta - self.tau
@@ -1341,7 +1308,7 @@ class Component:
                             bounds=[(0, self.c_in)],
                             tol=1e-7,
                         ).x[0]
-                        if -n3 * f + (n5 * (cl / alpha + 1 + n2 * f) ** 0.5 - 1) < 0:
+                        if -f + ((cl / alpha + 1 + 2 * f) ** 0.5 - 1) < 0:
                             # raise ValueError("The argument of the log is negative")
 
                             self.get_efficiency
@@ -1354,7 +1321,6 @@ class Component:
                     else:
                         z = np.exp(beta_tau)
                         w = lambertw(z, tol=1e-10)
-                        p_in = self.c_in / self.fluid.Solubility
                         self.eff_an = 1 - self.xi * (w**2 + 2 * w)
                         if self.eff_an.imag != 0:
                             raise ValueError(
