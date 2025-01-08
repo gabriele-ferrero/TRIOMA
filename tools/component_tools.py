@@ -628,6 +628,7 @@ class Component:
         inv: float = None,
         delta_p: float = None,
         pumping_power: float = None,
+        V: float = None,
     ):
         """
         Initializes a new instance of the Component class.
@@ -2482,6 +2483,7 @@ class Fluid:
         cp: float = None,
         inv: float = None,
         recirculation: float = 0,
+        V: float = None,
     ):
         """
         Initializes a new instance of the Fluid class.
@@ -2848,6 +2850,7 @@ class Membrane:
         K_S_0: float = None,
         E_S: float = None,
         inv: float = None,
+        V: float = None,
     ):
         """
         Initializes a new instance of the Membrane class.
