@@ -2842,15 +2842,17 @@ class GLC(TriomaClass):
                 self.Bl = Bl
 
             case True:
-                print("MS GLC not implemented yet")
                 Bl, kla = extractor.extractor_ms(
-                    self.H,
-                    self.R,
-                    self.G_L,
-                    self.GLC_gas.G_gas,
-                    self.c_in,
-                    self.c_out,
-                    self.T,
+                    Z=self.H,
+                    R=self.R,
+                    G_l=self.G_L,
+                    G_gas=self.GLC_gas.G_gas,
+                    pl_in=self.c_in / self.fluid.Solubility,
+                    pl_out=self.c_out / self.fluid.Solubility,
+                    T=self.T,
+                    p_t=self.GLC_gas.p_tot,
+                    K_H=self.fluid.Solubility,
+                    pg_in=self.GLC_gas.pg_in,
                 )
                 self.kla = kla
                 self.Bl = Bl
@@ -2880,15 +2882,17 @@ class GLC(TriomaClass):
                 )
 
             case True:
-                print("MS GLC not implemented yet")
                 z = extractor.length_extractor_ms(
-                    self.H,
-                    self.R,
-                    self.G_L,
-                    self.GLC_gas.G_gas,
-                    self.c_in,
-                    self.c_out,
-                    self.T,
+                    R=self.R,
+                    G_l=self.G_L,
+                    G_gas=self.GLC_gas.G_gas,
+                    pl_in=self.c_in / self.fluid.Solubility,
+                    pl_out=self.c_out / self.fluid.Solubility,
+                    T=self.T,
+                    p_t=self.GLC_gas.p_tot,
+                    K_H=self.fluid.Solubility,
+                    pg_in=self.GLC_gas.pg_in,
+                    kla=self.kla,
                 )
 
         return z
