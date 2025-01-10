@@ -26,9 +26,15 @@ def extractor_lm(Z, R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in):
     c_out = pl_out**0.5 * K_S
     R_const = 8.314
     u_g = G_gas / Area / p_t * 1e5 * T / 288.15
+    c_in_gas = pg_in / R_const / T
 
     def toint(c):
-        return 1 / (c - K_S * (u_l / 2 / u_g * R_const * T) ** 0.5 * (c - c_out) ** 0.5)
+        return 1 / (
+            c
+            - K_S
+            * (u_l / 2 / u_g * R_const * T) ** 0.5
+            * (c - c_out + c_in_gas * 2 * u_g / u_l) ** 0.5
+        )
 
     integral = integrate.quad(toint, c_out, c_in)
     kla_c = u_l / Z * integral[0]
@@ -58,9 +64,15 @@ def length_extractor_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, kla):
     u_g = G_gas / Area / p_t * 1e5 * T / 288.15
     c_in = pl_in**0.5 * K_S
     c_out = pl_out**0.5 * K_S
+    c_in_gas = pg_in / R_const / T
 
     def toint(c):
-        return 1 / (c - K_S * (u_l / 2 / u_g * R_const * T) ** 0.5 * (c - c_out) ** 0.5)
+        return 1 / (
+            c
+            - K_S
+            * (u_l / 2 / u_g * R_const * T) ** 0.5
+            * (c - c_out + c_in_gas * 2 * u_g / u_l) ** 0.5
+        )
 
     integral = integrate.quad(toint, c_out, c_in)
     Z = u_l / kla * integral[0]
