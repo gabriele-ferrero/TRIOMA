@@ -76,6 +76,9 @@ def length_extractor_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, kla):
 
     integral = integrate.quad(toint, c_out, c_in)
     Z = u_l / kla * integral[0]
+    if Z < 0 or integral[1] > 1e-3:
+        print("Warning: the system is not feasable or the integral is not accurate")
+        return None
     return Z
 
 
@@ -102,9 +105,12 @@ def extractor_ms(Z, R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in):
     c_out = pl_out * K_H
     R_const = 8.314
     u_g = G_gas / Area / p_t * 1e5 * T / 288.15
+    c_in_gas = pg_in / R_const / T
 
     def toint(c):
-        return 1 / (c - K_H * (u_l / u_g * R_const * T) * (c - c_out))
+        return 1 / (
+            c - K_H * (u_l / u_g * R_const * T) * (c - c_out + c_in_gas * u_g / u_l)
+        )
 
     integral = integrate.fixed_quad(toint, c_out, c_in)
     print("integral is", integral)
@@ -135,15 +141,18 @@ def length_extractor_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, kla):
     u_g = G_gas / Area / p_t * 1e5 * T / 288.15
     c_in = pl_in * K_H
     c_out = pl_out * K_H
+    c_in_gas = pg_in / R_const / T
 
     def toint(c):
-        return 1 / (c - K_H * (u_l / u_g * R_const * T) * (c - c_out))
+        return 1 / (
+            c - K_H * (u_l / u_g * R_const * T) * (c - c_out + c_in_gas * u_g / u_l)
+        )
 
     integral = integrate.fixed_quad(toint, c_out, c_in)
     Z = u_l / kla * integral[0]
-    if Z < 0:
-        print("Warning: the system is not feasable")
-        return 0
+    if Z < 0 or integral[1] > 1e-3:
+        print("Warning: the system is not feasable or the integral is not accurate")
+        return None
     return Z
 
 
