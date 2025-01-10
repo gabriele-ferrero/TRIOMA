@@ -2857,6 +2857,42 @@ class GLC(TriomaClass):
 
         return Bl, kla
 
+    def get_z_from_eff(self):
+        """
+        Calculates the height of the GLC from the efficiency of the GLC.
+        The height is calculated based on the efficiency of the GLC and the radius of the GLC.
+        Returns:
+            None
+        """
+        match self.fluid.MS:
+            case False:
+                z = extractor.length_extractor_lm(
+                    R=self.R,
+                    G_l=self.G_L,
+                    G_gas=self.GLC_gas.G_gas,
+                    pl_in=self.c_in**2 / self.fluid.Solubility**2,
+                    pl_out=self.c_out**2 / self.fluid.Solubility**2,
+                    T=self.T,
+                    p_t=self.GLC_gas.p_tot,
+                    K_S=self.fluid.Solubility,
+                    pg_in=self.GLC_gas.pg_in,
+                    kla=self.kla,
+                )
+
+            case True:
+                print("MS GLC not implemented yet")
+                z = extractor.length_extractor_ms(
+                    self.H,
+                    self.R,
+                    self.G_L,
+                    self.GLC_gas.G_gas,
+                    self.c_in,
+                    self.c_out,
+                    self.T,
+                )
+
+        return z
+
 
 class FluidMaterial(TriomaClass):
     """
