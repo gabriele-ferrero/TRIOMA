@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def Nu_SiederTate(Re, Pr, mu_w, mu_c):
