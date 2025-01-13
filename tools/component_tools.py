@@ -2823,6 +2823,45 @@ class GLC(TriomaClass):
             D=self.fluid.D,
         )
 
+    def get_c_out(self):
+        """
+        Calculates the outlet concentration of the GLC.
+        The outlet concentration is calculated based on the inlet concentration, the efficiency of the GLC, and the fluid properties.
+        Returns:
+            None
+        """
+        match self.fluid.MS:
+            case False:
+                c_out, eff = extractor.get_c_out_GLC_lm(
+                    Z=self.H,
+                    R=self.R,
+                    G_l=self.G_L,
+                    G_gas=self.GLC_gas.G_gas,
+                    pl_in=self.c_in**2 / self.fluid.Solubility**2,
+                    T=self.T,
+                    p_t=self.GLC_gas.p_tot,
+                    K_S=self.fluid.Solubility,
+                    pg_in=self.GLC_gas.pg_in,
+                    kla=self.kla,
+                )
+                self.eff = eff
+                self.c_out = c_out
+            case True:
+                c_out, eff = extractor.get_c_out_GLC_ms(
+                    Z=self.H,
+                    R=self.R,
+                    G_l=self.G_L,
+                    G_gas=self.GLC_gas.G_gas,
+                    pl_in=self.c_in / self.fluid.Solubility,
+                    T=self.T,
+                    p_t=self.GLC_gas.p_tot,
+                    K_H=self.fluid.Solubility,
+                    pg_in=self.GLC_gas.pg_in,
+                    kla=self.kla,
+                )
+                self.eff = eff
+                self.c_out = c_out
+
     def get_kla_from_cout(self):
         match self.fluid.MS:
             case False:

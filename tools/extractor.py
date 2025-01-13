@@ -157,6 +157,87 @@ def length_extractor_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, kla):
     return Z
 
 
+from scipy.optimize import minimize
+
+
+def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
+    """_summary_
+    Args:
+        Z (float): Height
+        R (float): Radius
+        G_l (float): Liquid flowrate
+        G_gas (float): Gas flowrate
+        pl_in (float): T pressure inlet
+        pl_out (float): T pressure outlet
+        T (float): Temperature
+        p_t pressure Pa of the column
+        K_S Sievert's constant
+    Returns:
+        B_l liquid load
+        k_la mass transfer coefficient in packed column
+    """
+    c_out_guess = pl_in**0.5 * K_S * 0.9
+
+    def lenght_residual(c_out):
+        pl_out_2 = c_out**2 / K_S**2
+        z_guess = length_extractor_lm(
+            R, G_l, G_gas, pl_in, pl_out_2, T, p_t, K_S, pg_in, kla
+        )
+        if z_guess is None:
+            return 1
+        return abs(Z - z_guess)
+
+    c_in = pl_in**0.5 * K_S
+    c_out = minimize(
+        lenght_residual,
+        c_out_guess,
+        method="Powell",
+        bounds=[(0, c_in)],
+        tol=1e-12,
+    ).x[0]
+    eff = 1 - c_out / c_in
+    return c_out, eff
+
+
+def get_c_out_GLC_ms(Z, R, G_l, G_gas, pl_in, T, p_t, K_H, pg_in, kla):
+    """_summary_
+    Args:
+        Z (float): Height
+        R (float): Radius
+        G_l (float): Liquid flowrate
+        G_gas (float): Gas flowrate
+        pl_in (float): T pressure inlet
+        pl_out (float): T pressure outlet
+        T (float): Temperature
+        p_t pressure Pa of the column
+        K_S Sievert's constant
+    Returns:
+        B_l liquid load
+        k_la mass transfer coefficient in packed column
+    """
+    c_out_guess = pl_in * K_H * 0.999
+
+    def lenght_residual_ms(c_out):
+        pl_out_2 = c_out / K_H
+        z_guess = length_extractor_ms(
+            R, G_l, G_gas, pl_in, pl_out_2, T, p_t, K_H, pg_in, kla
+        )
+        if z_guess is None:
+            return 1
+        return abs(Z - z_guess)
+
+    c_in = pl_in * K_H
+    c_out = minimize(
+        lenght_residual_ms,
+        c_out_guess,
+        method="Powell",
+        bounds=[(0, c_in)],
+        tol=1e-12,
+    ).x[0]
+    eff = 1 - c_out / c_in
+    return c_out, eff
+
+
 def pack_corr(a, d, D, eta, v):
     k_l = (
         0.0051
