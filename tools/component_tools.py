@@ -161,7 +161,7 @@ class Circuit(TriomaClass):
         vec_components = []
         if components is not None:
             for element in components:
-                if isinstance(element, Union[Component, BreedingBlanket]):
+                if isinstance(element, Union[Component, BreedingBlanket,GLC]):
                     vec_components.append(element)
                 elif isinstance(element, Circuit):
                     for comp in element.components:
@@ -172,7 +172,7 @@ class Circuit(TriomaClass):
         self.closed = closed
 
     def add_component(
-        self, component: Union["Component", "BreedingBlanket", "Circuit"]
+        self, component: Union["Component", "BreedingBlanket", "Circuit","GLC"]
     ):
         """
         Adds a component to the circuit.
@@ -231,6 +231,10 @@ class Circuit(TriomaClass):
             )
 
         for i, component in enumerate(self.components):
+            if isinstance(component, GLC):
+                    component.get_c_out()
+                    if i != len(self.components) - 1:
+                        component.connect_to_component(self.components[i + 1])
             if isinstance(component, Component):
                 component.use_analytical_efficiency(p_out=component.p_out)
                 component.outlet_c_comp()
@@ -536,7 +540,10 @@ class Circuit(TriomaClass):
                 flag_bb = 1
         while flag == 0:
             for i, component in enumerate(self.components):
-
+                if isinstance(component, GLC):
+                    component.get_c_out()
+                    if i != len(self.components) - 1:
+                        component.connect_to_component(self.components[i + 1])
                 if isinstance(component, Component):
                     component.use_analytical_efficiency(p_out=component.p_out)
                     component.outlet_c_comp()
@@ -2935,7 +2942,11 @@ class GLC(TriomaClass):
                 )
 
         return z
-
+    def connect_to_component(
+        self, component2: Union["Component", "BreedingBlanket"] = None
+    ):
+        """sets the inlet conc of the object component equal to the outlet of self"""
+        component2.update_attribute("c_in", self.c_out)
 
 class FluidMaterial(TriomaClass):
     """
