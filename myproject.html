@@ -44,7 +44,24 @@
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">TRIOMA API Documentation</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#correlations">Correlations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-src.TRIOMA.tools.correlations">Correlations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.Nu_DittusBoelter"><code class="docutils literal notranslate"><span class="pre">Nu_DittusBoelter()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.Nu_Gnielinsky"><code class="docutils literal notranslate"><span class="pre">Nu_Gnielinsky()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.Nu_SiederTate"><code class="docutils literal notranslate"><span class="pre">Nu_SiederTate()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.Pr"><code class="docutils literal notranslate"><span class="pre">Pr()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.Re"><code class="docutils literal notranslate"><span class="pre">Re()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.Schmidt"><code class="docutils literal notranslate"><span class="pre">Schmidt()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.Sherwood"><code class="docutils literal notranslate"><span class="pre">Sherwood()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.Sherwood_HT_analogy"><code class="docutils literal notranslate"><span class="pre">Sherwood_HT_analogy()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.Sherwood_bubbles"><code class="docutils literal notranslate"><span class="pre">Sherwood_bubbles()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.f_Haaland"><code class="docutils literal notranslate"><span class="pre">f_Haaland()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.f_Pethukov"><code class="docutils literal notranslate"><span class="pre">f_Pethukov()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.get_deltaTML"><code class="docutils literal notranslate"><span class="pre">get_deltaTML()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.get_h_from_Nu"><code class="docutils literal notranslate"><span class="pre">get_h_from_Nu()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.get_k_from_Sh"><code class="docutils literal notranslate"><span class="pre">get_k_from_Sh()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.get_length_HX"><code class="docutils literal notranslate"><span class="pre">get_length_HX()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#component-class">Component Class</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#circuit-class">Circuit Class</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#fluid-class">Fluid Class</a></li>
@@ -83,8 +100,186 @@
   <section id="trioma-api-documentation">
 <h1>TRIOMA API Documentation<a class="headerlink" href="#trioma-api-documentation" title="Link to this heading"></a></h1>
 <p>In this section the documentation for all modules in TRIOMA:</p>
-<section id="correlations">
-<h2>Correlations<a class="headerlink" href="#correlations" title="Link to this heading"></a></h2>
+<section id="module-src.TRIOMA.tools.correlations">
+<span id="correlations"></span><h2>Correlations<a class="headerlink" href="#module-src.TRIOMA.tools.correlations" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.Nu_DittusBoelter">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Nu_DittusBoelter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Pr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.Nu_DittusBoelter" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Nusselt number using the Dittus-Boelter correlation.
+Parameters:
+- Re (float): Reynolds number
+- Pr (float): Prandtl number
+Returns:
+- Nu (float): Nusselt number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.Nu_Gnielinsky">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Nu_Gnielinsky</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Pr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">f</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.Nu_Gnielinsky" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Nusselt number using the Gnielinsky correlation.
+Parameters:
+- Re (float): Reynolds number
+- Pr (float): Prandtl number
+- f (float): friction factor
+Returns:
+- Nu (float): Nusselt number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.Nu_SiederTate">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Nu_SiederTate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Pr</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_w</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu_c</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.Nu_SiederTate" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Nusselt number using the Sieder-Tate correlation.</p>
+<p>Parameters:
+- Re (float): Reynolds number
+- Pr (float): Prandtl number
+- mu_w (float): viscosity of the wall fluid
+- mu_c (float): viscosity of the core fluid</p>
+<p>Returns:
+- Nu (float): Nusselt number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.Pr">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Pr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c_p</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.Pr" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Prandtl number.
+Parameters:
+- c_p (float): specific heat capacity
+- mu (float): viscosity
+- k (float): thermal conductivity
+Returns:
+- Pr (float): Prandtl number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.Re">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Re</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rho</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">u</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.Re" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Reynolds number.
+Parameters:
+- rho (float): density
+- u (float): velocity
+- L (float): length
+- mu (float): viscosity
+Returns:
+- Re (float): Reynolds number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.Schmidt">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Schmidt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">D</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rho</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.Schmidt" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Schmidt number.
+Parameters:
+- D (float): diffusivity
+- mu (float): viscosity
+- rho (float): density
+Returns:
+- Sc (float): Schmidt number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.Sherwood">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Sherwood</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Sc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Re</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.Sherwood" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Sherwood number.
+Parameters:
+- Sc (float): Schmidt number
+- Re (float): Reynolds number
+Returns:
+- Sh (float): Sherwood number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.Sherwood_HT_analogy">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Sherwood_HT_analogy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Sc</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.Sherwood_HT_analogy" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Sherwood number using the heat transfer analogy.
+Parameters:
+- Re (float): Reynolds number
+- Sc (float): Schmidt number
+Returns:
+- Sh (float): Sherwood number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.Sherwood_bubbles">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">Sherwood_bubbles</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Sc</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Re</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.Sherwood_bubbles" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Sherwood number for bubbles.
+Parameters:
+- Sc (float): Schmidt number
+- Re (float): Reynolds number
+Returns:
+- Sh (float): Sherwood number</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.f_Haaland">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">f_Haaland</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">e_D</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.f_Haaland" title="Link to this definition"></a></dt>
+<dd><p>Calculate the friction factor using the Haaland correlation.
+Parameters:
+- Re (float): Reynolds number
+- e_D (float): relative roughness
+Returns:
+- f (float): friction factor</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.f_Pethukov">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">f_Pethukov</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Re</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Pr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.f_Pethukov" title="Link to this definition"></a></dt>
+<dd><p>Calculate the friction factor using the Pethukov correlation.
+Parameters:
+- Re (float): Reynolds number
+- Pr (float): Prandtl number
+Returns:
+- f (float): friction factor</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.get_deltaTML">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">get_deltaTML</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">T_in_hot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_out_hot</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_in_cold</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_out_cold</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.get_deltaTML" title="Link to this definition"></a></dt>
+<dd><p>Calculate the log mean temperature difference.
+Parameters:
+- T_in_hot (float): hot inlet temperature
+- T_out_hot (float): hot outlet temperature
+- T_in_cold (float): cold inlet temperature
+- T_out_cold (float): cold outlet temperature
+Returns:
+- deltaTML (float): log mean temperature difference</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.get_h_from_Nu">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">get_h_from_Nu</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Nu</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">k</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.get_h_from_Nu" title="Link to this definition"></a></dt>
+<dd><p>Calculate the heat transfer coefficient from the Nusselt number.
+Parameters:
+- Nu (float): Nusselt number
+- k (float): thermal conductivity
+- D (float): diameter
+Returns:
+- h (float): heat transfer coefficient</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.get_k_from_Sh">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">get_k_from_Sh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">Sh</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">D</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.get_k_from_Sh" title="Link to this definition"></a></dt>
+<dd><p>Calculate the mass transfer coefficient from the Sherwood number.
+Parameters:
+- Sh (float): Sherwood number
+- L (float): length
+- D (float): diameter
+Returns:
+- k (float): mass transfer coefficient</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.correlations.get_length_HX">
+<span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.correlations.</span></span><span class="sig-name descname"><span class="pre">get_length_HX</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">deltaTML</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">d_hyd</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">U</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.correlations.get_length_HX" title="Link to this definition"></a></dt>
+<dd><p>Calculate the length of the heat exchanger.
+Parameters:
+- deltaTML (float): log mean temperature difference
+- d_hyd (float): hydraulic diameter
+- U (float): overall heat transfer coefficient
+- Q (float): heat transfer rate
+Returns:
+- L (float): length of the heat exchanger</p>
+</dd></dl>
+
 </section>
 <section id="component-class">
 <h2>Component Class<a class="headerlink" href="#component-class" title="Link to this heading"></a></h2>
