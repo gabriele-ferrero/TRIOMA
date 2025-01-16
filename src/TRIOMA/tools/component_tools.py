@@ -2,9 +2,9 @@ import numpy as np
 import math
 
 from sklearn.neighbors import RadiusNeighborsRegressor
-import tools.molten_salts as MS
-import tools.liquid_metals as LM
-import tools.correlations as corr
+import TRIOMA.tools.molten_salts as MS
+import TRIOMA.tools.liquid_metals as LM
+import TRIOMA.tools.correlations as corr
 import matplotlib.pyplot as plt
 from scipy.constants import N_A
 from scipy.constants import physical_constants
@@ -161,7 +161,7 @@ class Circuit(TriomaClass):
         vec_components = []
         if components is not None:
             for element in components:
-                if isinstance(element, Union[Component, BreedingBlanket]):
+                if isinstance(element, Union[Component, BreedingBlanket, GLC]):
                     vec_components.append(element)
                 elif isinstance(element, Circuit):
                     for comp in element.components:
@@ -172,7 +172,7 @@ class Circuit(TriomaClass):
         self.closed = closed
 
     def add_component(
-        self, component: Union["Component", "BreedingBlanket", "Circuit"]
+        self, component: Union["Component", "BreedingBlanket", "Circuit", "GLC"]
     ):
         """
         Adds a component to the circuit.
@@ -231,6 +231,10 @@ class Circuit(TriomaClass):
             )
 
         for i, component in enumerate(self.components):
+            if isinstance(component, GLC):
+                component.get_c_out()
+                if i != len(self.components) - 1:
+                    component.connect_to_component(self.components[i + 1])
             if isinstance(component, Component):
                 component.use_analytical_efficiency(p_out=component.p_out)
                 component.outlet_c_comp()
@@ -536,7 +540,10 @@ class Circuit(TriomaClass):
                 flag_bb = 1
         while flag == 0:
             for i, component in enumerate(self.components):
-
+                if isinstance(component, GLC):
+                    component.get_c_out()
+                    if i != len(self.components) - 1:
+                        component.connect_to_component(self.components[i + 1])
                 if isinstance(component, Component):
                     component.use_analytical_efficiency(p_out=component.p_out)
                     component.outlet_c_comp()
@@ -2737,7 +2744,7 @@ class GLC_Gas(TriomaClass):
         self.pg_out = pg_out
 
 
-from tools import extractor
+from TRIOMA.tools import extractor
 
 
 class GLC(TriomaClass):
@@ -2823,6 +2830,45 @@ class GLC(TriomaClass):
             D=self.fluid.D,
         )
 
+    def get_c_out(self):
+        """
+        Calculates the outlet concentration of the GLC.
+        The outlet concentration is calculated based on the inlet concentration, the efficiency of the GLC, and the fluid properties.
+        Returns:
+            None
+        """
+        match self.fluid.MS:
+            case False:
+                c_out, eff = extractor.get_c_out_GLC_lm(
+                    Z=self.H,
+                    R=self.R,
+                    G_l=self.G_L,
+                    G_gas=self.GLC_gas.G_gas,
+                    pl_in=self.c_in**2 / self.fluid.Solubility**2,
+                    T=self.T,
+                    p_t=self.GLC_gas.p_tot,
+                    K_S=self.fluid.Solubility,
+                    pg_in=self.GLC_gas.pg_in,
+                    kla=self.kla,
+                )
+                self.eff = eff
+                self.c_out = c_out
+            case True:
+                c_out, eff = extractor.get_c_out_GLC_ms(
+                    Z=self.H,
+                    R=self.R,
+                    G_l=self.G_L,
+                    G_gas=self.GLC_gas.G_gas,
+                    pl_in=self.c_in / self.fluid.Solubility,
+                    T=self.T,
+                    p_t=self.GLC_gas.p_tot,
+                    K_H=self.fluid.Solubility,
+                    pg_in=self.GLC_gas.pg_in,
+                    kla=self.kla,
+                )
+                self.eff = eff
+                self.c_out = c_out
+
     def get_kla_from_cout(self):
         match self.fluid.MS:
             case False:
@@ -2896,6 +2942,12 @@ class GLC(TriomaClass):
                 )
 
         return z
+
+    def connect_to_component(
+        self, component2: Union["Component", "BreedingBlanket"] = None
+    ):
+        """sets the inlet conc of the object component equal to the outlet of self"""
+        component2.update_attribute("c_in", self.c_out)
 
 
 class FluidMaterial(TriomaClass):

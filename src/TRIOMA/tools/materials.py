@@ -1,4 +1,4 @@
-from tools.component_tools import FluidMaterial, SolidMaterial
+from TRIOMA.tools.component_tools import FluidMaterial, SolidMaterial
 import numpy as np
 
 N_A = 6.022e23

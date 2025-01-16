@@ -4,7 +4,7 @@ import os
 
 sys.path.append(os.path.abspath("."))
 import unittest
-from tools.component_tools import (
+from TRIOMA.tools.component_tools import (
     Component,
     Fluid,
     Membrane,
@@ -14,7 +14,7 @@ from tools.component_tools import (
     Geometry,
     Circuit,
 )
-from tools.materials import Flibe, Steel, Sodium, LiPb
+from TRIOMA.tools.materials import Flibe, Steel, Sodium, LiPb
 from io import StringIO
 from unittest.mock import patch
 import pytest
