@@ -21,4 +21,4 @@ dependencies = [
     "pandas==1.5.3",
     "scikit-learn==1.5.0",
     "traitlets==5.14.3"
-    ]
+]
