@@ -1,4 +1,4 @@
-import tools.liquid_metals as lm
+import src.TRIOMA.tools.liquid_metals as lm
 
 
 def W(k_r, D, thick, K_S, c0, K_S_L):

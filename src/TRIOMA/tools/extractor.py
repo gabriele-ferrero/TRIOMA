@@ -1,5 +1,5 @@
 import numpy
-import tools.correlations as cor
+import src.TRIOMA.tools.correlations as cor
 import scipy.integrate as integrate
 
 

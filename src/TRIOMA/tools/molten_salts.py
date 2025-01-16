@@ -1,4 +1,4 @@
-import tools.molten_salts as ms
+import src.TRIOMA.tools.molten_salts as ms
 
 
 def W(k_d, D, thick, K_S, c0, k_H):
