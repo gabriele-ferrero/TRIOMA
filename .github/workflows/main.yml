@@ -20,7 +20,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install git+https://github.com/gabriele-ferrero/TRIOMA.git@GLC
 
     - name: Run tests
       run: |
