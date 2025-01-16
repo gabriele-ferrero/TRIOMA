@@ -2,9 +2,9 @@ import numpy as np
 import math
 
 from sklearn.neighbors import RadiusNeighborsRegressor
-import src.TRIOMA.tools.molten_salts as MS
-import src.TRIOMA.tools.liquid_metals as LM
-import src.TRIOMA.tools.correlations as corr
+import TRIOMA.tools.molten_salts as MS
+import TRIOMA.tools.liquid_metals as LM
+import TRIOMA.tools.correlations as corr
 import matplotlib.pyplot as plt
 from scipy.constants import N_A
 from scipy.constants import physical_constants
@@ -2744,7 +2744,7 @@ class GLC_Gas(TriomaClass):
         self.pg_out = pg_out
 
 
-from src.TRIOMA.tools import extractor
+from TRIOMA.tools import extractor
 
 
 class GLC(TriomaClass):

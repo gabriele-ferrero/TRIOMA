@@ -2,7 +2,7 @@ import sys
 import os
 
 sys.path.append(os.path.abspath("."))
-from src.TRIOMA.tools.correlations import (
+from TRIOMA.tools.correlations import (
     get_deltaTML,
     Nu_SiederTate,
     Nu_Gnielinsky,

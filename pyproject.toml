@@ -10,7 +10,7 @@ authors = [
 description = "Fusion fuel component models model"
 version = "0.0.1"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11.7"
 dependencies = [
     "scipy==1.14.0",
     "numpy==1.26.4",
