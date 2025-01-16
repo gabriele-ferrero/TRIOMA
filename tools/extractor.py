@@ -192,7 +192,7 @@ def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
         z_guess = length_extractor_lm(
             R, G_l, G_gas, pl_in, pl_out_2, T, p_t, K_S, pg_in, kla
         )
-        print(z_guess, c_out)
+        # print(z_guess, c_out)
         return abs(float(Z - z_guess) ** 2)
 
     c_in = pl_in**0.5 * K_S
@@ -201,16 +201,14 @@ def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
     u_g = G_gas / Area / p_t * 1e5 * T / 288.15
     # c_out_max=max(c_in-u_l/u_g/2*(pl_in*R_const*T)**0.5,0)
     c_g_max = pl_in / R_const / T
-    print("c_g max " + str(c_g_max))
-    print(
-        "pl in " + str(pl_in) + " c in " + str(c_in),
-        "u_g " + str(u_g),
-        "u_l " + str(u_l),
-    )
-    # c_out_max = max(c_in - u_g / u_l * 2 * c_g_max, 0)
-
+    # print("c_g max " + str(c_g_max))
+    # print(
+    #     "pl in " + str(pl_in) + " c in " + str(c_in),
+    #     "u_g " + str(u_g),
+    #     "u_l " + str(u_l),
+    # )
     c_out_max = max(c_in - u_g / u_l * 2 * c_g_max, 0)
-    print("c_out max " + str(c_out_max) + " c in " + str(c_in))
+    # print("c_out max " + str(c_out_max) + " c in " + str(c_in))
     c_out = minimize(
         lenght_residual,
         c_in / 2 + c_out_max / 2,
@@ -219,13 +217,18 @@ def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
         tol=1e-15,
         options={"maxiter": 1e8, "xatol": 1e-8, "adaptive": True, "fatol": 1e-15},
     ).x[0]
-    print(c_out, c_in)
+    # print(c_out, c_in)
     eff = 1 - c_out / c_in
     L_cout = length_extractor_lm(
         R, G_l, G_gas, pl_in, c_out**2 / K_S**2, T, p_t, K_S, pg_in, kla
     )
     if abs(L_cout - Z) > 1e-3:
         print("Warning!: guessed length is not equal to the height", L_cout, Z)
+    if abs(c_out - c_out_max) < 1e-5:
+        print("The sweep gas saturated")
+        if L_cout < Z:
+            print(" Longer column would not increment the extraction efficiency")
+
     return c_out, eff
 
 
