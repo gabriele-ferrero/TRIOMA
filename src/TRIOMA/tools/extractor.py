@@ -162,7 +162,7 @@ def extractor_ms(Z, R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in):
     return [B_l, kla_c]
 
 
-def length_extractor_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, kla):
+def length_extractor_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, kla, c_max=0):
     """_summary_
     Args:
         R (float): Radius
@@ -179,7 +179,7 @@ def length_extractor_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, kla):
     """
     Area = numpy.pi * R**2
     u_l = G_l / Area  # Liquid velocity
-    integral = NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in)
+    integral = NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, c_max=c_max)
 
     Z = u_l / kla * integral
     return Z
