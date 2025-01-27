@@ -1,7 +1,5 @@
 import numpy as np
 import math
-
-from sklearn.neighbors import RadiusNeighborsRegressor
 import TRIOMA.tools.molten_salts as MS
 import TRIOMA.tools.liquid_metals as LM
 import TRIOMA.tools.correlations as corr
