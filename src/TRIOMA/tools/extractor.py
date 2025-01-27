@@ -29,7 +29,7 @@ def extractor_lm(Z, R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in):
     return [B_l, kla_c]
 
 
-def length_extractor_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, kla):
+def length_extractor_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, kla, c_max=0):
     """_summary_
     Args:
         Z (float): Height
@@ -47,15 +47,12 @@ def length_extractor_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, kla):
     """
     Area = numpy.pi * R**2
     u_l = G_l / Area  # Liquid velocity
-    integral = NTU_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in)
+    integral = NTU_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, c_max)
     Z = u_l / kla * integral
-    # if Z < 0:
-    #     print("Warning: the system is not feasable or the integral is not accurate")
-    #     return None
     return Z
 
 
-def NTU_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in):
+def NTU_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, c_max=0):
     """
     solving integral equation from (5) of "The engineering sizing of the packed desorption column of hydrogen
     # isotopes from Pb–17Li eutectic alloy. A rate based model using
@@ -63,31 +60,52 @@ def NTU_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in):
     """
     Area = numpy.pi * R**2
     u_l = G_l / Area  # Liquid velocity
-    R_g = 2 * G_gas / G_l
+
     R_const = 8.314
-    u_g = G_gas / Area / p_t * 1e5 * T / 288.15
-    c_in = pl_in**0.5 * K_S
-    c_out = pl_out**0.5 * K_S
+    u_g = G_gas / Area / p_t * 1e5 * T / 288.15  ## gas velocity
+    R_g = 2 * u_g / u_l  ## gas on liquid ratio
+    c_in = pl_in**0.5 * K_S  # inlet concentration in liquid
+    c_out = pl_out**0.5 * K_S  # outlet concentration in liquid
     c_in_gas = pg_in / R_const / T
 
     def toint(c):
         value = 1 / (
-            c
-            - K_S
-            * (u_l / 2 / u_g * R_const * T) ** 0.5
-            * (c - c_out + c_in_gas * 2 * u_g / u_l) ** 0.5
+            c - K_S * ((R_const * T / R_g) * (c - c_out + c_in_gas * R_g)) ** 0.5
         )
-        # if value<0:
-        #     print("Warning: negative value of the integral", value)
-        #     print("c out is "   +str(c_out) + " c in is " + str(c_in) + " c is " + str(c) + " c in gas is " + str(c_in_gas))
-        #     return 0
         return value
 
-    integral = integrate.quad(toint, c_out, c_in, maxp1=1e3)
+    c_g_max = pl_in / R_const / T  # maximum concentration in gas
+    c_out_max = max(
+        c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
+        c_max,  # given input from equation
+        (pg_in) ** 0.5 * K_S,  ## if liquid is in equilibrium with gas at outlet
+    )
+
+    integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
+    if integral[0] < 0:
+        ## for debugging reasons as for now
+        print("Warning: negative value of the integral", integral)
+        print(
+            "c out is "
+            + str(c_out)
+            + " c in is "
+            + str(c_in)
+            + " c in gas is "
+            + str(c_in_gas)
+            + " p in liquid is "
+            + str(pl_in)
+            + " p in gas is "
+            + str(pg_in)
+            + "solubility is "
+            + str(K_S)
+            + "rg is "
+            + str(R_g)
+        )
+        print(" c out max is " + str(c_out_max))
     return integral[0]
 
 
-def NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in):
+def NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, c_max=0):
     """
     solving integral equation from (5) of "The engineering sizing of the packed desorption column of hydrogen
     # isotopes from Pb–17Li eutectic alloy. A rate based model using
@@ -95,19 +113,27 @@ def NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in):
     # but for molten salts by changing the evolution of c star following the Henry's law
     """
     Area = numpy.pi * R**2
-    B_l = (G_l) / Area * 3600
     u_l = G_l / Area  # Liquid velocity
     c_in = pl_in * K_H
     c_out = pl_out * K_H
     R_const = 8.314
     u_g = G_gas / Area / p_t * 1e5 * T / 288.15
     c_in_gas = pg_in / R_const / T
+    R_g = u_g / u_l  ## gas on liquid ratio
 
     def toint(c):
         return 1 / (
             c - K_H * (u_l / u_g * R_const * T) * (c - c_out + c_in_gas * u_g / u_l)
         )
 
+    c_g_max = pl_in / R_const / T  # maximum concentration in gas
+    c_out_max = max(
+        c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
+        c_max,  # given input from equation
+        pg_in * K_H,  ## if liquid is in equilibrium with gas at outlet
+    )
+
+    integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
     integral = integrate.fixed_quad(toint, c_out, c_in)
     return integral[0]
 
@@ -156,13 +182,10 @@ def length_extractor_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, kla):
     integral = NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in)
 
     Z = u_l / kla * integral
-    if Z < 0:
-        print("Warning: the system is not feasable or the integral is not accurate")
-        return None
     return Z
 
 
-from scipy.optimize import minimize
+from scipy.optimize import minimize, root
 
 
 def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
@@ -181,54 +204,68 @@ def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
         B_l liquid load
         k_la mass transfer coefficient in packed column
     """
-    # c_out_guess = pl_in**0.5 * K_S * (1 - 1e-5)
     u_l = G_l / (numpy.pi * R**2)
-
-    # p_out_guess=pl_in*(numpy.exp(-Z/u_l*2*kla))
-    # print(p_out_guess, pl_in)
-    # c_out_guess = p_out_guess**0.5 * K_S
-    def lenght_residual(c_out):
-        pl_out_2 = c_out**2 / K_S**2
-        z_guess = length_extractor_lm(
-            R, G_l, G_gas, pl_in, pl_out_2, T, p_t, K_S, pg_in, kla
-        )
-        # print(z_guess, c_out)
-        return abs(float(Z - z_guess) ** 2)
-
     c_in = pl_in**0.5 * K_S
+    c_out_max_reaction = c_in - kla * Z / u_l * (
+        c_in - pg_in**0.5 * K_S
+    )  ## concentration at the outlet assuming maximum reaction rate possible
     R_const = 8.314
     Area = numpy.pi * R**2
     u_g = G_gas / Area / p_t * 1e5 * T / 288.15
-    # c_out_max=max(c_in-u_l/u_g/2*(pl_in*R_const*T)**0.5,0)
-    c_g_max = pl_in / R_const / T
-    # print("c_g max " + str(c_g_max))
-    # print(
-    #     "pl in " + str(pl_in) + " c in " + str(c_in),
-    #     "u_g " + str(u_g),
-    #     "u_l " + str(u_l),
-    # )
-    c_out_max = max(c_in - u_g / u_l * 2 * c_g_max, 0)
-    # print("c_out max " + str(c_out_max) + " c in " + str(c_in))
+    c_g_max = pl_in / R_const / T  ## maximum gas concentration according with liquid
+    c_out_max = max(
+        c_in
+        - u_g
+        / u_l
+        * 2
+        * (
+            c_g_max - pg_in / R_const / T
+        ),  ## liquid concentration if gas strips as much as possible and gets into eq with liquid
+        (pg_in) ** 0.5
+        * K_S,  ## liquid concentration if it gets in equilibrium with gas
+        c_out_max_reaction,  ## liquid concentration if reaction rate is at the maximum
+    )
+
+    def lenght_residual(c_out):
+        pl_out_2 = c_out**2 / K_S**2
+        z_guess = length_extractor_lm(
+            R,
+            G_l,
+            G_gas,
+            pl_in,
+            pl_out_2,
+            T,
+            p_t,
+            K_S,
+            pg_in,
+            kla,
+            c_max=c_out_max,
+        )
+        return abs(float(Z - z_guess) ** 2)
+
     c_out = minimize(
         lenght_residual,
-        c_in / 2 + c_out_max / 2,
-        method="Nelder-Mead",
+        c_out_max + (c_in - c_out_max) / 2,
+        method="Powell",
         bounds=[(float(c_out_max), float(c_in))],
-        tol=1e-15,
-        options={"maxiter": 1e8, "xatol": 1e-8, "adaptive": True, "fatol": 1e-15},
+        tol=1e-20,
+        options={"maxiter": 1e8, "xatol": 1e-20, "fatol": 1e-20},
     ).x[0]
-    # print(c_out, c_in)
     eff = 1 - c_out / c_in
     L_cout = length_extractor_lm(
         R, G_l, G_gas, pl_in, c_out**2 / K_S**2, T, p_t, K_S, pg_in, kla
     )
     if abs(L_cout - Z) > 1e-3:
-        print("Warning!: guessed length is not equal to the height", L_cout, Z)
-    if abs(c_out - c_out_max) < 1e-5:
+        print(
+            "Warning!: guessed length is not equal to the height. Double check your result",
+            L_cout,
+            Z,
+        )
+    if abs(c_out - c_out_max) < 1e-8:
         print("The sweep gas saturated")
         if L_cout < Z:
             print(" Longer column would not increment the extraction efficiency")
-
+            eff = 1 - c_out / c_in
     return c_out, eff
 
 
@@ -248,26 +285,66 @@ def get_c_out_GLC_ms(Z, R, G_l, G_gas, pl_in, T, p_t, K_H, pg_in, kla):
         B_l liquid load
         k_la mass transfer coefficient in packed column
     """
-    c_out_guess = pl_in * K_H
+    u_l = G_l / (numpy.pi * R**2)
+    c_in = pl_in * K_H
+    c_out_max_reaction = c_in - kla * Z / u_l * (
+        c_in - pg_in * K_H
+    )  ## concentration at the outlet assuming maximum reaction rate possible
+    R_const = 8.314
+    Area = numpy.pi * R**2
+    u_g = G_gas / Area / p_t * 1e5 * T / 288.15
+    c_g_max = pl_in / R_const / T  ## maximum gas concentration according with liquid
+    c_out_max = max(
+        c_in
+        - u_g
+        / u_l
+        * (
+            c_g_max - pg_in / R_const / T
+        ),  ## liquid concentration if gas strips as much as possible and gets into eq with liquid
+        (pg_in) * K_H,  ## liquid concentration if it gets in equilibrium with gas
+        c_out_max_reaction,  ## liquid concentration if reaction rate is at the maximum
+    )
 
-    def lenght_residual_ms(c_out):
+    def lenght_residual(c_out):
         pl_out_2 = c_out / K_H
         z_guess = length_extractor_ms(
-            R, G_l, G_gas, pl_in, pl_out_2, T, p_t, K_H, pg_in, kla
+            R,
+            G_l,
+            G_gas,
+            pl_in,
+            pl_out_2,
+            T,
+            p_t,
+            K_H,
+            pg_in,
+            kla,
+            c_max=c_out_max,
         )
-        if z_guess is None:
-            return 1
-        return abs(Z - z_guess)
+        return abs(float(Z - z_guess) ** 2)
 
-    c_in = pl_in * K_H
     c_out = minimize(
-        lenght_residual_ms,
-        c_out_guess,
+        lenght_residual,
+        c_out_max + (c_in - c_out_max) / 2,
         method="Powell",
-        bounds=[(0, c_in)],
-        tol=1e-12,
+        bounds=[(float(c_out_max), float(c_in))],
+        tol=1e-20,
+        options={"maxiter": 1e8, "xatol": 1e-20, "fatol": 1e-20},
     ).x[0]
     eff = 1 - c_out / c_in
+    L_cout = length_extractor_lm(
+        R, G_l, G_gas, pl_in, c_out / K_H, T, p_t, K_H, pg_in, kla
+    )
+    if abs(L_cout - Z) > 1e-3:
+        print(
+            "Warning!: guessed length is not equal to the height. Double check your result",
+            L_cout,
+            Z,
+        )
+    if abs(c_out - c_out_max) < 1e-8:
+        print("The sweep gas saturated")
+        if L_cout < Z:
+            print(" Longer column would not increment the extraction efficiency")
+            eff = 1 - c_out / c_in
     return c_out, eff
 
 
