@@ -860,7 +860,7 @@ class Component(TriomaClass):
         T_out_hot: int = None,
         T_in_cold: int = None,
         T_out_cold: int = None,
-        R_sec: int = None,
+        R_sec: int = 0,
         Q: int = None,
         plotvar: bool = False,
     ) -> "Circuit":
@@ -870,7 +870,8 @@ class Component(TriomaClass):
         import copy
 
         deltaTML = corr.get_deltaTML(T_in_hot, T_out_hot, T_in_cold, T_out_cold)
-        self.get_global_HX_coeff(R_sec)
+        if self.U is None:
+            self.get_global_HX_coeff(R_sec)
         ratio_ps = (T_in_hot - T_out_hot) / (
             T_out_cold - T_in_cold
         )  # gets the ratio between flowrate and heat capacity of primary and secondary fluid
@@ -901,8 +902,6 @@ class Component(TriomaClass):
                 T_in_cold=T_vec_s[i] + (T_vec_p[i + 1] - T_vec_p[i]) / ratio_ps,
                 T_out_cold=T_vec_s[i],
             )
-
-            component.get_global_HX_coeff(R_sec)
             L_vec.append(
                 corr.get_length_HX(
                     deltaTML=deltaTML,
@@ -3120,7 +3119,8 @@ class BreedingBlanket(TriomaClass):
         Returns:
             None
         """
-        self.get_flowrate()
+        if self.m_coolant is None:
+            self.get_flowrate()
         eV_to_J = physical_constants["electron volt-joule relationship"][0]
         reaction_energy = 17.6e6  # reaction energy in eV 17.6 MeV
         neutrons = self.Q / (reaction_energy * eV_to_J)
