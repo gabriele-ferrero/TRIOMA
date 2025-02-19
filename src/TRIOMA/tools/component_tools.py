@@ -1,3 +1,4 @@
+from cProfile import label
 import numpy as np
 import math
 import TRIOMA.tools.molten_salts as MS
@@ -985,6 +986,7 @@ class Component(TriomaClass):
         R_sec: float = None,
         Q: float = None,
         plotvar: bool = False,
+        savevar: bool = False,
     ) -> "Circuit":
         """
         Splits the component into N components to better discretize Temperature effects
@@ -994,7 +996,7 @@ class Component(TriomaClass):
         import copy
 
         eff_v = []
-        for N in range(10, 101, 10):
+        for N in range(10, 101, 2):
             circuit = self.split_HX(
                 N=N,
                 T_in_hot=T_in_hot,
@@ -1008,23 +1010,43 @@ class Component(TriomaClass):
 
             circuit.get_eff_circuit()
             eff_v.append(circuit.eff)
-        x_values = range(10, 101, 10)
+        x_values = range(10, 101, 2)
         if plotvar == True:
             fig, axs = plt.subplots(1, 2, figsize=(10, 5))
 
             # First subplot
             axs[0].plot(x_values, eff_v)
             axs[0].set_xlabel("Number of components")
-            axs[0].set_ylabel("Efficiency")
+            axs[0].set_ylabel(r"$\eta$")
 
             # Second subplot
-            axs[1].semilogy(x_values, abs(eff_v - eff_v[-1]) / eff_v[-1] * 100)
+            axs[1].semilogy(
+                x_values,
+                abs(eff_v - eff_v[-1]) / eff_v[-1] * 100,
+                label="Relative error %",
+            )
             axs[1].set_xlabel("Number of components")
             axs[1].set_ylabel(
-                f"Relative error in efficiency (%) with respect to {100} components"
+                r"Relative error (%) in $\eta$ with respect to 100 components"
             )
-
+            axs[1].hlines(
+                tol * 100,
+                10,
+                100,
+                colors="r",
+                linestyles="dashed",
+                label=f"Tolerance {tol*100}%",
+            )
+            ## remove top and right spines
+            axs[0].spines["top"].set_visible(False)
+            axs[0].spines["right"].set_visible(False)
+            axs[1].spines["top"].set_visible(False)
+            axs[1].spines["right"].set_visible(False)
+            axs[1].legend(frameon=False, loc="upper right")
             plt.tight_layout()
+            if savevar:
+                # Save and show the figure
+                plt.savefig("HX_convergence.png", dpi=300)
             plt.show()
 
     def T_leak(self) -> float:
