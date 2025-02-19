@@ -950,7 +950,7 @@ class Component(TriomaClass):
                 ["Primary fluid", "Secondary fluid", "Membrane"], frameon=False
             )
             axes[0].set_ylabel("Temperature [K]")
-            axes[0].set_title("Temperature Distribution Across Segments")
+            axes[0].set_xlabel("Component number")
             axes[0].spines["top"].set_visible(False)
             axes[0].spines["right"].set_visible(False)
 
@@ -963,7 +963,6 @@ class Component(TriomaClass):
             )
             axes[1].set_xlabel("Position in HX [m]")
             axes[1].set_ylabel("Temperature [K]")
-            axes[1].set_title("Temperature Distribution Along Position")
             axes[1].spines["top"].set_visible(False)
             axes[1].spines["right"].set_visible(False)
 
