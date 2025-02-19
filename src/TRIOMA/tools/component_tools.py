@@ -3058,6 +3058,7 @@ class BreedingBlanket(TriomaClass):
         T_in: float = None,
         fluid: Fluid = None,
         name: str = None,
+        m_coolant: float = None,
     ):
         self.c_in = c_in
         self.Q = Q
@@ -3066,6 +3067,7 @@ class BreedingBlanket(TriomaClass):
         self.T_in = T_in
         self.fluid = fluid
         self.name = name
+        self.m_coolant = m_coolant
 
     def plot_component(self):
         fig, ax2 = plt.subplots(1, 1, figsize=(10, 5))
