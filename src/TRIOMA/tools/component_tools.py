@@ -606,6 +606,7 @@ class Component(TriomaClass):
         inv: float = None,
         delta_p: float = None,
         pumping_power: float = None,
+        U: float = None,
         V: float = None,
     ):
         """
@@ -631,6 +632,7 @@ class Component(TriomaClass):
         self.inv = inv
         self.p_out = p_out
         self.delta_p = delta_p
+        self.U = U
         self.pumping_power = pumping_power
         # if (
         #     isinstance(self.fluid, Fluid)
@@ -863,6 +865,7 @@ class Component(TriomaClass):
         R_sec: int = 0,
         Q: int = None,
         plotvar: bool = False,
+        savevar: bool = False,
     ) -> "Circuit":
         """
         Splits the component into N components to better discretize Temperature effects
@@ -870,8 +873,8 @@ class Component(TriomaClass):
         import copy
 
         deltaTML = corr.get_deltaTML(T_in_hot, T_out_hot, T_in_cold, T_out_cold)
-        if self.U is None:
-            self.get_global_HX_coeff(R_sec)
+
+        self.get_global_HX_coeff(R_sec)
         ratio_ps = (T_in_hot - T_out_hot) / (
             T_out_cold - T_in_cold
         )  # gets the ratio between flowrate and heat capacity of primary and secondary fluid
@@ -887,11 +890,14 @@ class Component(TriomaClass):
                     c_in=copy.deepcopy(self.c_in),
                     fluid=copy.deepcopy(self.fluid),
                     membrane=copy.deepcopy(self.membrane),
+                    U=copy.deepcopy(self.U),
                     loss=copy.deepcopy(self.loss),
                 )
             )
         T_vec_p = np.linspace(T_in_hot, T_out_hot, N)
         L_vec = []
+        position_vec = [0]
+        position = 0
         T_vec_s = []
         T_vec_membrane = []
         T_vec_s.append(T_out_cold)
@@ -914,7 +920,8 @@ class Component(TriomaClass):
             T_vec_s.append(next_T_s)
 
         for i, component in enumerate(components_list):
-
+            position += L_vec[i]
+            position_vec.append(position)
             component.geometry.L = L_vec[i]
             component.fluid.T = (T_vec_p[i] + T_vec_p[i + 1]) / 2
             average_T_s = (T_vec_s[i] + T_vec_s[i + 1]) / 2
@@ -930,12 +937,40 @@ class Component(TriomaClass):
             T_vec_membrane.append(component.membrane.T)
         circuit = Circuit(components=components_list)
 
-        if plotvar == True:
-            plt.plot(T_vec_p)
-            plt.plot(T_vec_s)
+        if plotvar:
+            fig, axes = plt.subplots(2, 1, figsize=(8, 10))
+
+            # First subplot
+            axes[0].plot(T_vec_p)
+            axes[0].plot(T_vec_s)
             x_values = np.arange(len(T_vec_membrane)) + 0.5
-            plt.plot(x_values, T_vec_membrane)
-            plt.legend(["Primary fluid", "Secondary fluid", "Membrane"])
+            axes[0].plot(x_values, T_vec_membrane)
+            axes[0].legend(
+                ["Primary fluid", "Secondary fluid", "Membrane"], frameon=False
+            )
+            axes[0].set_ylabel("Temperature [K]")
+            axes[0].set_title("Temperature Distribution Across Segments")
+            axes[0].spines["top"].set_visible(False)
+            axes[0].spines["right"].set_visible(False)
+
+            # Second subplot
+            axes[1].plot(position_vec, T_vec_p)
+            axes[1].plot(position_vec, T_vec_s)
+            axes[1].plot(position_vec[:-1], T_vec_membrane)
+            axes[1].legend(
+                ["Primary fluid", "Secondary fluid", "Membrane"], frameon=False
+            )
+            axes[1].set_xlabel("Position in HX [m]")
+            axes[1].set_ylabel("Temperature [K]")
+            axes[1].set_title("Temperature Distribution Along Position")
+            axes[1].spines["top"].set_visible(False)
+            axes[1].spines["right"].set_visible(False)
+
+            # Adjust layout
+            plt.tight_layout()
+            if savevar:
+                # Save and show the figure
+                plt.savefig("HX_temperature_profile.png", dpi=300)
             plt.show()
 
         return circuit
