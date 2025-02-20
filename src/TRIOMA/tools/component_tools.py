@@ -58,6 +58,11 @@ class TriomaClass:
         """
         if hasattr(self, attr_name):
             setattr(self, attr_name, new_value)
+            if attr_name == "n_pipes":
+                for attr, value in self.__dict__.items():
+                    if isinstance(value, object) and hasattr(value, attr_name):
+                        setattr(value, attr_name, new_value)
+                        return
         else:
             for attr, value in self.__dict__.items():
                 if isinstance(value, object) and hasattr(value, attr_name):
@@ -70,6 +75,7 @@ class TriomaClass:
             if self.D_0 is not None and self.E_d is not None:
 
                 self.D = self.D_0 * np.exp(-self.E_d / (8.617333262145e-5 * self.T))
+                return
 
 
 class Geometry(TriomaClass):
