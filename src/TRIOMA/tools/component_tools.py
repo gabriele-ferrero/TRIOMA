@@ -837,7 +837,7 @@ class Component(TriomaClass):
         """
         if self.fluid.recirculation == 0:
             self.c_out = self.c_in * (1 - self.eff)
-        else:
+        elif self.fluid.recirculation > 0:
             err = 1
             tol = 1e-6
             if self.c_in == 0:
@@ -855,6 +855,19 @@ class Component(TriomaClass):
                     self.fluid.recirculation + 1
                 )
                 err = abs((c_in - c_in1) / c_in)
+        elif self.fluid.recirculation < 0:
+            if self.fluid.recirculation <= -1:
+                RaiseError(
+                    "Bypass(negative recirculation) not valid: it is more than the flowrate"
+                )
+            if self.c_in == 0:
+                RaiseError("The inlet concentration is zero")
+            self.c_out = self.c_in * (1 - self.eff) * (
+                1 + self.fluid.recirculation
+            ) + self.c_in * (-self.fluid.recirculation)
+        else:
+            RaiseError("Recirculation factor not valid")
+        return self.c_out
 
     def split_HX(
         self,
