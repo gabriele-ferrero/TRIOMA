@@ -632,6 +632,7 @@ class Component(TriomaClass):
         pumping_power: float = None,
         U: float = None,
         V: float = None,
+        cost: float = None,
     ):
         """
         Initializes a new instance of the Component class.
@@ -658,6 +659,7 @@ class Component(TriomaClass):
         self.delta_p = delta_p
         self.U = U
         self.pumping_power = pumping_power
+        self.cost = cost
         # if (
         #     isinstance(self.fluid, Fluid)
         #     and isinstance(self.membrane, Membrane)
@@ -702,6 +704,20 @@ class Component(TriomaClass):
         f = self.friction_factor(Re)
         self.delta_p = f * (L / D) * (rho * U**2) / 2
         return self.delta_p
+
+    def estimate_cost(self, metal_cost=0, fluid_cost=0):
+        """
+        Estimates the cost of the component.
+        metal_cost: cost of the metal in $/m^3
+        fluid_cost: cost of the fluid in $/m^3
+        returns the cost of the component
+        """
+        V_solid = self.geometry.get_solid_volume()
+        V_fluid = self.geometry.get_fluid_volume()
+        cost_solid = V_solid * metal_cost * self.geometry.n_pipes
+        cost_fluid = V_fluid * fluid_cost * self.geometry.n_pipes
+        self.cost = cost_solid + cost_fluid
+        return self.cost
 
     def get_pumping_power(self) -> float:
         """
