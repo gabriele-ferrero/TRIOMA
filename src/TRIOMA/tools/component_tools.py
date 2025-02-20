@@ -61,21 +61,38 @@ class TriomaClass:
             if attr_name == "n_pipes":
                 for attr, value in self.__dict__.items():
                     if isinstance(value, object) and hasattr(value, attr_name):
+
                         setattr(value, attr_name, new_value)
-                        return
+            if attr_name == "T":
+                if isinstance(self, Membrane):
+                    if self.D_0 is not None and self.E_d is not None:
+
+                        self.D = self.D_0 * np.exp(
+                            -self.E_d / (8.617333262145e-5 * self.T)
+                        )
+                    if self.K_S_0 is not None and self.E_S is not None:
+                        self.K_S = self.K_S_0 * np.exp(
+                            -self.E_S / (8.617333262145e-5 * self.T)
+                        )
+                if isinstance(self, Fluid):
+                    if self.D_0 is not None and self.E_d is not None:
+
+                        self.D = self.D_0 * np.exp(
+                            -self.E_d / (8.617333262145e-5 * self.T)
+                        )
+                    if self.Solubility_0 is not None and self.E_S is not None:
+                        self.Solubility = self.Solubility_0 * np.exp(
+                            -self.E_S / (8.617333262145e-5 * self.T)
+                        )
+            return
         else:
             for attr, value in self.__dict__.items():
                 if isinstance(value, object) and hasattr(value, attr_name):
                     setattr(value, attr_name, new_value)
                     return
-            raise ValueError(
-                f"'{attr_name}' is not an attribute of {self.__class__.__name__}"
-            )
-        if isinstance(self, Membrane):
-            if self.D_0 is not None and self.E_d is not None:
-
-                self.D = self.D_0 * np.exp(-self.E_d / (8.617333262145e-5 * self.T))
-                return
+        raise ValueError(
+            f"'{attr_name}' is not an attribute of {self.__class__.__name__}"
+        )
 
 
 class Geometry(TriomaClass):
@@ -2771,6 +2788,8 @@ class Membrane(TriomaClass):
         self.D_0 = D_0
         self.E_d = E_d
         self.inv = inv
+        self.K_S_0 = K_S_0
+        self.E_S = E_S
 
     def set_properties_from_solid_material(
         self, solid_material: "SolidMaterial" = None
