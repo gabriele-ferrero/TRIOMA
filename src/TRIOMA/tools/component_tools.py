@@ -605,6 +605,23 @@ class Circuit(TriomaClass):
                 if component.name == name:
                     component.inspect()
 
+    def estimate_cost(self, metal_cost=0, fluid_cost=0):
+        """
+        Estimates the cost of the circuit.
+        metal_cost: cost of the metal in $/m^3 in a vector ordered as the components
+        fluid_cost: cost of the fluid in $/m^3 in a vector ordered as the components
+        returns the cost of the component
+        """
+        cost_circuit = 0
+        for i, component in enumerate(self.components):
+            if isinstance(component, Component):
+                component.estimate_cost(
+                    metal_cost=metal_cost[i], fluid_cost=fluid_cost[i]
+                )
+                cost_circuit += component.cost
+        self.cost = cost_circuit
+        return self.cost
+
 
 class Component(TriomaClass):
     """
