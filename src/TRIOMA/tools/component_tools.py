@@ -56,34 +56,31 @@ class TriomaClass:
             attr_name (str): The name of the attribute to set.
             new_value: The new value for the attribute.
         """
-        if hasattr(self, attr_name):
+        if attr_name == "T":
+            if isinstance(self, Component):
+                self.fluid.update_attribute(attr_name, new_value)
+                self.membrane.update_attribute(attr_name, new_value)
+                self.update_T_prop()
+                return
+            elif hasattr(self, attr_name):
+                setattr(self, attr_name, new_value)
+                if isinstance(self, Union[Membrane, Fluid]):
+                    self.update_T_prop()
+                return
+
+        elif hasattr(self, attr_name):
             setattr(self, attr_name, new_value)
             if attr_name == "n_pipes":
                 for attr, value in self.__dict__.items():
                     if isinstance(value, object) and hasattr(value, attr_name):
 
                         setattr(value, attr_name, new_value)
-            if attr_name == "T":
-                if isinstance(self, Membrane):
-                    if self.D_0 is not None and self.E_d is not None:
-
-                        self.D = self.D_0 * np.exp(
-                            -self.E_d / (8.617333262145e-5 * self.T)
-                        )
-                    if self.K_S_0 is not None and self.E_S is not None:
-                        self.K_S = self.K_S_0 * np.exp(
-                            -self.E_S / (8.617333262145e-5 * self.T)
-                        )
-                if isinstance(self, Fluid):
-                    if self.D_0 is not None and self.E_d is not None:
-
-                        self.D = self.D_0 * np.exp(
-                            -self.E_d / (8.617333262145e-5 * self.T)
-                        )
-                    if self.Solubility_0 is not None and self.E_S is not None:
-                        self.Solubility = self.Solubility_0 * np.exp(
-                            -self.E_S / (8.617333262145e-5 * self.T)
-                        )
+            # if attr_name == "T":
+            #     if isinstance(self, Component):
+            #         self.fluid.update_attribute(attr_name, new_value)
+            #         self.membrane.update_attribute(attr_name, new_value)
+            #         self.update_T_prop()
+            #         return
             return
         else:
             for attr, value in self.__dict__.items():
@@ -704,6 +701,15 @@ class Component(TriomaClass):
         else:
             f = 0.316 / Re**0.25  ## Blasius for smooth pipes
         return f
+
+    def update_T_prop(self):
+        """
+        Updates the temperature-dependent properties of the fluid and membrane.
+        """
+        if self.fluid is not None:
+            self.fluid.update_T_prop()
+        if self.membrane is not None:
+            self.membrane.update_T_prop()
 
     def get_pressure_drop(self) -> float:
         """
@@ -2518,6 +2524,10 @@ class Fluid(TriomaClass):
         """
         self.T = T
         self.MS = MS
+        self.D_0 = D_0
+        self.E_d = E_d
+        self.Solubility_0 = Solubility_0
+        self.E_s = E_s
         if D_0 is not None and E_d is not None:
             self.D = D_0 * np.exp(-E_d / (8.617333262145e-5 * self.T))
         else:
@@ -2555,6 +2565,15 @@ class Fluid(TriomaClass):
         self.rho = fluid_material.rho
         self.cp = fluid_material.cp
         self.k = fluid_material.k
+
+    def update_T_prop(self):
+        if self.D_0 is not None and self.E_d is not None:
+            self.D = self.D_0 * np.exp(-self.E_d / (8.617333262145e-5 * self.T))
+        if self.Solubility_0 is not None and self.E_s is not None:
+            self.Solubility = self.Solubility_0 * np.exp(
+                -self.E_s / (8.617333262145e-5 * self.T)
+            )
+        return
 
     def get_kt(self, turbulator=None):
         """
@@ -2836,6 +2855,16 @@ class Membrane(TriomaClass):
         self.T = solid_material.T
         self.D = solid_material.D
         self.K_S = solid_material.K_S
+
+    def update_T_prop(self):
+        if self.D_0 is not None and self.E_d is not None:
+            self.D = self.D_0 * np.exp(-self.E_d / (8.617333262145e-5 * self.T))
+            print("Herewego")
+        if self.K_S_0 is not None and self.E_S is not None:
+            self.K_S = self.K_S_0 * np.exp(-self.E_S / (8.617333262145e-5 * self.T))
+        print("Updated Membrane properties" + str(self.D_0) + " " + str(self.K_S_0))
+        print("the temperature is " + str(self.T))
+        return
 
 
 class GLC_Gas(TriomaClass):
