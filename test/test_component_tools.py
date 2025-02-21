@@ -377,7 +377,7 @@ class Test_BB_Component(unittest.TestCase):
     def test_outlet_c_comp(self):
         # Test the outlet_c_comp() method
         self.component.get_cout(print_var=True)
-        self.assertAlmostEqual(self.component.c_out, 0.0002947981332)
+        self.assertAlmostEqual(self.component.c_out, 0.0001473990666223908)
 
     def test_get_flowrate(self):
         self.component.get_flowrate()

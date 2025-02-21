@@ -3287,4 +3287,11 @@ class BreedingBlanket(TriomaClass):
         if print_var:
             print("neu", neutrons)
             print("Trit", tritium_gen)
-        self.c_out = tritium_gen / (self.m_coolant / self.fluid.rho) + self.c_in
+        if self.fluid.MS:
+            self.c_out = (
+                tritium_gen / 2 / (self.m_coolant / self.fluid.rho) + self.c_in
+            )  ##concentration of Q2 in molten salts
+        else:
+            self.c_out = (
+                tritium_gen / (self.m_coolant / self.fluid.rho) + self.c_in
+            )  ## concentration of Q in liquid metals
