@@ -12,6 +12,7 @@ from scipy.special import lambertw
 from typing import Union
 import matplotlib.pyplot as plt
 from scipy import integrate
+from types import MethodType
 
 
 class Geometry(TriomaClass):
@@ -596,6 +597,44 @@ class Component(TriomaClass):
         self.U = U
         self.pumping_power = pumping_power
         self.cost = cost
+        self.update_attribute = MethodType(self.custom_update_attribute, self)
+
+    def custom_update_attribute(self, attr_name: str, new_value: float):
+        """
+        Sets the specified attribute to a new value.
+
+        Args:
+            attr_name (str): The name of the attribute to set.
+            new_value: The new value for the attribute.
+        """
+        if attr_name == "T":
+            if isinstance(self, Component):
+                self.fluid.update_attribute(attr_name, new_value)
+                self.membrane.update_attribute(attr_name, new_value)
+                self.update_T_prop()
+                return
+            elif hasattr(self, attr_name):
+                setattr(self, attr_name, new_value)
+                if isinstance(self, Union[Membrane, Fluid]):
+                    self.update_T_prop()
+                return
+
+        elif hasattr(self, attr_name):
+            setattr(self, attr_name, new_value)
+            if attr_name == "n_pipes":
+                for attr, value in self.__dict__.items():
+                    if isinstance(value, object) and hasattr(value, attr_name):
+
+                        setattr(value, attr_name, new_value)
+            return
+        else:
+            for attr, value in self.__dict__.items():
+                if isinstance(value, object) and hasattr(value, attr_name):
+                    setattr(value, attr_name, new_value)
+                    return
+        raise ValueError(
+            f"'{attr_name}' is not an attribute of {self.__class__.__name__}"
+        )
 
     def friction_factor(self, Re: float) -> float:
         """
