@@ -674,17 +674,6 @@ class Component(TriomaClass):
         self.U = U
         self.pumping_power = pumping_power
         self.cost = cost
-        # if (
-        #     isinstance(self.fluid, Fluid)
-        #     and isinstance(self.membrane, Membrane)
-        #     and isinstance(self.geometry, Geometry)
-        # ):
-        #     if self.membrane.thick != self.geometry.thick:
-        #         print("overwriting Membrane thickness with Geometry thickness")
-        #     if self.fluid.d_Hyd != self.geometry.D:
-        #         print("overwriting Fluid Hydraulic diameter with Geometry Diameter")
-        # self.membrane.thick = self.geometry.thick
-        # self.fluid.d_Hyd = self.geometry.D
 
     def friction_factor(self, Re: float) -> float:
         """
@@ -2028,7 +2017,6 @@ class Component(TriomaClass):
                 self.membrane.inv = inventory
                 return inventory
             case True:
-                print("not implemented yet")
 
                 def ms_integral(self, p_out: float = 0, L: float = 0):
                     if self.tau is None or self.xi is None or self.alpha is None:
@@ -2218,9 +2206,6 @@ class Component(TriomaClass):
                     max_exp = np.log(np.finfo(np.float64).max)
                     beta_tau = beta - tau - 1
                     if beta_tau > max_exp:
-                        print(
-                            "Warning: Overflow encountered in exp, input too large.Approximation triggered. This will slow down the calculation"
-                        )
 
                         w = beta_tau - np.log(beta_tau)
 
@@ -2264,7 +2249,6 @@ class Component(TriomaClass):
                     )
 
                     if c_w_l < 0:
-                        print("negative wall conc! = " + str(c_w_l))
                         c_w_l = 1e-17
                     return (
                         (
@@ -2349,7 +2333,8 @@ class Component(TriomaClass):
                 self.fluid.inv = inventory
                 return inventory
             case True:
-                print("not implemented yet")
+                print("MS fluid integration is done numerically")
+                self.get_fluid_inventory(flag_an=False, p_out=p_out)
 
     def get_fluid_inventory(self, flag_an=False, p_out=0):
         if flag_an == True:
@@ -2457,7 +2442,6 @@ class Component(TriomaClass):
                     return c_w_l
 
         result, err = integrate.nquad(integrand, [[L_min, L_max]])
-        print(result)
         self.fluid.inv = result * np.pi * r_in**2 * self.geometry.n_pipes
         return self.fluid.inv
 
