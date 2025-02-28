@@ -31,19 +31,19 @@ class TriomaClass:
             attr_name (str): The name of the attribute to set.
             new_value: The new value for the attribute.
         """
-        if attr_name == "T":
-            if isinstance(self, Component):
-                self.fluid.update_attribute(attr_name, new_value)
-                self.membrane.update_attribute(attr_name, new_value)
-                self.update_T_prop()
-                return
-            elif hasattr(self, attr_name):
-                setattr(self, attr_name, new_value)
-                if isinstance(self, Union[Membrane, Fluid]):
-                    self.update_T_prop()
-                return
-
-        elif hasattr(self, attr_name):
+        # if attr_name == "T":
+        #     if isinstance(self, Component):
+        #         self.fluid.update_attribute(attr_name, new_value)
+        #         self.membrane.update_attribute(attr_name, new_value)
+        #         self.update_T_prop()
+        #         return
+        #     elif hasattr(self, attr_name):
+        #         setattr(self, attr_name, new_value)
+        #         if isinstance(self, Union[Membrane, Fluid]):
+        #             self.update_T_prop()
+        #         return
+        # el
+        if hasattr(self, attr_name):
             setattr(self, attr_name, new_value)
             if attr_name == "n_pipes":
                 for attr, value in self.__dict__.items():
