@@ -18,7 +18,6 @@ from scipy import integrate
 from typing import Union
 from scipy import integrate
 from TRIOMA.tools import correlations as corr
-from TRIOMA.tools import BreedingBlanket
 import TRIOMA.tools.molten_salts as MS
 import TRIOMA.tools.liquid_metals as LM
 

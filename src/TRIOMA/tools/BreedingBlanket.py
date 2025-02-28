@@ -3,7 +3,6 @@ from TRIOMA.tools.TriomaClass import TriomaClass
 from scipy.constants import N_A
 from TRIOMA.tools.Extractors.PipeSubclasses import Fluid
 from typing import Union
-from TRIOMA.tools.Extractors.PAV import Component
 import matplotlib.pyplot as plt
 
 
