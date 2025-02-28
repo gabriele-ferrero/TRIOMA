@@ -1,17 +1,5 @@
-from TRIOMA.tools.component_tools import (
-    Component,
-    Fluid,
-    Membrane,
-    FluidMaterial,
-    SolidMaterial,
-    BreedingBlanket,
-    Geometry,
-    Turbulator,
-)
-from typing import Union
-
-
 class TriomaClass:
+
     def inspect(self, variable_names=None, tab: int = 0):
         """
         Prints specified variables of a class. If a variable is a class itself,
@@ -22,20 +10,10 @@ class TriomaClass:
             instance: The class instance.
             variable_names (list of str, optional): Names of the variables to print. Prints all if None.
         """
-        built_in_types = [
-            Component,
-            Fluid,
-            Membrane,
-            FluidMaterial,
-            SolidMaterial,
-            BreedingBlanket,
-            Geometry,
-            Turbulator,
-        ]
         indent = "    " * tab
         for attr_name, attr_value in self.__dict__.items():
             if variable_names is None or attr_name.lower() == variable_names.lower():
-                if type(attr_value) in built_in_types:
+                if type(attr_value) is TriomaClass:
                     tab += 1
                     print(
                         f"{indent}{attr_name} is a {type(attr_value)} class, printing its variables:"
