@@ -1,10 +1,7 @@
-import numpy as np
 from TRIOMA.tools.TriomaClass import TriomaClass
 from TRIOMA.tools.Extractors.PipeSubclasses import Fluid, Membrane
 import TRIOMA.tools.correlations as corr
-from typing import Union
 import TRIOMA.tools.Extractors.extractor as extractor
-from TRIOMA.tools.component_tools import Component, BreedingBlanket
 
 
 class GLC_Gas(TriomaClass):
@@ -233,8 +230,11 @@ class GLC(TriomaClass):
 
         return z
 
-    def connect_to_component(
-        self, component2: Union["Component", "BreedingBlanket"] = None
-    ):
-        """sets the inlet conc of the object component equal to the outlet of self"""
-        component2.update_attribute("c_in", self.c_out)
+    # def connect_to_component(
+    #     self, component2: Union["Component", "BreedingBlanket"] = None
+    # ):
+    #     """sets the inlet conc of the object component equal to the outlet of self"""
+    #     component2.update_attribute("c_in", self.c_out)
+
+    def connect_to_component(self):
+        return

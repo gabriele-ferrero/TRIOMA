@@ -215,7 +215,7 @@ def split_HX(
 
 
 def connect_to_component(
-    self, component2: Union["Component", "BreedingBlanket"] = None
+    self, component2: Union["Component", "BreedingBlanket", "GLC"] = None
 ):
     """sets the inlet conc of the object component equal to the outlet of self"""
     component2.update_attribute("c_in", self.c_out)
@@ -225,3 +225,4 @@ Component.converge_split_HX = converge_split_HX
 Component.split_HX = split_HX
 Component.connect_to_component = connect_to_component
 BreedingBlanket.connect_to_component = connect_to_component
+GLC.connect_to_component = connect_to_component
