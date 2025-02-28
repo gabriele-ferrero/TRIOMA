@@ -1376,9 +1376,6 @@ class Component(TriomaClass):
                         max_exp = np.log(np.finfo(np.float64).max)
                         beta_tau = beta - self.tau - 1
                         if beta_tau > max_exp or p_out > 1e-5:
-                            print(
-                                "Warning: Overflow encountered in exp, input too large.Iterative solver triggered"
-                            )
                             # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
 
                             def eq(var):
@@ -1395,23 +1392,30 @@ class Component(TriomaClass):
 
                                 return abs(left - right)
 
+                            p_in = self.c_in / self.fluid.Solubility
+                            if (
+                                abs(self.p_out * self.fluid.Solubility - self.c_in)
+                                / self.c_in
+                                < 1e-2
+                            ):
+                                self.eff_an = 1e-6
+                                return
+                            lower_bound = min(
+                                self.p_out * self.fluid.Solubility, self.c_in
+                            )
+                            upper_bound = max(
+                                self.p_out * self.fluid.Solubility, self.c_in
+                            )
                             cl = minimize(
                                 eq,
-                                self.c_in / 2,
+                                x0=(lower_bound + upper_bound) / 2,
                                 method="Powell",
-                                bounds=[(0, self.c_in)],
+                                bounds=[(lower_bound, upper_bound)],
                                 tol=1e-7,
                             ).x[0]
-                            if -f + ((cl / self.alpha + 1 + 2 * f) ** 0.5 - 1) < 0:
-                                # raise ValueError("The argument of the log is negative")
-
-                                self.get_efficiency
-
-                                self.eff_an = self.eff
-                                return
-                            p_in = self.c_in / self.fluid.Solubility
                             # corr_p=1-(p_out/p_in)
                             self.eff_an = 1 - (cl / self.c_in)
+                            return
                         else:
                             z = np.exp(beta_tau)
                             w = lambertw(z, tol=1e-10)
@@ -2859,11 +2863,8 @@ class Membrane(TriomaClass):
     def update_T_prop(self):
         if self.D_0 is not None and self.E_d is not None:
             self.D = self.D_0 * np.exp(-self.E_d / (8.617333262145e-5 * self.T))
-            print("Herewego")
         if self.K_S_0 is not None and self.E_S is not None:
             self.K_S = self.K_S_0 * np.exp(-self.E_S / (8.617333262145e-5 * self.T))
-        print("Updated Membrane properties" + str(self.D_0) + " " + str(self.K_S_0))
-        print("the temperature is " + str(self.T))
         return
 
 
