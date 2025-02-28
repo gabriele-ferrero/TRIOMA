@@ -12,7 +12,6 @@ from scipy.special import lambertw
 from typing import Union
 import matplotlib.pyplot as plt
 from scipy import integrate
-from types import MethodType
 
 
 class Geometry(TriomaClass):
@@ -597,7 +596,7 @@ class Component(TriomaClass):
         self.U = U
         self.pumping_power = pumping_power
         self.cost = cost
-        self.update_attribute = MethodType(self.custom_update_attribute, self)
+        self.update_attribute = self.custom_update_attribute
 
     def custom_update_attribute(self, attr_name: str, new_value: float):
         """
