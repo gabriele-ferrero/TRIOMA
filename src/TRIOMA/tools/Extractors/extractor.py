@@ -3,6 +3,24 @@ import TRIOMA.tools.correlations as cor
 import scipy.integrate as integrate
 
 
+def calculate_gas_velocity(G_gas, p_t, T, R):
+    """__summary__
+    Args:
+        G_gas (float): Gas flowrate in normal conditions
+        p_t (float): Total pressure
+        T (float): Temperature
+        R (float): Radius
+    Returns:
+        float: Gas velocity
+
+
+    """
+    Area = numpy.pi * R**2
+    p_atm = 101325
+    u_g = G_gas / Area / p_t * p_atm * T / 288.15
+    return u_g
+
+
 def extractor_lm(Z, R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in):
     """_summary_
     Args:
@@ -62,7 +80,7 @@ def NTU_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, c_max=0):
     u_l = G_l / Area  # Liquid velocity
 
     R_const = 8.314
-    u_g = G_gas / Area / p_t * 1e5 * T / 288.15  ## gas velocity
+    u_g = calculate_gas_velocity(G_gas=G_gas, p_t=p_t, T=T, R=R)
     R_g = 2 * u_g / u_l  ## gas on liquid ratio
     c_in = pl_in**0.5 * K_S  # inlet concentration in liquid
     c_out = pl_out**0.5 * K_S  # outlet concentration in liquid
@@ -117,7 +135,7 @@ def NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, c_max=0):
     c_in = pl_in * K_H
     c_out = pl_out * K_H
     R_const = 8.314
-    u_g = G_gas / Area / p_t * 1e5 * T / 288.15
+    u_g = calculate_gas_velocity(G_gas=G_gas, p_t=p_t, T=T, R=R)
     c_in_gas = pg_in / R_const / T
     R_g = u_g / u_l  ## gas on liquid ratio
 
@@ -162,7 +180,7 @@ def extractor_ms(Z, R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in):
     return [B_l, kla_c]
 
 
-def length_extractor_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, kla):
+def length_extractor_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, kla, c_max=0):
     """_summary_
     Args:
         R (float): Radius
@@ -179,7 +197,7 @@ def length_extractor_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, kla):
     """
     Area = numpy.pi * R**2
     u_l = G_l / Area  # Liquid velocity
-    integral = NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in)
+    integral = NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, c_max=c_max)
 
     Z = u_l / kla * integral
     return Z
@@ -211,7 +229,7 @@ def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
     )  ## concentration at the outlet assuming maximum reaction rate possible
     R_const = 8.314
     Area = numpy.pi * R**2
-    u_g = G_gas / Area / p_t * 1e5 * T / 288.15
+    u_g = calculate_gas_velocity(G_gas=G_gas, p_t=p_t, T=T, R=R)
     c_g_max = pl_in / R_const / T  ## maximum gas concentration according with liquid
     c_out_max = max(
         c_in
@@ -292,7 +310,7 @@ def get_c_out_GLC_ms(Z, R, G_l, G_gas, pl_in, T, p_t, K_H, pg_in, kla):
     )  ## concentration at the outlet assuming maximum reaction rate possible
     R_const = 8.314
     Area = numpy.pi * R**2
-    u_g = G_gas / Area / p_t * 1e5 * T / 288.15
+    u_g = calculate_gas_velocity(G_gas=G_gas, p_t=p_t, T=T, R=R)
     c_g_max = pl_in / R_const / T  ## maximum gas concentration according with liquid
     c_out_max = max(
         c_in
