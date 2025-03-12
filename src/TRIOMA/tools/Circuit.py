@@ -1,6 +1,6 @@
 from TRIOMA.tools.Extractors.PAV import Component
 from TRIOMA.tools.BreedingBlanket import BreedingBlanket
-from TRIOMA.tools.Extractors.GasLiquidContactor import GLC, GLC_Gas
+from TRIOMA.tools.Extractors.GasLiquidContactor import GLC
 from TRIOMA.tools.TriomaClass import TriomaClass
 import matplotlib.pyplot as plt
 from typing import Union

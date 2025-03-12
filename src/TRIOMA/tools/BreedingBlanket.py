@@ -2,7 +2,6 @@ from scipy.constants import physical_constants
 from TRIOMA.tools.TriomaClass import TriomaClass
 from scipy.constants import N_A
 from TRIOMA.tools.Extractors.PipeSubclasses import Fluid
-from typing import Union
 import matplotlib.pyplot as plt
 
 
