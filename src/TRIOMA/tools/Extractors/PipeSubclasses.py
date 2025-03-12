@@ -481,7 +481,7 @@ class CustomTurbulator(Turbulator):
             Sh = self.a * Re**self.b * Sc**self.c
         else:
             Sh = 3.66
-        k_t = corr.get_k_from_Sh(Sh=Sh, L=d_hyd, D=self.D)
+        k_t = corr.get_k_from_Sh(Sh=Sh, L=d_hyd, D=D)
         return k_t
 
     def h_t_correlation(
