@@ -96,26 +96,26 @@ class GLC(TriomaClass):
         self.eff = eff
         self.kla = kla
 
-    def get_kla_Ring(self):
-        """
-        Calculates the mass transfer coefficient (kla) for a Raschig ring matrix.
-        The mass transfer coefficient is calculated based on the Reynolds number (Re) and Schmidt number (Sc) of the fluid,
-        as well as the diameter (d) of the ring.
-        Returns:
-            None
-        """
-        d = 2e-3  # Ring diameter
-        Re = corr.Re(rho=self.fluid.rho, u=self.fluid.U0, L=self.L, mu=self.fluid.mu)
-        Sc = corr.Schmidt(D=self.fluid.D, mu=self.fluid.mu, rho=self.fluid.rho)
-        self.kla = extractor.corr_packed(
-            Re,
-            Sc,
-            d,
-            rho_L=self.fluid.rho,
-            mu_L=self.fluid.mu,
-            L=self.L,
-            D=self.fluid.D,
-        )
+    # def get_kla_Ring(self):
+    #     """
+    #     Calculates the mass transfer coefficient (kla) for a Raschig ring matrix.
+    #     The mass transfer coefficient is calculated based on the Reynolds number (Re) and Schmidt number (Sc) of the fluid,
+    #     as well as the diameter (d) of the ring.
+    #     Returns:
+    #         None
+    #     """
+    #     d = 2e-3  # Ring diameter
+    #     Re = corr.Re(rho=self.fluid.rho, u=self.fluid.U0, L=self.L, mu=self.fluid.mu)
+    #     Sc = corr.Schmidt(D=self.fluid.D, mu=self.fluid.mu, rho=self.fluid.rho)
+    #     self.kla = extractor.corr_packed(
+    #         Re,
+    #         Sc,
+    #         d,
+    #         rho_L=self.fluid.rho,
+    #         mu_L=self.fluid.mu,
+    #         L=self.L,
+    #         D=self.fluid.D,
+    #     )
 
     def get_c_out(self):
         """
