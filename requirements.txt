@@ -20,7 +20,7 @@ kiwisolver==1.4.8
     # via matplotlib
 matplotlib==3.10.1
     # via TRIOMA (pyproject.toml)
-numpy==1.26.4
+numpy==2.2.3
     # via
     #   TRIOMA (pyproject.toml)
     #   contourpy
@@ -44,7 +44,7 @@ pytest-cov==5.0.0
     # via TRIOMA (pyproject.toml)
 python-dateutil==2.9.0.post0
     # via matplotlib
-scipy==1.14.0
+scipy==1.15.1
     # via TRIOMA (pyproject.toml)
 six==1.17.0
     # via python-dateutil

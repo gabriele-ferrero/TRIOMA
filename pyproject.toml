@@ -8,12 +8,12 @@ authors = [
     {name = "Gabriele Ferrero, Samuele Meschini", email = "gabriele.ferrero@polito.it"}
 ]
 description = "Outer fuel cycle component models for design and optimization of fusion reactors"
-version = "0.1.7"
+version = "0.1.8"
 readme = "README.md"
 requires-python = ">=3.11.7"
 dependencies = [
     "scipy==1.15.2",
-    "numpy==1.26.4",
+    "numpy==2.2.3",
     "matplotlib==3.10.1",
     "pytest==8.2.2",
     "pytest-cov==5.0.0"
