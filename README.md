@@ -13,13 +13,25 @@ The objective is to simplify Outer Fuel Cycle (OFC) analysis for Fusion reactors
   In the current state, surface effects are implemented only on the outer side of the pipe. This is based on the assumption that inside molten salt fluids the oxyde layer which limits dissociation and recombinarion is not expected to form. In liquid metals Tritium is in the atomic phase, as for the solid metal, so dissociation and recombination are not expected to happen.
 </p>
 
-## Install
+## Getting started
 
 To run copy the repo in a local folder, and run:
 
 ```pip install -r requirements.txt```
 or pip install trioma directly with
 ``` pip install TRIOMA ```
+
+## Documentation
+
+Documentation can be viewed at <https://gabriele-ferrero.github.io/TRIOMA/>
+
+## Tutorials
+
+Get started quickly with TRIOMA tutorials at <https://github.com/gabriele-ferrero/TRIOMA/tree/main/Examples>
+
+## Verification
+
+Verification of TRIOMA analytical methods are coming soon
 
 ## Contributions
 

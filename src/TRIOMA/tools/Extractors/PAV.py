@@ -1554,7 +1554,7 @@ class Component(TriomaClass):
                     - ms_integral(self=self, L=0, p_out=p_out)
                     + p_out_term(self, p_out)
                 )
-                self.membrane.inv = inv
+                self.membrane.inv = inv * self.geometry.n_pipes
                 return inv
 
     def get_solid_inventory(self, p_out: float = 0, flag_an=False):
@@ -1776,7 +1776,7 @@ class Component(TriomaClass):
                     self.geometry.D / 2
                 ) * self.geometry.L
                 inventory = integral
-                self.fluid.inv = inventory
+                self.fluid.inv = inventory * self.geometry.n_pipes
                 return inventory
             case True:
                 print("MS fluid integration is done numerically")
