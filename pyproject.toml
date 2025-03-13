@@ -10,7 +10,6 @@ authors = [
 description = "Outer fuel cycle component models for design and optimization of fusion reactors"
 version = "0.1.0"
 readme = "README.md"
-Homepage = "https://github.com/gabriele-ferrero/TRIOMA"
 requires-python = ">=3.11.7"
 dependencies = [
     "scipy==1.14.0",
