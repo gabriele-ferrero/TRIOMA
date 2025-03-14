@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TRIOMA API Documentation &mdash; TRIOMA 0.1 documentation</title>
+  <title>Theory &mdash; TRIOMA 0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
 
@@ -19,6 +19,7 @@
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Theory" href="theory.html" />
     <link rel="prev" title="Welcome to Trioma’s documentation!" href="index.html" /> 
 </head>
 
@@ -43,7 +44,12 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">TRIOMA API Documentation</a><ul>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Theory</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="theory.html">Theory</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#installation">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#trioma-api-documentation">TRIOMA API Documentation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#module-src.TRIOMA.tools.correlations">Correlations</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.Nu_DittusBoelter"><code class="docutils literal notranslate"><span class="pre">Nu_DittusBoelter()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.correlations.Nu_Gnielinsky"><code class="docutils literal notranslate"><span class="pre">Nu_Gnielinsky()</span></code></a></li>
@@ -136,6 +142,19 @@
 </li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#glc-class">GLC Class</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.GLC"><code class="docutils literal notranslate"><span class="pre">GLC</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.GLC.connect_to_component"><code class="docutils literal notranslate"><span class="pre">GLC.connect_to_component()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.GLC.get_c_out"><code class="docutils literal notranslate"><span class="pre">GLC.get_c_out()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.GLC.get_z_from_eff"><code class="docutils literal notranslate"><span class="pre">GLC.get_z_from_eff()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#glc-gas-class">GLC_Gas Class</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.GLC_Gas"><code class="docutils literal notranslate"><span class="pre">GLC_Gas</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -154,7 +173,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
-      <li class="breadcrumb-item active">TRIOMA API Documentation</li>
+      <li class="breadcrumb-item active">Theory</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/myproject.rst.txt" rel="nofollow"> View page source</a>
       </li>
@@ -164,7 +183,32 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="trioma-api-documentation">
+  <p>Welcome to TRIOMA’s documentation</p>
+<section id="theory">
+<h1>Theory<a class="headerlink" href="#theory" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="theory.html">Theory</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="theory.html#blanket">Blanket</a></li>
+<li class="toctree-l2"><a class="reference internal" href="theory.html#component">Component</a></li>
+<li class="toctree-l2"><a class="reference internal" href="theory.html#circuit">Circuit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="theory.html#glc">GLC</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<p>For more detailed information, please refer to the <a class="reference external" href="theory.md">additional documentation</a>.</p>
+</section>
+<section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<p>To install TRIOMA, you can use the following command:
+.. code-block:: bash</p>
+<blockquote>
+<div><p>pip install TRIOMA</p>
+</div></blockquote>
+</section>
+<section id="trioma-api-documentation">
 <h1>TRIOMA API Documentation<a class="headerlink" href="#trioma-api-documentation" title="Link to this heading"></a></h1>
 <p>In this section the documentation for all modules in TRIOMA:</p>
 <section id="module-src.TRIOMA.tools.correlations">
@@ -390,7 +434,7 @@ eff_an = 1 - np.exp(-tau * zeta / (1 + zeta))* (1-p_in/p_out)^0.5.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.Component.connect_to_component">
-<span class="sig-name descname"><span class="pre">connect_to_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component" title="TRIOMA.tools.Extractors.PAV.Component"><span class="pre">Component</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.BreedingBlanket" title="TRIOMA.tools.BreedingBlanket.BreedingBlanket"><span class="pre">BreedingBlanket</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">GLC</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.connect_to_component" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">connect_to_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component" title="TRIOMA.tools.Extractors.PAV.Component"><span class="pre">Component</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.BreedingBlanket" title="TRIOMA.tools.BreedingBlanket.BreedingBlanket"><span class="pre">BreedingBlanket</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.GLC" title="TRIOMA.tools.Extractors.GasLiquidContactor.GLC"><span class="pre">GLC</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.connect_to_component" title="Link to this definition"></a></dt>
 <dd><p>sets the inlet conc of the object component equal to the outlet of self</p>
 </dd></dl>
 
@@ -592,7 +636,7 @@ circuit.plot_circuit()</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.Circuit.add_component">
-<span class="sig-name descname"><span class="pre">add_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component" title="TRIOMA.tools.Extractors.PAV.Component"><span class="pre">Component</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.BreedingBlanket" title="TRIOMA.tools.BreedingBlanket.BreedingBlanket"><span class="pre">BreedingBlanket</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Circuit" title="TRIOMA.tools.Circuit.Circuit"><span class="pre">Circuit</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">GLC</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Circuit.add_component" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">add_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component" title="TRIOMA.tools.Extractors.PAV.Component"><span class="pre">Component</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.BreedingBlanket" title="TRIOMA.tools.BreedingBlanket.BreedingBlanket"><span class="pre">BreedingBlanket</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Circuit" title="TRIOMA.tools.Circuit.Circuit"><span class="pre">Circuit</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.GLC" title="TRIOMA.tools.Extractors.GasLiquidContactor.GLC"><span class="pre">GLC</span></a></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Circuit.add_component" title="Link to this definition"></a></dt>
 <dd><p>Adds a component to the circuit.</p>
 <dl class="simple">
 <dt>Args:</dt><dd><p>component (Component): The component to add.</p>
@@ -827,7 +871,7 @@ fluid (Fluid): Fluid used in the breeding blanket component.</p>
 </dl>
 <dl class="py method">
 <dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.BreedingBlanket.connect_to_component">
-<span class="sig-name descname"><span class="pre">connect_to_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component" title="TRIOMA.tools.Extractors.PAV.Component"><span class="pre">Component</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.BreedingBlanket" title="TRIOMA.tools.BreedingBlanket.BreedingBlanket"><span class="pre">BreedingBlanket</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">GLC</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.BreedingBlanket.connect_to_component" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">connect_to_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component" title="TRIOMA.tools.Extractors.PAV.Component"><span class="pre">Component</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.BreedingBlanket" title="TRIOMA.tools.BreedingBlanket.BreedingBlanket"><span class="pre">BreedingBlanket</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.GLC" title="TRIOMA.tools.Extractors.GasLiquidContactor.GLC"><span class="pre">GLC</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.BreedingBlanket.connect_to_component" title="Link to this definition"></a></dt>
 <dd><p>sets the inlet conc of the object component equal to the outlet of self</p>
 </dd></dl>
 
@@ -852,6 +896,78 @@ fluid (Fluid): Fluid used in the breeding blanket component.</p>
 </dd></dl>
 
 </section>
+<section id="glc-class">
+<h2>GLC Class<a class="headerlink" href="#glc-class" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.GLC">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.component_tools.</span></span><span class="sig-name descname"><span class="pre">GLC</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">H</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">R</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">L</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Fluid" title="TRIOMA.tools.Extractors.PipeSubclasses.Fluid"><span class="pre">Fluid</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">membrane</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Membrane" title="TRIOMA.tools.Extractors.PipeSubclasses.Membrane"><span class="pre">Membrane</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">GLC_gas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.GLC_Gas" title="TRIOMA.tools.Extractors.GasLiquidContactor.GLC_Gas"><span class="pre">GLC_Gas</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">G_L</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">kla</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.GLC" title="Link to this definition"></a></dt>
+<dd><p>GLC (Gas-Liquid Contact) class represents a gas-liquid contactor component.
+Args:</p>
+<blockquote>
+<div><p>H (float): Height of the GLC.
+R (float): Radius of the GLC.
+L (float): Characteristic Length of the GLC fluid flow.
+c_in (float): Inlet concentration of the GLC.
+eff (float, optional): Efficiency of the GLC. Defaults to None.
+fluid (Fluid, optional): Fluid object representing the liquid phase. Defaults to None.
+membrane (Membrane, optional): Membrane object representing the membrane used in the GLC. Not super important. Defaults to None.
+GLC_gas (GLC_Gas, optional): GLC_Gas object representing the gas phase. Defaults to None.</p>
+</div></blockquote>
+<dl class="simple">
+<dt>Attributes:</dt><dd><p>H (float): Height of the GLC [m].
+R (float): Radius of the GLC [m].
+L (float): Length of the GLC [m].
+GLC_gas (GLC_Gas): GLC_Gas object representing the gas phase.</p>
+</dd>
+<dt>Methods:</dt><dd><p>get_kla_Ring(): Calculates the mass transfer coefficient (kla) for a Raschig Ring matrix.</p>
+</dd>
+</dl>
+<dl class="py method">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.GLC.connect_to_component">
+<span class="sig-name descname"><span class="pre">connect_to_component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">component2</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component" title="TRIOMA.tools.Extractors.PAV.Component"><span class="pre">Component</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.BreedingBlanket" title="TRIOMA.tools.BreedingBlanket.BreedingBlanket"><span class="pre">BreedingBlanket</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference internal" href="#src.TRIOMA.tools.component_tools.GLC" title="TRIOMA.tools.Extractors.GasLiquidContactor.GLC"><span class="pre">GLC</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.GLC.connect_to_component" title="Link to this definition"></a></dt>
+<dd><p>sets the inlet conc of the object component equal to the outlet of self</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.GLC.get_c_out">
+<span class="sig-name descname"><span class="pre">get_c_out</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.GLC.get_c_out" title="Link to this definition"></a></dt>
+<dd><p>Calculates the outlet concentration of the GLC.
+The outlet concentration is calculated based on the inlet concentration, the efficiency of the GLC, and the fluid properties.
+Returns:</p>
+<blockquote>
+<div><p>None</p>
+</div></blockquote>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.GLC.get_z_from_eff">
+<span class="sig-name descname"><span class="pre">get_z_from_eff</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.GLC.get_z_from_eff" title="Link to this definition"></a></dt>
+<dd><p>Calculates the height of the GLC from the efficiency of the GLC.
+The height is calculated based on the efficiency of the GLC and the radius of the GLC.
+Returns:</p>
+<blockquote>
+<div><p>None</p>
+</div></blockquote>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="glc-gas-class">
+<h2>GLC_Gas Class<a class="headerlink" href="#glc-gas-class" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.GLC_Gas">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.component_tools.</span></span><span class="sig-name descname"><span class="pre">GLC_Gas</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G_gas</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pg_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pg_out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_tot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.GLC_Gas" title="Link to this definition"></a></dt>
+<dd><p>GLC_Gas class represents a sweep gas in a GLC (Gas-Liquid Contactor) system.
+Attributes:</p>
+<blockquote>
+<div><p>G_gas (float): The flow rate of the gas.
+pg_in (float, optional): The Tritium inlet partial pressure of the gas. Default is 0.
+p_tot (float, optional): The total pressure of the component. Default is 100000 Pa.</p>
+</div></blockquote>
+</dd></dl>
+
+</section>
 </section>
 
 
@@ -859,6 +975,7 @@ fluid (Fluid): Fluid used in the breeding blanket component.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Trioma’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="theory.html" class="btn btn-neutral float-right" title="Theory" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
