@@ -52,6 +52,7 @@ jobs:
         # pip install -r requirements.txt
         pip install git+https://github.com/gabriele-ferrero/TRIOMA.git
         pip install sphinx sphinx-rtd-theme
+        pip install myst-parser  
     - name: Build the project
       run: |
         cd docs/
