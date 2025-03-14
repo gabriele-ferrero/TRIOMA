@@ -1,4 +1,4 @@
-.. Tritone documentation master file, created by
+.. TRIOMA documentation master file, created by
    sphinx-quickstart on Thu May  9 15:19:42 2024.
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
