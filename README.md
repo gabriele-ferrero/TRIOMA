@@ -31,7 +31,7 @@ Get started quickly with TRIOMA tutorials at <https://github.com/gabriele-ferrer
 
 ## Verification
 
-Verification of TRIOMA analytical methods are coming soon
+Verifications of TRIOMA's functions are available at [this repository](https://github.com/gabriele-ferrero/TRIOMA_Verification)
 
 ## Contributions
 
