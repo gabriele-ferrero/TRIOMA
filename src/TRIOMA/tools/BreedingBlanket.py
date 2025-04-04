@@ -88,7 +88,12 @@ class BreedingBlanket(TriomaClass):
             va="center",
         )
         ax2.text(
-            0.5, 0.6, f"Q={self.Q/1E6:.3g} MW", color="black", ha="center", va="center"
+            0.5,
+            0.6,
+            f"Q={self.Q_tot/1E6:.3g} MW",
+            color="black",
+            ha="center",
+            va="center",
         )
         ax2.text(
             0.5, 0.4, f"TBR={self.TBR:.3g}", color="black", ha="center", va="center"
