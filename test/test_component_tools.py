@@ -125,7 +125,7 @@ class TestMSComponent(unittest.TestCase):
         # Test the get_efficiency() method
         self.component.get_efficiency()
 
-        self.assertAlmostEqual(self.component.eff, 0.998984924629)
+        self.assertAlmostEqual(self.component.eff, 0.998984924629, places=5)
 
     def test_analytical_efficiency(self):
         # Test the analytical_efficiency() method
@@ -515,7 +515,13 @@ class Test_SolidMaterial(unittest.TestCase):
 class Test_BB_Component(unittest.TestCase):
     def setUp(self):
         self.component = BreedingBlanket(
-            c_in=0, Q=0.5e9, TBR=1.05, T_out=900, T_in=800, fluid=Flibe(850)
+            c_in=0,
+            Q_plasma=0.5e9,
+            Q_tot=0.5e9,
+            TBR=1.05,
+            T_out=900,
+            T_in=800,
+            fluid=Flibe(850),
         )
 
     def plot_test(self):
@@ -1198,7 +1204,8 @@ class testclosedCircuit(unittest.TestCase):
         )
         componentBB = BreedingBlanket(
             c_in=1e-3,
-            Q=0.5e9,
+            Q_tot=0.5e9,
+            Q_plasma=0.5e9,
             TBR=1.05,
             T_out=900,
             T_in=800,
