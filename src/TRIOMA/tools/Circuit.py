@@ -356,7 +356,7 @@ class Circuit(TriomaClass):
                 axs[i // num_columns, i % num_columns].text(
                     0.5,
                     0.6,
-                    f"Q={component.Q/1E6:.3g} MW",
+                    f"Q={component.Q_tot/1E6:.3g} MW",
                     color="black",
                     ha="center",
                     va="center",
