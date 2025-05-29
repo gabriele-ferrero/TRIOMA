@@ -409,7 +409,7 @@ class Circuit(TriomaClass):
                 inventory += component.inv
         self.inv = inventory
 
-    def solve_circuit(self, tol=1e-6):
+    def solve_circuit(self, tol=1e-6, iterative=False):
         """
         Solve the circuit by calculating the concentration of the components at the outlet.
         If the circuit is a closed loop, the concentration of the first component is set to the concentration of the last component until the stationary regime is reached.
@@ -425,31 +425,68 @@ class Circuit(TriomaClass):
                 if flag_bb != 0:
                     print("There are more BB!")
                 flag_bb = 1
-        while flag == 0:
-            for i, component in enumerate(self.components):
-                if isinstance(component, GLC):
-                    component.get_c_out()
-                    if i != len(self.components) - 1:
-                        component.connect_to_component(self.components[i + 1])
-                if isinstance(component, Component):
-                    component.use_analytical_efficiency(p_out=component.p_out)
-                    component.outlet_c_comp()
-                    if i != len(self.components) - 1:
-                        component.connect_to_component(self.components[i + 1])
-                if isinstance(component, BreedingBlanket):
-                    component.get_cout()
-                    if i != len(self.components) - 1:
-                        component.connect_to_component(self.components[i + 1])
+        ##
+
+        if iterative == True:
+
+            def solve_circ_func(x):
+                self.components[0].update_attribute("c_in", x)
+                for i, component in enumerate(self.components):
+                    if isinstance(component, Component):
+                        component.use_analytical_efficiency(p_out=component.p_out)
+                        component.outlet_c_comp()
+                        if i != len(self.components) - 1:
+                            component.connect_to_component(self.components[i + 1])
+                    if isinstance(component, GLC):
+                        component.get_c_out()
+                        if i != len(self.components) - 1:
+                            component.connect_to_component(self.components[i + 1])
+                    if isinstance(component, BreedingBlanket):
+                        component.get_cout()
+                        if i != len(self.components) - 1:
+                            component.connect_to_component(self.components[i + 1])
+
+                return abs(self.components[0].c_in - self.components[-1].c_out)
+
             if self.closed == True:
-                err = (
-                    abs(self.components[0].c_in - self.components[-1].c_out)
-                    / self.components[0].c_in
+
+                res = minimize(
+                    solve_circ_func,
+                    self.components[0].c_in,
+                    method="Powell",
+                    bounds=[(float(1e-15), float(1))],
+                    tol=tol,
                 )
-                if err < tol:
-                    flag = 1
+                print("c_out", self.components[-1].c_out)
+                print("c_in", self.components[0].c_in)
             else:
-                flag = 1
-            self.components[-1].connect_to_component(self.components[0])
+                solve_circ_func(self.components[0].c_in)
+        else:
+            while flag == 0:
+                for i, component in enumerate(self.components):
+                    if isinstance(component, GLC):
+                        component.get_c_out()
+                        if i != len(self.components) - 1:
+                            component.connect_to_component(self.components[i + 1])
+                    if isinstance(component, Component):
+                        component.use_analytical_efficiency(p_out=component.p_out)
+                        component.outlet_c_comp()
+                        if i != len(self.components) - 1:
+                            component.connect_to_component(self.components[i + 1])
+                    if isinstance(component, BreedingBlanket):
+                        component.get_cout()
+                        if i != len(self.components) - 1:
+                            component.connect_to_component(self.components[i + 1])
+                if self.closed == True:
+                    err = (
+                        abs(self.components[0].c_in - self.components[-1].c_out)
+                        / self.components[0].c_in
+                    )
+                    self.components[-1].connect_to_component(self.components[0])
+                    if err < tol:
+                        flag = 1
+                else:
+                    flag = 1
 
     def inspect_circuit(self, name=None):
         """
