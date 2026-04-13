@@ -32,6 +32,8 @@ class TriomaClass:
         """
         Set the specified attribute to a new value.
 
+        Searches recursively through this object and all nested TriomaClass objects.
+
         Args:
             attr_name: The name of the attribute to set.
             new_value: The new value for the attribute.
@@ -39,19 +41,40 @@ class TriomaClass:
         Raises:
             ValueError: If the attribute doesn't exist in this object or nested objects.
         """
+        if not self._update_attribute_recursive(attr_name, new_value):
+            raise ValueError(
+                f"'{attr_name}' is not an attribute of {self.__class__.__name__}"
+            )
+
+    def _update_attribute_recursive(self, attr_name: str, new_value: float) -> bool:
+        """
+        Recursively search for and update an attribute in this object or nested objects.
+
+        Args:
+            attr_name: The attribute name to search for.
+            new_value: The new value to set.
+
+        Returns:
+            True if attribute was found and updated, False otherwise.
+        """
+        # Check current object
         if hasattr(self, attr_name):
             setattr(self, attr_name, new_value)
+
+            # For special attributes, also update in nested objects
             if attr_name == "n_pipes":
-                for attr, value in self.__dict__.items():
-                    if isinstance(value, object) and hasattr(value, attr_name):
-                        setattr(value, attr_name, new_value)
-            return
-        else:
-            for attr, value in self.__dict__.items():
-                if isinstance(value, object) and hasattr(value, attr_name):
-                    setattr(value, attr_name, new_value)
-                    return
-        raise ValueError(
-            f"'{attr_name}' is not an attribute of {self.__class__.__name__}"
-        )
+                for nested_obj in self.__dict__.values():
+                    if isinstance(nested_obj, TriomaClass):
+                        nested_obj._update_attribute_recursive(attr_name, new_value)
+
+            return True
+
+        # Search nested TriomaClass objects
+        for nested_obj in self.__dict__.values():
+            if isinstance(nested_obj, TriomaClass):
+                if nested_obj._update_attribute_recursive(attr_name, new_value):
+                    return True
+
+        return False
+
 
