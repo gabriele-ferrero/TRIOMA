@@ -1,0 +1,98 @@
+# Pre-commit hooks configuration
+# Install: pip install pre-commit
+# Setup: pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        name: Trim trailing whitespace
+      - id: end-of-file-fixer
+        name: Fix end of file
+      - id: check-yaml
+        name: Check YAML
+      - id: check-json
+        name: Check JSON
+      - id: check-toml
+        name: Check TOML
+      - id: check-added-large-files
+        name: Check for large files
+        args: ['--maxkb=500']
+      - id: check-merge-conflict
+        name: Check for merge conflicts
+      - id: detect-private-key
+        name: Detect private keys
+
+  # Python code formatting
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        name: Format code with Black
+        language_version: python3.11
+        args: ['--line-length=100']
+
+  # Python linting
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.2.1
+    hooks:
+      - id: ruff
+        name: Lint with Ruff
+        args: ['--fix', '--exit-zero']
+        stages: [commit]
+
+  # Type checking
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        name: Type check with mypy
+        additional_dependencies: ['types-all']
+        stages: [commit]
+        args: ['--ignore-missing-imports', '--disallow-untyped-defs']
+
+  # Docstring formatting
+  - repo: https://github.com/PyCQA/pydocstyle
+    rev: 6.3.0
+    hooks:
+      - id: pydocstyle
+        name: Check docstring style
+        args: ['--convention=google']
+
+  # Security scanning
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        name: Security check with Bandit
+        args: ['-ll']  # Only low and medium severity
+
+  # Python syntax check
+  - repo: https://github.com/pre-commit/mirrors-autopep8
+    rev: v2.0.4
+    hooks:
+      - id: autopep8
+        name: Check Python syntax
+        stages: [commit]
+        args: ['--exit-code', '--aggressive', '--aggressive']
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.37.0
+    hooks:
+      - id: markdownlint
+        name: Lint Markdown
+        args: ['--fix']
+
+# Configuration
+default_stages: [commit]
+fail_fast: false
+exclude: |
+  (?x)^(
+    docs/|
+    Examples/|
+    build/
+  )
