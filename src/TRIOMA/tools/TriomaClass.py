@@ -1,14 +1,19 @@
-class TriomaClass:
+from typing import Optional, Any
 
-    def inspect(self, variable_names=None, tab: int = 0):
+
+class TriomaClass:
+    """Base class for TRIOMA components with inspection and attribute management."""
+
+    def inspect(self, variable_names: Optional[str] = None, tab: int = 0) -> None:
         """
-        Prints specified variables of a class. If a variable is a class itself,
-        calls this function recursively for the internal class. If variable_names is None,
-        prints all variables.
+        Print specified variables of the class.
+
+        If a variable is a class itself, calls this function recursively.
+        If variable_names is None, prints all variables.
 
         Args:
-            instance: The class instance.
-            variable_names (list of str, optional): Names of the variables to print. Prints all if None.
+            variable_names: Name of the variable to print. Prints all if None.
+            tab: Indentation level for nested inspection.
         """
         indent = "    " * tab
         for attr_name, attr_value in self.__dict__.items():
@@ -23,20 +28,22 @@ class TriomaClass:
                 else:
                     print(f"{indent}{attr_name}: {attr_value}")
 
-    def update_attribute(self, attr_name: str, new_value: float):
+    def update_attribute(self, attr_name: str, new_value: float) -> None:
         """
-        Sets the specified attribute to a new value.
+        Set the specified attribute to a new value.
 
         Args:
-            attr_name (str): The name of the attribute to set.
+            attr_name: The name of the attribute to set.
             new_value: The new value for the attribute.
+
+        Raises:
+            ValueError: If the attribute doesn't exist in this object or nested objects.
         """
         if hasattr(self, attr_name):
             setattr(self, attr_name, new_value)
             if attr_name == "n_pipes":
                 for attr, value in self.__dict__.items():
                     if isinstance(value, object) and hasattr(value, attr_name):
-
                         setattr(value, attr_name, new_value)
             return
         else:
@@ -47,3 +54,4 @@ class TriomaClass:
         raise ValueError(
             f"'{attr_name}' is not an attribute of {self.__class__.__name__}"
         )
+

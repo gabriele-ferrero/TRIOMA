@@ -76,15 +76,19 @@ def NTU_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, c_max=0):
     # isotopes from Pb–17Li eutectic alloy. A rate based model using
     # experimental mass transfer coefficients from a Melodie loop""
     """
+    # Convert array inputs to scalars
+    pl_out = numpy.asarray(pl_out).item() if numpy.asarray(pl_out).ndim > 0 else float(pl_out)
+    c_max = numpy.asarray(c_max).item() if numpy.asarray(c_max).ndim > 0 else float(c_max)
+
     Area = numpy.pi * R**2
     u_l = G_l / Area  # Liquid velocity
 
     R_const = 8.314
     u_g = calculate_gas_velocity(G_gas=G_gas, p_t=p_t, T=T, R=R)
     R_g = 2 * u_g / u_l  ## gas on liquid ratio
-    c_in = pl_in**0.5 * K_S  # inlet concentration in liquid
-    c_out = pl_out**0.5 * K_S  # outlet concentration in liquid
-    c_in_gas = pg_in / R_const / T
+    c_in = float(pl_in**0.5 * K_S)  # inlet concentration in liquid
+    c_out = float(pl_out**0.5 * K_S)  # outlet concentration in liquid
+    c_in_gas = float(pg_in / R_const / T)
 
     def toint(c):
         value = 1 / (
@@ -92,12 +96,12 @@ def NTU_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, c_max=0):
         )
         return value
 
-    c_g_max = pl_in / R_const / T  # maximum concentration in gas
-    c_out_max = max(
+    c_g_max = float(pl_in / R_const / T)  # maximum concentration in gas
+    c_out_max = float(max(
         c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
         c_max,  # given input from equation
         (pg_in) ** 0.5 * K_S,  ## if liquid is in equilibrium with gas at outlet
-    )
+    ))
 
     integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
     if integral[0] < 0:
@@ -130,13 +134,17 @@ def NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, c_max=0):
     # experimental mass transfer coefficients from a Melodie loop""
     # but for molten salts by changing the evolution of c star following the Henry's law
     """
+    # Convert array inputs to scalars
+    pl_out = numpy.asarray(pl_out).item() if numpy.asarray(pl_out).ndim > 0 else float(pl_out)
+    c_max = numpy.asarray(c_max).item() if numpy.asarray(c_max).ndim > 0 else float(c_max)
+
     Area = numpy.pi * R**2
     u_l = G_l / Area  # Liquid velocity
-    c_in = pl_in * K_H
-    c_out = pl_out * K_H
+    c_in = float(pl_in * K_H)
+    c_out = float(pl_out * K_H)
     R_const = 8.314
     u_g = calculate_gas_velocity(G_gas=G_gas, p_t=p_t, T=T, R=R)
-    c_in_gas = pg_in / R_const / T
+    c_in_gas = float(pg_in / R_const / T)
     R_g = u_g / u_l  ## gas on liquid ratio
 
     def toint(c):
@@ -144,12 +152,12 @@ def NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, c_max=0):
             c - K_H * (u_l / u_g * R_const * T) * (c - c_out + c_in_gas * u_g / u_l)
         )
 
-    c_g_max = pl_in / R_const / T  # maximum concentration in gas
-    c_out_max = max(
+    c_g_max = float(pl_in / R_const / T)  # maximum concentration in gas
+    c_out_max = float(max(
         c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
         c_max,  # given input from equation
         pg_in * K_H,  ## if liquid is in equilibrium with gas at outlet
-    )
+    ))
 
     integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
     integral = integrate.fixed_quad(toint, c_out, c_in)
