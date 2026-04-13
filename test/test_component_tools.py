@@ -3,25 +3,25 @@ import sys
 import os
 import matplotlib
 
-from TRIOMA.tools.Extractors.PipeSubclasses import CustomTurbulator
-
 matplotlib.use("Agg")
-sys.path.append(os.path.abspath("."))
-import unittest
-from src.TRIOMA.tools.component_tools import (
+
+from TRIOMA.tools.Extractors.PipeSubclasses import CustomTurbulator
+from TRIOMA.tools.Extractors.PAV import (
     Component,
     Fluid,
     Membrane,
-    FluidMaterial,
-    BreedingBlanket,
-    SolidMaterial,
     Geometry,
-    Circuit,
-    WireCoil,
-    GLC,
-    GLC_Gas,
 )
-from src.TRIOMA.tools.materials import Flibe, Steel, Sodium, LiPb
+from TRIOMA.tools.BreedingBlanket import BreedingBlanket
+from TRIOMA.tools.Circuit import Circuit
+from TRIOMA.tools.Extractors.PipeSubclasses import (
+    FluidMaterial,
+    SolidMaterial,
+    WireCoil,
+)
+from TRIOMA.tools.Extractors.GasLiquidContactor import GLC, GLC_Gas
+from TRIOMA.tools import materials
+from TRIOMA.tools.materials import Flibe, Steel, Sodium, LiPb
 from io import StringIO
 from unittest.mock import patch
 import pytest
