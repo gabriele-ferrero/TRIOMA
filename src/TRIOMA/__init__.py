@@ -10,11 +10,16 @@ __version__ = "0.1.8"
 __author__ = "Gabriele Ferrero, Samuele Meschini"
 __email__ = "gabriele.ferrero@polito.it"
 
-# Import main classes for convenience
-from TRIOMA.tools.Circuit import Circuit ##maybe not needed if already imported in tools/__init__.py
-from TRIOMA.tools.BreedingBlanket import BreedingBlanket
+# Import the tools module which handles all submodule imports
+from TRIOMA import tools
+
+# Re-export for convenience
+Circuit = tools.Circuit
+BreedingBlanket = tools.BreedingBlanket
+TriomaClass = tools.TriomaClass
 
 __all__ = [
     "Circuit",
     "BreedingBlanket",
+    "TriomaClass",
 ]
