@@ -159,7 +159,7 @@ def NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, c_max=0):
         pg_in * K_H,  ## if liquid is in equilibrium with gas at outlet
     ))
 
-    integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
+    # integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
     integral = integrate.fixed_quad(toint, c_out, c_in)
     return integral[0]
 
