@@ -52,9 +52,7 @@ def test_Nu_Gnielinsky():
     Pr = 0.7
     f = 0.02
 
-    expected_Nu = (
-        (f / 8) * (Re - 1000) * Pr / (1 + 12.7 * (f / 8) ** 0.5 * (Pr ** (2 / 3) - 1))
-    )
+    expected_Nu = (f / 8) * (Re - 1000) * Pr / (1 + 12.7 * (f / 8) ** 0.5 * (Pr ** (2 / 3) - 1))
 
     Nu = Nu_Gnielinsky(Re, Pr, f)
 

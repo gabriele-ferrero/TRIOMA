@@ -112,9 +112,7 @@ class Circuit(TriomaClass):
         if ind is not None:
             # Move the element at index `ind` to the first position
             self.components = (
-                [self.components[ind]]
-                + self.components[:ind]
-                + self.components[ind + 1 :]
+                [self.components[ind]] + self.components[:ind] + self.components[ind + 1 :]
             )
 
         for i, component in enumerate(self.components):
@@ -127,9 +125,9 @@ class Circuit(TriomaClass):
                 component.outlet_c_comp()
             if i != len(self.components) - 1:
                 component.connect_to_component(self.components[i + 1])
-        eff_circuit = (
-            self.components[1].c_in - self.components[-1].c_out
-        ) / self.components[1].c_in
+        eff_circuit = (self.components[1].c_in - self.components[-1].c_out) / self.components[
+            1
+        ].c_in
         self.eff = eff_circuit
 
     def get_gains_and_losses(self) -> None:
@@ -202,9 +200,7 @@ class Circuit(TriomaClass):
             num_rows = (num_components // 10) + (1 if num_components % 10 != 0 else 0)
             num_columns = 10
 
-        fig, axs = plt.subplots(
-            num_rows + 1, num_columns, figsize=(5 * num_columns, 4 * num_rows)
-        )
+        fig, axs = plt.subplots(num_rows + 1, num_columns, figsize=(5 * num_columns, 4 * num_rows))
         fig.subplots_adjust(hspace=0)
         # for component in self.components:
         #     component.plot_component()
@@ -480,9 +476,7 @@ class Circuit(TriomaClass):
         cost_circuit = 0
         for i, component in enumerate(self.components):
             if isinstance(component, Component):
-                component.estimate_cost(
-                    metal_cost=metal_cost[i], fluid_cost=fluid_cost[i]
-                )
+                component.estimate_cost(metal_cost=metal_cost[i], fluid_cost=fluid_cost[i])
                 cost_circuit += component.cost
         self.cost = cost_circuit
         return self.cost

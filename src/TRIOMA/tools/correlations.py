@@ -230,4 +230,3 @@ def get_deltaTML(T_in_hot: float, T_out_hot: float, T_in_cold: float, T_out_cold
     delta_T2 = T_out_hot - T_in_cold
     delta_T_lm = (delta_T1 - delta_T2) / np.log(delta_T1 / delta_T2)
     return delta_T_lm
-

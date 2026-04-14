@@ -20,7 +20,7 @@ kiwisolver==1.4.8
     # via matplotlib
 matplotlib==3.10.1
     # via TRIOMA (pyproject.toml)
-numpy>=1.24.0,<2.0  
+numpy>=1.24.0,<2.0
     # via
     #   TRIOMA (pyproject.toml)
     #   contourpy

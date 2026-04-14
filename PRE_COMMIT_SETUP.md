@@ -5,11 +5,13 @@ This document explains how to set up and use pre-commit hooks for TRIOMA.
 ## Installation
 
 ### 1. Install pre-commit and tools
+
 ```bash
 pip install -e ".[dev]"
 ```
 
 ### 2. Install git hooks
+
 ```bash
 pre-commit install
 ```
@@ -19,7 +21,9 @@ This creates `.git/hooks/pre-commit` that runs before each commit.
 ## Usage
 
 ### Automatic (on every commit)
+
 Once installed, pre-commit hooks run automatically before each commit:
+
 ```bash
 git commit -m "Your commit message"
 # Hooks run automatically, fix issues if needed
@@ -27,12 +31,15 @@ git commit -m "Your commit message"
 ```
 
 ### Manual (on demand)
+
 Run all hooks on all files:
+
 ```bash
 pre-commit run --all-files
 ```
 
 Run specific hook:
+
 ```bash
 pre-commit run black --all-files
 pre-commit run ruff --all-files
@@ -69,6 +76,7 @@ pre-commit run ruff --all-files
    - If some fail without auto-fix → fix manually, re-stage, and commit
 
 Example:
+
 ```bash
 # Make changes
 echo "print('hello')" > test.py
@@ -88,6 +96,7 @@ git commit -m "add test"
 ## Skipping Hooks (not recommended)
 
 If absolutely necessary, skip hooks with:
+
 ```bash
 git commit --no-verify
 # or
@@ -97,17 +106,20 @@ SKIP=hook-id git commit -m "message"
 ## Troubleshooting
 
 ### Hooks not running
+
 ```bash
 # Reinstall hooks
 pre-commit install --install-hooks
 ```
 
 ### Update hooks to latest versions
+
 ```bash
 pre-commit autoupdate
 ```
 
 ### Debugging a specific hook
+
 ```bash
 pre-commit run <hook-id> --all-files --verbose
 ```
@@ -115,12 +127,14 @@ pre-commit run <hook-id> --all-files --verbose
 ## Configuration
 
 Edit `.pre-commit-config.yaml` to:
+
 - Add/remove hooks
 - Change hook versions
 - Modify hook arguments
 - Exclude directories
 
 Example: to skip docs folder, edit:
+
 ```yaml
 exclude: |
   (?x)^(
@@ -133,11 +147,13 @@ exclude: |
 ## Disabling Pre-commit
 
 If you need to disable pre-commit:
+
 ```bash
 pre-commit uninstall
 ```
 
 To re-enable:
+
 ```bash
 pre-commit install
 ```

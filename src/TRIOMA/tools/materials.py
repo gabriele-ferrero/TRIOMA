@@ -170,4 +170,3 @@ def Steel(T: float) -> SolidMaterial:
     steel_material = SolidMaterial(T=T, D=H_diff(T), K_S=K_S(T))
 
     return steel_material
-

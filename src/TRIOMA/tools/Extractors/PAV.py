@@ -2,11 +2,6 @@ from TRIOMA.tools.Extractors.PipeSubclasses import (
     Geometry,
     Fluid,
     Membrane,
-    FluidMaterial,
-    SolidMaterial,
-    Turbulator,
-    WireCoil,
-    CustomTurbulator,
 )
 from TRIOMA.tools.TriomaClass import TriomaClass
 import numpy as np
@@ -16,7 +11,6 @@ from scipy.optimize import minimize
 from scipy.special import lambertw
 from scipy import integrate
 from typing import Union
-from scipy import integrate
 from TRIOMA.tools import correlations as corr
 import TRIOMA.tools.molten_salts as MS
 import TRIOMA.tools.liquid_metals as LM
@@ -111,9 +105,7 @@ class Component(TriomaClass):
                 if isinstance(value, object) and hasattr(value, attr_name):
                     setattr(value, attr_name, new_value)
                     return
-        raise ValueError(
-            f"'{attr_name}' is not an attribute of {self.__class__.__name__}"
-        )
+        raise ValueError(f"'{attr_name}' is not an attribute of {self.__class__.__name__}")
 
     def friction_factor(self, Re: float) -> float:
         """
@@ -180,9 +172,7 @@ class Component(TriomaClass):
         """
         if self.delta_p is None:
             self.get_pressure_drop()
-        self.pumping_power = (
-            self.delta_p * self.get_pipe_flowrate() * self.geometry.n_pipes
-        )
+        self.pumping_power = self.delta_p * self.get_pipe_flowrate() * self.geometry.n_pipes
         return self.pumping_power
 
     # def connect_to_component(
@@ -200,9 +190,7 @@ class Component(TriomaClass):
 
         # First subplot: two overlapping circles
         circle1 = plt.Circle((0, 0), r_tot, color="#C0C0C0", label="Membrane")
-        circle2 = plt.Circle(
-            (0, 0), self.geometry.D / 2, color="#87CEEB", label="Fluid"
-        )
+        circle2 = plt.Circle((0, 0), self.geometry.D / 2, color="#87CEEB", label="Fluid")
         ax1.add_artist(circle1)
         ax1.add_artist(circle2)
         ax1.set_aspect("equal")
@@ -251,13 +239,9 @@ class Component(TriomaClass):
         )
         ax2.add_patch(rectangle)
         # Arrow pointing to the left side of the rectangle
-        ax2.arrow(
-            0.0, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc="black", ec="black"
-        )
+        ax2.arrow(0.0, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc="black", ec="black")
         # Arrow pointing out of the right side of the rectangle
-        ax2.arrow(
-            0.8, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc="black", ec="black"
-        )
+        ax2.arrow(0.8, 0.5, 0.1, 0, head_width=0.05, head_length=0.1, fc="black", ec="black")
         ax2.set_aspect("equal")
         ax2.set_xlim(0, 1)
         ax2.set_ylim(0, 1)
@@ -368,7 +352,7 @@ class Component(TriomaClass):
 
             The recirculation parameter models fuel cycle **hydraulic feedback**:
 
-            - **Positive (recycling)**: Reflects scenarios where the processed breeder returns 
+            - **Positive (recycling)**: Reflects scenarios where the processed breeder returns
             in the component and mixes with the fresh inlet stream, increasing inlet concentration
               and potentially improving extraction rate due to higher residence time.
 
@@ -406,20 +390,16 @@ class Component(TriomaClass):
                 self.analytical_efficiency()
                 self.update_attribute("eff", self.eff_an)
                 self.c_out = self.c_in * (1 - self.eff)
-                c_in = (self.c_out * self.fluid.recirculation + c0) / (
-                    self.fluid.recirculation + 1
-                )
+                c_in = (self.c_out * self.fluid.recirculation + c0) / (self.fluid.recirculation + 1)
                 err = abs((c_in - c_in1) / c_in)
         elif self.fluid.recirculation < 0:
             if self.fluid.recirculation <= -1:
-                RaiseError(
-                    "Bypass(negative recirculation) not valid: it is more than the flowrate"
-                )
+                RaiseError("Bypass(negative recirculation) not valid: it is more than the flowrate")
             if self.c_in == 0:
                 RaiseError("The inlet concentration is zero")
-            self.c_out = self.c_in * (1 - self.eff) * (
-                1 + self.fluid.recirculation
-            ) + self.c_in * (-self.fluid.recirculation)
+            self.c_out = self.c_in * (1 - self.eff) * (1 + self.fluid.recirculation) + self.c_in * (
+                -self.fluid.recirculation
+            )
         else:
             RaiseError("Recirculation factor not valid")
         return self.c_out
@@ -441,8 +421,6 @@ class Component(TriomaClass):
         Tries to find the optimal number of components to split the component into
 
         """
-        import copy
-        from TRIOMA.tools.Circuit import Circuit
 
         eff_v = []
         for N in range(10, 101, 2):
@@ -475,9 +453,7 @@ class Component(TriomaClass):
                 label="Relative error %",
             )
             axs[1].set_xlabel("Number of components")
-            axs[1].set_ylabel(
-                r"Relative error (%) in $\eta$ with respect to 100 components"
-            )
+            axs[1].set_ylabel(r"Relative error (%) in $\eta$ with respect to 100 components")
             axs[1].hlines(
                 tol * 100,
                 10,
@@ -570,9 +546,9 @@ class Component(TriomaClass):
             component.fluid.T = (T_vec_p[i] + T_vec_p[i + 1]) / 2
             average_T_s = (T_vec_s[i] + T_vec_s[i + 1]) / 2
             R_prim = 1 / self.fluid.h_coeff
-            R_cond = np.log(
-                (self.fluid.d_Hyd + self.membrane.thick) / self.fluid.d_Hyd
-            ) / (2 * np.pi * self.membrane.k)
+            R_cond = np.log((self.fluid.d_Hyd + self.membrane.thick) / self.fluid.d_Hyd) / (
+                2 * np.pi * self.membrane.k
+            )
             R_tot = 1 / component.U
             T_membrane = (T_vec_p[i] + T_vec_p[i + 1]) / 2 + (
                 average_T_s - ((T_vec_p[i] + T_vec_p[i + 1]) / 2)
@@ -589,9 +565,7 @@ class Component(TriomaClass):
             axes[0].plot(T_vec_s)
             x_values = np.arange(len(T_vec_membrane)) + 0.5
             axes[0].plot(x_values, T_vec_membrane)
-            axes[0].legend(
-                ["Primary fluid", "Secondary fluid", "Membrane"], frameon=False
-            )
+            axes[0].legend(["Primary fluid", "Secondary fluid", "Membrane"], frameon=False)
             axes[0].set_ylabel("Temperature [K]")
             axes[0].set_xlabel("Component number")
             axes[0].spines["top"].set_visible(False)
@@ -601,9 +575,7 @@ class Component(TriomaClass):
             axes[1].plot(position_vec, T_vec_p)
             axes[1].plot(position_vec, T_vec_s)
             axes[1].plot(position_vec[:-1], T_vec_membrane)
-            axes[1].legend(
-                ["Primary fluid", "Secondary fluid", "Membrane"], frameon=False
-            )
+            axes[1].legend(["Primary fluid", "Secondary fluid", "Membrane"], frameon=False)
             axes[1].set_xlabel("Position in HX [m]")
             axes[1].set_ylabel("Temperature [K]")
             axes[1].spines["top"].set_visible(False)
@@ -760,9 +732,7 @@ class Component(TriomaClass):
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
         match self.fluid.MS:
             case True:
-                self.H = MS.H(
-                    k_t=self.fluid.k_t, k_H=self.fluid.Solubility, k_d=self.membrane.k_d
-                )
+                self.H = MS.H(k_t=self.fluid.k_t, k_H=self.fluid.Solubility, k_d=self.membrane.k_d)
                 self.W = MS.W(
                     k_d=self.membrane.k_d,
                     D=self.membrane.D,
@@ -806,7 +776,9 @@ class Component(TriomaClass):
         self.analytical_efficiency(p_out=p_out)
         self.eff = self.eff_an
 
-    def get_efficiency(self, plotvar: bool = False, c_guess: float | None = None, p_out: float = 1e-15) -> None:
+    def get_efficiency(
+        self, plotvar: bool = False, c_guess: float | None = None, p_out: float = 1e-15
+    ) -> None:
         """
         Calculates the efficiency of the component.
         """
@@ -832,9 +804,7 @@ class Component(TriomaClass):
                 if isinstance(c_guess, float):
                     c_guess = self.get_flux(c_vec[i], c_guess=c_guess, p_out=p_out)
                 else:
-                    c_guess = self.get_flux(
-                        c_vec[i], c_guess=float(self.c_in), p_out=p_out
-                    )
+                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in), p_out=p_out)
             else:
                 c_vec[i] = c_vec[
                     i - 1
@@ -844,9 +814,7 @@ class Component(TriomaClass):
                 if isinstance(c_guess, float):
                     c_guess = self.get_flux(c_vec[i], c_guess=c_guess, p_out=p_out)
                 else:
-                    c_guess = self.get_flux(
-                        c_vec[i], c_guess=float(self.c_in), p_out=p_out
-                    )
+                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in), p_out=p_out)
         if plotvar:
             plt.plot(L_vec, c_vec)
         self.eff = (self.c_in - c_vec[-1]) / self.c_in
@@ -893,9 +861,7 @@ class Component(TriomaClass):
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
-        self.tau = (
-            4 * self.fluid.k_t * self.geometry.L / (self.fluid.U0 * self.fluid.d_Hyd)
-        )
+        self.tau = 4 * self.fluid.k_t * self.geometry.L / (self.fluid.U0 * self.fluid.d_Hyd)
         match self.fluid.MS:
             case True:
                 self.alpha = (
@@ -909,8 +875,7 @@ class Component(TriomaClass):
                             self.fluid.k_t
                             * self.fluid.d_Hyd
                             * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                                / self.fluid.d_Hyd
+                                (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
                             )
                         )
                     )
@@ -925,9 +890,7 @@ class Component(TriomaClass):
                     case (
                         self.xi,
                         self.tau,
-                    ) if (
-                        self.xi**0.5 < 1e-2 and self.tau > 1 / self.xi**0.5
-                    ):
+                    ) if (self.xi**0.5 < 1e-2 and self.tau > 1 / self.xi**0.5):
                         corr_p = 1 - (p_out / p_in) ** 0.5
                         self.eff_an = (1 - (1 - self.tau * self.xi**0.5) ** 2) * corr_p
                     case _:
@@ -944,9 +907,7 @@ class Component(TriomaClass):
                                 cl = var
                                 self.alpha = self.xi * self.c_in
 
-                                left = (cl / self.alpha + 1 + 2 * f) ** 0.5 + (
-                                    1 + f
-                                ) * np.log(
+                                left = (cl / self.alpha + 1 + 2 * f) ** 0.5 + (1 + f) * np.log(
                                     -f + ((cl / self.alpha + 1 + 2 * f) ** 0.5 - 1)
                                 )
 
@@ -956,18 +917,13 @@ class Component(TriomaClass):
 
                             p_in = self.c_in / self.fluid.Solubility
                             if (
-                                abs(self.p_out * self.fluid.Solubility - self.c_in)
-                                / self.c_in
+                                abs(self.p_out * self.fluid.Solubility - self.c_in) / self.c_in
                                 < 1e-2
                             ):
                                 self.eff_an = 1e-6
                                 return
-                            lower_bound = min(
-                                self.p_out * self.fluid.Solubility, self.c_in
-                            )
-                            upper_bound = max(
-                                self.p_out * self.fluid.Solubility, self.c_in
-                            )
+                            lower_bound = min(self.p_out * self.fluid.Solubility, self.c_in)
+                            upper_bound = max(self.p_out * self.fluid.Solubility, self.c_in)
                             cl = minimize(
                                 eq,
                                 x0=(lower_bound + upper_bound) / 2,
@@ -983,9 +939,7 @@ class Component(TriomaClass):
                             w = lambertw(z, tol=1e-10)
                             self.eff_an = 1 - self.xi * (w**2 + 2 * w)
                             if self.eff_an.imag != 0:
-                                raise ValueError(
-                                    "self.eff_an has a non-zero imaginary part"
-                                )
+                                raise ValueError("self.eff_an has a non-zero imaginary part")
                             else:
                                 self.eff_an = self.eff_an.real  # get rid of 0*j
             case False:  # Liquid Metal
@@ -993,18 +947,16 @@ class Component(TriomaClass):
                     self.fluid.k_t
                     * self.fluid.Solubility
                     * self.fluid.d_Hyd
-                    * np.log(
-                        (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                    )
+                    * np.log((self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd)
                 )
                 p_in = (self.c_in / self.fluid.Solubility) ** 2
                 corr_p = 1 - (p_out / p_in) ** 0.5
 
-                self.eff_an = (
-                    1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
-                ) * corr_p
+                self.eff_an = (1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))) * corr_p
 
-    def get_flux(self, c: float | None = None, c_guess: float = 1e-9, p_out: float = 1e-15) -> float:
+    def get_flux(
+        self, c: float | None = None, c_guess: float = 1e-9, p_out: float = 1e-15
+    ) -> float:
         """
         Calculate the tritium permeation flux across the membrane.
 
@@ -1123,9 +1075,7 @@ class Component(TriomaClass):
                             "maxiter": int(1e7),
                         },
                     )
-                    self.J_perm = (
-                        -2 * self.fluid.k_t * (c - solution.x[0])
-                    )  ## MS factor
+                    self.J_perm = -2 * self.fluid.k_t * (c - solution.x[0])  ## MS factor
                     return float(solution.x[0])
             elif self.W < 0.1:
                 # Surface limited V // Diffusion Limited X
@@ -1232,10 +1182,7 @@ class Component(TriomaClass):
                                 / (self.fluid.d_Hyd / 2)
                             )
                         )
-                        * (
-                            self.membrane.K_S * (c_wall / self.fluid.Solubility) ** 0.5
-                            - p_out**0.5
-                        )
+                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility) ** 0.5 - p_out**0.5)
                     )
                     return float(solution.x[0])
                 else:
@@ -1321,10 +1268,7 @@ class Component(TriomaClass):
                                     / (self.fluid.d_Hyd / 2)
                                 )
                             )
-                            * (
-                                self.membrane.K_S
-                                * (c_wl / self.fluid.Solubility - p_out**0.5)
-                            )
+                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility - p_out**0.5))
                         )
                         return abs((J_diff - J_mt))
 
@@ -1415,10 +1359,7 @@ class Component(TriomaClass):
                                     / (self.fluid.d_Hyd / 2)
                                 )
                             )
-                            * (
-                                self.membrane.K_S
-                                * (c_wl / self.fluid.Solubility - p_out**0.5)
-                            )
+                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility - p_out**0.5))
                         )
 
                         return abs(J_diff - J_surf)
@@ -1450,10 +1391,7 @@ class Component(TriomaClass):
                                 / (self.fluid.d_Hyd / 2)
                             )
                         )
-                        * (
-                            self.membrane.K_S
-                            * (c_wall / self.fluid.Solubility - p_out**0.5)
-                        )
+                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility - p_out**0.5))
                     )
                     return float(solution.x[0])
                 else:
@@ -1566,10 +1504,7 @@ class Component(TriomaClass):
         else:
             match self.geometry.turbulator.turbulator_type:
                 case "TwistedTape":
-                    print(
-                        str(self.geometry.turbulator.turbulator_type)
-                        + " is not implemented yet"
-                    )
+                    print(str(self.geometry.turbulator.turbulator_type) + " is not implemented yet")
                     raise NotImplementedError("Twisted tape is not implemented yet")
                 case "WireCoil":
                     h_prim = self.geometry.turbulator.h_t_correlation(
@@ -1597,10 +1532,7 @@ class Component(TriomaClass):
                         1
                         / 4
                         * r**2
-                        * (
-                            2 * np.log(r / (self.geometry.D / 2 + self.geometry.thick))
-                            - 1
-                        )
+                        * (2 * np.log(r / (self.geometry.D / 2 + self.geometry.thick)) - 1)
                     )
 
                 def circle(r):
@@ -1614,10 +1546,7 @@ class Component(TriomaClass):
                         self.fluid.k_t
                         * self.fluid.Solubility
                         * self.fluid.d_Hyd
-                        * np.log(
-                            (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                            / self.fluid.d_Hyd
-                        )
+                        * np.log((self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd)
                     )
                 )
                 dimless2 = (
@@ -1627,10 +1556,7 @@ class Component(TriomaClass):
                     / (
                         self.fluid.Solubility
                         * self.fluid.d_Hyd
-                        * np.log(
-                            (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                            / self.fluid.d_Hyd
-                        )
+                        * np.log((self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd)
                     )
                 )
                 L_ch = (
@@ -1649,10 +1575,7 @@ class Component(TriomaClass):
                         / self.fluid.Solubility
                         * self.membrane.K_S
                     )
-                    / np.log(
-                        (self.geometry.D / 2 + self.geometry.thick)
-                        / (self.geometry.D / 2)
-                    )
+                    / np.log((self.geometry.D / 2 + self.geometry.thick) / (self.geometry.D / 2))
                 )
                 L_factor = (np.exp(L_ch * self.geometry.L) - 1) / L_ch
                 K = K * L_factor
@@ -1660,8 +1583,7 @@ class Component(TriomaClass):
                     K * integralfun(self.geometry.D / 2 + self.geometry.thick)
                     - K * integralfun(self.geometry.D / 2)
                 ) + self.geometry.L * p_out**0.5 * self.membrane.K_S * (
-                    circle(self.geometry.D / 2 + self.geometry.thick)
-                    - circle(self.geometry.D / 2)
+                    circle(self.geometry.D / 2 + self.geometry.thick) - circle(self.geometry.D / 2)
                 )
                 inventory = integral
                 self.membrane.inv = inventory
@@ -1671,9 +1593,7 @@ class Component(TriomaClass):
                 def ms_integral(self, p_out: float = 0, L: float = 0):
                     if self.tau is None or self.xi is None or self.alpha is None:
                         self.analytical_efficiency(p_out=p_out)
-                    beta = (1 / self.xi + 1) ** 0.5 + np.log(
-                        (1 / self.xi + 1) ** 0.5 - 1
-                    )
+                    beta = (1 / self.xi + 1) ** 0.5 + np.log((1 / self.xi + 1) ** 0.5 - 1)
                     max_exp = np.log(np.finfo(np.float64).max)
                     beta_tau = beta - self.tau - 1
                     if beta_tau > max_exp:
@@ -1686,19 +1606,13 @@ class Component(TriomaClass):
                         w = lambertw(z, tol=1e-10)
                         w2 = lambertw(z2, tol=1e-10)
                         if w.imag != 0:
-                            raise ValueError(
-                                "self.eff_an has a non-zero imaginary part"
-                            )
+                            raise ValueError("self.eff_an has a non-zero imaginary part")
                         if w2.imag != 0:
-                            raise ValueError(
-                                "self.eff_an has a non-zero imaginary part"
-                            )
+                            raise ValueError("self.eff_an has a non-zero imaginary part")
                         w = w.real
                         w2 = w2.real
                     c_ext = p_out**0.5 * self.membrane.K_S
-                    conv = (
-                        self.c_in / self.fluid.Solubility
-                    ) ** 0.5 * self.membrane.K_S
+                    conv = (self.c_in / self.fluid.Solubility) ** 0.5 * self.membrane.K_S
                     c_w_l = self.alpha * (w**2 + 2 * w) + self.alpha * (
                         2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5
                     )
@@ -1708,12 +1622,7 @@ class Component(TriomaClass):
                         * (
                             -beta_tau
                             * (w**2 - w + 1)
-                            / (
-                                4
-                                * self.fluid.k_t
-                                / (self.fluid.U0 * self.fluid.d_Hyd)
-                                * w2
-                            )
+                            / (4 * self.fluid.k_t / (self.fluid.U0 * self.fluid.d_Hyd) * w2)
                         )
                         * self.membrane.K_S
                     )
@@ -1723,13 +1632,7 @@ class Component(TriomaClass):
                             1
                             / 4
                             * r**2
-                            * (
-                                2
-                                * np.log(
-                                    r / (self.geometry.D / 2 + self.geometry.thick)
-                                )
-                                - 1
-                            )
+                            * (2 * np.log(r / (self.geometry.D / 2 + self.geometry.thick)) - 1)
                         )
 
                     integral = K * integralfun(
@@ -1788,8 +1691,7 @@ class Component(TriomaClass):
                             * self.fluid.Solubility
                             * self.fluid.d_Hyd
                             * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                                / self.fluid.d_Hyd
+                                (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
                             )
                         )
                     )
@@ -1801,8 +1703,7 @@ class Component(TriomaClass):
                             self.fluid.Solubility
                             * self.fluid.d_Hyd
                             * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                                / self.fluid.d_Hyd
+                                (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
                             )
                         )
                     )
@@ -1820,10 +1721,7 @@ class Component(TriomaClass):
                     )  # todo check this is liquid conc
 
                     return (
-                        (
-                            -(c_w - c_ext) * np.log(r / r_out) / np.log(r_out / r_in)
-                            + c_ext
-                        )
+                        (-(c_w - c_ext) * np.log(r / r_out) / np.log(r_out / r_in) + c_ext)
                         * 2
                         * np.pi
                         * r
@@ -1842,17 +1740,14 @@ class Component(TriomaClass):
                                 self.fluid.k_t
                                 * self.fluid.d_Hyd
                                 * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                                    / self.fluid.d_Hyd
+                                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
                                 )
                             )
                         )
                         ** 2
                     )
 
-                    beta = (1 / self.xi + 1) ** 0.5 + np.log(
-                        (1 / self.xi + 1) ** 0.5 - 1
-                    )
+                    beta = (1 / self.xi + 1) ** 0.5 + np.log((1 / self.xi + 1) ** 0.5 - 1)
                     max_exp = np.log(np.finfo(np.float64).max)
                     beta_tau = beta - tau - 1
                     if beta_tau > max_exp:
@@ -1863,38 +1758,28 @@ class Component(TriomaClass):
                         z = np.exp(beta_tau)
                         w = lambertw(z, tol=1e-10)
                         if w.imag != 0:
-                            raise ValueError(
-                                "self.eff_an has a non-zero imaginary part"
-                            )
+                            raise ValueError("self.eff_an has a non-zero imaginary part")
                         w = w.real
                     alpha = (
                         1
                         / self.fluid.Solubility
                         * (
-                            (
-                                0.5  ## TODO: Check this
-                                * self.membrane.D
-                                * self.membrane.K_S
-                            )
+                            (0.5 * self.membrane.D * self.membrane.K_S)  ## TODO: Check this
                             / (
                                 self.fluid.k_t
                                 * self.fluid.d_Hyd
                                 * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                                    / self.fluid.d_Hyd
+                                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
                                 )
                             )
                         )
                         ** 2
                     )
                     c_ext = p_out**0.5 * self.membrane.K_S
-                    conv = (
-                        self.c_in / self.fluid.Solubility
-                    ) ** 0.5 * self.membrane.K_S
+                    conv = (self.c_in / self.fluid.Solubility) ** 0.5 * self.membrane.K_S
                     c_w_l = (
                         alpha * (w**2 + 2 * w)
-                        + alpha
-                        * (2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5)  ## TODO: Check this
+                        + alpha * (2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5)  ## TODO: Check this
                         + c_ext
                     )
 
@@ -1905,9 +1790,7 @@ class Component(TriomaClass):
                             -np.log(r / r_out)
                             / np.log(r_out / r_in)
                             * (
-                                (alpha / self.fluid.Solubility) ** 0.5
-                                * w
-                                * self.membrane.K_S
+                                (alpha / self.fluid.Solubility) ** 0.5 * w * self.membrane.K_S
                                 - c_ext
                             )
                             + c_ext
@@ -1945,10 +1828,7 @@ class Component(TriomaClass):
                         self.fluid.k_t
                         * self.fluid.Solubility
                         * self.fluid.d_Hyd
-                        * np.log(
-                            (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                            / self.fluid.d_Hyd
-                        )
+                        * np.log((self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd)
                     )
                 )
                 dimless2 = (
@@ -1958,10 +1838,7 @@ class Component(TriomaClass):
                     / (
                         self.fluid.Solubility
                         * self.fluid.d_Hyd
-                        * np.log(
-                            (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                            / self.fluid.d_Hyd
-                        )
+                        * np.log((self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd)
                     )
                 )
                 L_ch = (
@@ -2009,8 +1886,7 @@ class Component(TriomaClass):
                             * self.fluid.Solubility
                             * self.fluid.d_Hyd
                             * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                                / self.fluid.d_Hyd
+                                (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
                             )
                         )
                     )
@@ -2040,17 +1916,14 @@ class Component(TriomaClass):
                                 self.fluid.k_t
                                 * self.fluid.d_Hyd
                                 * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                                    / self.fluid.d_Hyd
+                                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
                                 )
                             )
                         )
                         ** 2
                     )
 
-                    beta = (1 / self.xi + 1) ** 0.5 + np.log(
-                        (1 / self.xi + 1) ** 0.5 - 1
-                    )
+                    beta = (1 / self.xi + 1) ** 0.5 + np.log((1 / self.xi + 1) ** 0.5 - 1)
                     max_exp = np.log(np.finfo(np.float64).max)
                     beta_tau = beta - tau - 1
                     if beta_tau > max_exp:
@@ -2063,31 +1936,24 @@ class Component(TriomaClass):
                         z = np.exp(beta_tau)
                         w = lambertw(z, tol=1e-10)
                         if w.imag != 0:
-                            raise ValueError(
-                                "self.eff_an has a non-zero imaginary part"
-                            )
+                            raise ValueError("self.eff_an has a non-zero imaginary part")
                         w = w.real
                     alpha = (
                         1
                         / self.fluid.Solubility
                         * (
-                            (
-                                0.5 * self.membrane.D * self.membrane.K_S
-                            )  ## TODO: Check this
+                            (0.5 * self.membrane.D * self.membrane.K_S)  ## TODO: Check this
                             / (
                                 self.fluid.k_t
                                 * self.fluid.d_Hyd
                                 * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick)
-                                    / self.fluid.d_Hyd
+                                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
                                 )
                             )
                         )
                         ** 2
                     )
-                    conv = (
-                        self.c_in / self.fluid.Solubility
-                    ) ** 0.5 * self.membrane.K_S
+                    conv = (self.c_in / self.fluid.Solubility) ** 0.5 * self.membrane.K_S
                     c_w_l = alpha * (w**2 + 2 * w)
                     return c_w_l
 

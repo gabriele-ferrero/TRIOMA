@@ -43,10 +43,10 @@ TRIOMA takes the same approach and often the same equations from the following p
 Alberghi, Ciro, et al. ["Development of new analytical tools for tritium transport modelling."](<https://www.sciencedirect.com/science/article/pii/S0920379622000837>
 )
 Fusion Engineering and Design 177 (2022): 113083.
-Humrickhouse, Paul W., and Thomas F. Fuerst. [Tritium transport phenomena in molten-salt reactors.](<https://www.osti.gov/biblio/1777267>) No. INL/EXT-20-59927-Rev000. Idaho National Lab.(INL), Idaho Falls, ID (United States), 2020.  
+Humrickhouse, Paul W., and Thomas F. Fuerst. [Tritium transport phenomena in molten-salt reactors.](<https://www.osti.gov/biblio/1777267>) No. INL/EXT-20-59927-Rev000. Idaho National Lab.(INL), Idaho Falls, ID (United States), 2020.
 
-Fuerst, Thomas F., Chase N. Taylor, and Paul W. Humrickhouse. [Tritium Transport Phenomena in Molten-Salt Reactors: Molten Salt Tritium Transport Experiment Design.](<https://www.osti.gov/biblio/1828384>) No. INL/EXT-21-63108-Rev000. Idaho National Lab.(INL), Idaho Falls, ID (United States), 2021.  
+Fuerst, Thomas F., Chase N. Taylor, and Paul W. Humrickhouse. [Tritium Transport Phenomena in Molten-Salt Reactors: Molten Salt Tritium Transport Experiment Design.](<https://www.osti.gov/biblio/1828384>) No. INL/EXT-21-63108-Rev000. Idaho National Lab.(INL), Idaho Falls, ID (United States), 2021.
 
-Rader, Jordan D., M. Scott Greenwood, and Paul W. Humrickhouse. ["Verification of modelica-based models with analytical solutions for tritium diffusion."](<https://www.tandfonline.com/doi/full/10.1080/00295450.2018.1431505?casa_token=S0I-kCsS6noAAAAA%3A-52Bra2CN56Zg4p9l-l8XXkZXnT0WvPzDI6q-HrQy3NLDPY76wy-UfHlJwZ51VACCmWw7X13Bi-Luc0>) Nuclear Technology 203.1 (2018): 58-65.  
+Rader, Jordan D., M. Scott Greenwood, and Paul W. Humrickhouse. ["Verification of modelica-based models with analytical solutions for tritium diffusion."](<https://www.tandfonline.com/doi/full/10.1080/00295450.2018.1431505?casa_token=S0I-kCsS6noAAAAA%3A-52Bra2CN56Zg4p9l-l8XXkZXnT0WvPzDI6q-HrQy3NLDPY76wy-UfHlJwZ51VACCmWw7X13Bi-Luc0>) Nuclear Technology 203.1 (2018): 58-65.
 
 Urgorri, F. R., et al. ["Theoretical evaluation of the tritium extraction from liquid metal flows through a free surface and through a permeable membrane."](<https://iopscience.iop.org/article/10.1088/1741-4326/acbec7/meta>)

@@ -64,8 +64,9 @@ class TestExtractorsInit:
 
 class TestImportConsistency:
     """Test that imports are consistent across different import paths"""
+
     # This test is currently commented out because Circuit is only imported in __init__.py and
-    #  not in tools/__init__.py, which causes the test to fail. 
+    #  not in tools/__init__.py, which causes the test to fail.
     # If Circuit is imported in tools/__init__.py, this test can be uncommented and should pass.
     # def test_circuit_same_from_different_paths(self):
     #     """Test that Circuit imported from different paths is the same class"""
@@ -75,7 +76,6 @@ class TestImportConsistency:
 
     #     assert Circuit1 is Circuit2
     #     assert Circuit2 is Circuit3
-
 
     def test_component_same_from_different_paths(self):
         """Test that Component imported from different paths is the same class"""

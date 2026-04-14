@@ -13,7 +13,21 @@ from TRIOMA.tools.Extractors.PipeSubclasses import (
     WireCoil,
     CustomTurbulator,
 )
-from TRIOMA.tools.Extractors.GasLiquidContactor import GLC_Gas, GLC
+from TRIOMA.tools.Extractors.GasLiquidContactor import GLC
+
+__all__ = [
+    "TriomaClass",
+    "Geometry",
+    "Fluid",
+    "Membrane",
+    "FluidMaterial",
+    "SolidMaterial",
+    "Turbulator",
+    "WireCoil",
+    "CustomTurbulator",
+    "GLC",
+]
+
 
 if TYPE_CHECKING:
     from TRIOMA.tools.Extractors.PAV import Component
@@ -44,4 +58,3 @@ from TRIOMA.tools.BreedingBlanket import BreedingBlanket
 Component.connect_to_component = connect_to_component
 BreedingBlanket.connect_to_component = connect_to_component
 GLC.connect_to_component = connect_to_component
-

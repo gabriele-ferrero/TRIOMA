@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Optional
 
 
 class TriomaClass:
@@ -42,9 +42,7 @@ class TriomaClass:
             ValueError: If the attribute doesn't exist in this object or nested objects.
         """
         if not self._update_attribute_recursive(attr_name, new_value):
-            raise ValueError(
-                f"'{attr_name}' is not an attribute of {self.__class__.__name__}"
-            )
+            raise ValueError(f"'{attr_name}' is not an attribute of {self.__class__.__name__}")
 
     def _update_attribute_recursive(self, attr_name: str, new_value: float) -> bool:
         """
@@ -76,5 +74,3 @@ class TriomaClass:
                     return True
 
         return False
-
-

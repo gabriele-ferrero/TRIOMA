@@ -91,17 +91,17 @@ def NTU_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, c_max=0):
     c_in_gas = float(pg_in / R_const / T)
 
     def toint(c):
-        value = 1 / (
-            c - K_S * ((R_const * T / R_g) * (c - c_out + c_in_gas * R_g)) ** 0.5
-        )
+        value = 1 / (c - K_S * ((R_const * T / R_g) * (c - c_out + c_in_gas * R_g)) ** 0.5)
         return value
 
     c_g_max = float(pl_in / R_const / T)  # maximum concentration in gas
-    c_out_max = float(max(
-        c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
-        c_max,  # given input from equation
-        (pg_in) ** 0.5 * K_S,  ## if liquid is in equilibrium with gas at outlet
-    ))
+    c_out_max = float(
+        max(
+            c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
+            c_max,  # given input from equation
+            (pg_in) ** 0.5 * K_S,  ## if liquid is in equilibrium with gas at outlet
+        )
+    )
 
     integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
     if integral[0] < 0:
@@ -148,16 +148,16 @@ def NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, c_max=0):
     R_g = u_g / u_l  ## gas on liquid ratio
 
     def toint(c):
-        return 1 / (
-            c - K_H * (u_l / u_g * R_const * T) * (c - c_out + c_in_gas * u_g / u_l)
-        )
+        return 1 / (c - K_H * (u_l / u_g * R_const * T) * (c - c_out + c_in_gas * u_g / u_l))
 
     c_g_max = float(pl_in / R_const / T)  # maximum concentration in gas
-    c_out_max = float(max(
-        c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
-        c_max,  # given input from equation
-        pg_in * K_H,  ## if liquid is in equilibrium with gas at outlet
-    ))
+    c_out_max = float(
+        max(
+            c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
+            c_max,  # given input from equation
+            pg_in * K_H,  ## if liquid is in equilibrium with gas at outlet
+        )
+    )
 
     # integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
     integral = integrate.fixed_quad(toint, c_out, c_in)
@@ -211,7 +211,7 @@ def length_extractor_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, kla, c
     return Z
 
 
-from scipy.optimize import minimize, root
+from scipy.optimize import minimize
 
 
 def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
@@ -247,8 +247,7 @@ def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
         * (
             c_g_max - pg_in / R_const / T
         ),  ## liquid concentration if gas strips as much as possible and gets into eq with liquid
-        (pg_in) ** 0.5
-        * K_S,  ## liquid concentration if it gets in equilibrium with gas
+        (pg_in) ** 0.5 * K_S,  ## liquid concentration if it gets in equilibrium with gas
         c_out_max_reaction,  ## liquid concentration if reaction rate is at the maximum
     )
 
@@ -278,9 +277,7 @@ def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
         options={"maxiter": 1e8},
     ).x[0]
     eff = 1 - c_out / c_in
-    L_cout = length_extractor_lm(
-        R, G_l, G_gas, pl_in, c_out**2 / K_S**2, T, p_t, K_S, pg_in, kla
-    )
+    L_cout = length_extractor_lm(R, G_l, G_gas, pl_in, c_out**2 / K_S**2, T, p_t, K_S, pg_in, kla)
     if abs(L_cout - Z) > 1e-3:
         print(
             "Warning!: guessed length is not equal to the height. Double check your result",
@@ -357,9 +354,7 @@ def get_c_out_GLC_ms(Z, R, G_l, G_gas, pl_in, T, p_t, K_H, pg_in, kla):
         options={"maxiter": 1e8},
     ).x[0]
     eff = 1 - c_out / c_in
-    L_cout = length_extractor_lm(
-        R, G_l, G_gas, pl_in, c_out / K_H, T, p_t, K_H, pg_in, kla
-    )
+    L_cout = length_extractor_lm(R, G_l, G_gas, pl_in, c_out / K_H, T, p_t, K_H, pg_in, kla)
     if abs(L_cout - Z) > 1e-3:
         print(
             "Warning!: guessed length is not equal to the height. Double check your result",
