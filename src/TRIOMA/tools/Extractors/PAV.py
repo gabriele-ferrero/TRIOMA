@@ -78,7 +78,7 @@ class Component(TriomaClass):
         self.cost = cost
         self.update_attribute = self.custom_update_attribute
 
-    def custom_update_attribute(self, attr_name: str, new_value: float):
+    def custom_update_attribute(self, attr_name: str, new_value: float) -> None:
         """
         Sets the specified attribute to a new value.
 
@@ -131,7 +131,7 @@ class Component(TriomaClass):
             f = 0.316 / Re**0.25  ## Blasius for smooth pipes
         return f
 
-    def update_T_prop(self):
+    def update_T_prop(self) -> None:
         """
         Updates the temperature-dependent properties of the fluid and membrane.
         """
@@ -157,7 +157,7 @@ class Component(TriomaClass):
         self.delta_p = f * (L / D) * (rho * U**2) / 2
         return self.delta_p
 
-    def estimate_cost(self, metal_cost=0, fluid_cost=0):
+    def estimate_cost(self, metal_cost: float = 0, fluid_cost: float = 0) -> float:
         """
         Estimates the cost of the component.
         metal_cost: cost of the metal in $/m^3
@@ -190,10 +190,10 @@ class Component(TriomaClass):
     # ):
     #     """sets the inlet conc of the object component equal to the outlet of self"""
     #     component2.update_attribute("c_in", self.c_out)
-    def connect_to_component(self):
+    def connect_to_component(self) -> None:
         return  ## empty method defined in component_tools.py
 
-    def plot_component(self):
+    def plot_component(self) -> plt.Figure:
         r_tot = (self.geometry.D) / 2 + self.geometry.thick
         # Create a figure with two subplots
         fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 5))
@@ -365,15 +365,15 @@ class Component(TriomaClass):
     def converge_split_HX(
         self,
         tol: float = 1e-3,
-        T_in_hot: float = None,
-        T_out_hot: float = None,
-        T_in_cold: float = None,
-        T_out_cold: float = None,
-        R_sec: float = None,
-        Q: float = None,
+        T_in_hot: float | None = None,
+        T_out_hot: float | None = None,
+        T_in_cold: float | None = None,
+        T_out_cold: float | None = None,
+        R_sec: float | None = None,
+        Q: float | None = None,
         plotvar: bool = False,
         savevar: bool = False,
-    ) -> "Circuit":
+    ) -> None:
         """
         Splits the component into N components to better discretize Temperature effects
         Tries to find the optimal number of components to split the component into
@@ -439,12 +439,12 @@ class Component(TriomaClass):
     def split_HX(
         self,
         N: int = 25,
-        T_in_hot: int = None,
-        T_out_hot: int = None,
-        T_in_cold: int = None,
-        T_out_cold: int = None,
-        R_sec: int = 0,
-        Q: int = None,
+        T_in_hot: float | None = None,
+        T_out_hot: float | None = None,
+        T_in_cold: float | None = None,
+        T_out_cold: float | None = None,
+        R_sec: float = 0,
+        Q: float | None = None,
         plotvar: bool = False,
         savevar: bool = False,
     ) -> "Circuit":
@@ -567,7 +567,7 @@ class Component(TriomaClass):
 
         return leak
 
-    def get_regime(self, print_var: bool = False):
+    def get_regime(self, print_var: bool = False) -> str:
         """
         Gets the regime of the component.
 
@@ -609,7 +609,7 @@ class Component(TriomaClass):
                 )
                 return result
 
-    def get_pipe_flowrate(self):
+    def get_pipe_flowrate(self) -> float:
         """
         Calculates the volumetric flow rate of the component [m^3/s].
 
@@ -619,7 +619,7 @@ class Component(TriomaClass):
         self.pipe_flowrate = self.fluid.U0 * np.pi * self.fluid.d_Hyd**2 / 4
         return self.pipe_flowrate
 
-    def get_total_flowrate(self):
+    def get_total_flowrate(self) -> float:
         """
         Calculates the total flow rate of the component.
         """
@@ -627,7 +627,7 @@ class Component(TriomaClass):
         self.flowrate = self.pipe_flowrate * self.geometry.n_pipes
         return self.flowrate * self.geometry.n_pipes
 
-    def define_component_volumes(self):
+    def define_component_volumes(self) -> None:
         """
         Calculates the volumes of the component.
         """
@@ -635,7 +635,7 @@ class Component(TriomaClass):
         self.membrane.V = self.geometry.get_solid_volume()
         self.V = self.fluid.V + self.membrane.V
 
-    def get_adimensionals(self):
+    def get_adimensionals(self) -> None:
         """
         Calculates the adimensional parameters H and W.
 
@@ -684,7 +684,7 @@ class Component(TriomaClass):
                     K_S_L=self.fluid.Solubility,
                 )
 
-    def use_analytical_efficiency(self, p_out=1e-15):
+    def use_analytical_efficiency(self, p_out: float = 1e-15) -> None:
         """Evaluates the analytical efficiency and substitutes it in the efficiency attribute of the component.
 
         Args:
@@ -695,7 +695,7 @@ class Component(TriomaClass):
         self.analytical_efficiency(p_out=p_out)
         self.eff = self.eff_an
 
-    def get_efficiency(self, plotvar: bool = False, c_guess: float = None, p_out=1e-15):
+    def get_efficiency(self, plotvar: bool = False, c_guess: float | None = None, p_out: float = 1e-15) -> None:
         """
         Calculates the efficiency of the component.
         """
@@ -740,7 +740,7 @@ class Component(TriomaClass):
             plt.plot(L_vec, c_vec)
         self.eff = (self.c_in - c_vec[-1]) / self.c_in
 
-    def analytical_efficiency(self, p_out=1e-15):
+    def analytical_efficiency(self, p_out: float = 1e-15) -> None:
         """
         Calculate the analytical efficiency of a component.
 
@@ -877,7 +877,7 @@ class Component(TriomaClass):
                     1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))
                 ) * corr_p
 
-    def get_flux(self, c: float = None, c_guess: float = 1e-9, p_out=1e-15):
+    def get_flux(self, c: float | None = None, c_guess: float = 1e-9, p_out: float = 1e-15) -> float:
         """
         Calculates the Tritium flux of the component.
         It can make some approximations based on W and H to make the solver faster
@@ -1342,7 +1342,7 @@ class Component(TriomaClass):
                     self.J_perm = self.fluid.k_t * (c - c_wl)  # LM factor
                     return float(solution.x[0])
 
-    def get_global_HX_coeff(self, R_conv_sec: float = 0):
+    def get_global_HX_coeff(self, R_conv_sec: float = 0) -> None:
         """
         Calculates the global heat exchange coefficient of the component.
         It can take the secondary resistance to convection as input. defaults to no resistance
@@ -1381,7 +1381,7 @@ class Component(TriomaClass):
         self.U = 1 / R_tot
         return
 
-    def analytical_solid_inventory(self, p_out: float = 0):
+    def analytical_solid_inventory(self, p_out: float = 0) -> float:
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1557,7 +1557,7 @@ class Component(TriomaClass):
                 self.membrane.inv = inv * self.geometry.n_pipes
                 return inv
 
-    def get_solid_inventory(self, p_out: float = 0, flag_an=False):
+    def get_solid_inventory(self, p_out: float = 0, flag_an: bool = False) -> float:
         if flag_an:
             return self.analytical_solid_inventory(p_out=p_out)
 
@@ -1723,7 +1723,7 @@ class Component(TriomaClass):
             self.inspect()
         return self.membrane.inv
 
-    def analytical_fluid_inventory(self, p_out=0):
+    def analytical_fluid_inventory(self, p_out: float = 0) -> None:
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1782,7 +1782,7 @@ class Component(TriomaClass):
                 print("MS fluid integration is done numerically")
                 self.get_fluid_inventory(flag_an=False, p_out=p_out)
 
-    def get_fluid_inventory(self, flag_an=False, p_out=0):
+    def get_fluid_inventory(self, flag_an: bool = False, p_out: float = 0) -> float:
         if flag_an == True:
             return self.analytical_fluid_inventory(p_out=p_out)
         r_in = self.fluid.d_Hyd / 2
@@ -1891,7 +1891,7 @@ class Component(TriomaClass):
         self.fluid.inv = result * np.pi * r_in**2 * self.geometry.n_pipes
         return self.fluid.inv
 
-    def get_inventory(self, flag_an=True, p_out=0):
+    def get_inventory(self, flag_an: bool = True, p_out: float = 0) -> None:
         self.get_solid_inventory(flag_an=flag_an, p_out=p_out)
         self.get_fluid_inventory(flag_an=flag_an, p_out=p_out)
         self.inv = self.fluid.inv + self.membrane.inv
