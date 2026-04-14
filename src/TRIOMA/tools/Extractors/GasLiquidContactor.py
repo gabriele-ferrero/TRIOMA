@@ -1,6 +1,5 @@
 from TRIOMA.tools.TriomaClass import TriomaClass
 from TRIOMA.tools.Extractors.PipeSubclasses import Fluid, Membrane
-import TRIOMA.tools.correlations as corr
 import TRIOMA.tools.Extractors.extractor as extractor
 
 

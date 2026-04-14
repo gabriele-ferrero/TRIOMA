@@ -1,3 +1,7 @@
+"""Component tools and utilities for TRIOMA."""
+
+from typing import Union, Optional, TYPE_CHECKING
+
 from TRIOMA.tools.TriomaClass import TriomaClass
 from TRIOMA.tools.Extractors.PipeSubclasses import (
     Geometry,
@@ -9,30 +13,48 @@ from TRIOMA.tools.Extractors.PipeSubclasses import (
     WireCoil,
     CustomTurbulator,
 )
-from TRIOMA.tools.Extractors.GasLiquidContactor import GLC_Gas, GLC
+from TRIOMA.tools.Extractors.GasLiquidContactor import GLC
 
-import TRIOMA.tools.correlations as corr
-import matplotlib.pyplot as plt
+__all__ = [
+    "TriomaClass",
+    "Geometry",
+    "Fluid",
+    "Membrane",
+    "FluidMaterial",
+    "SolidMaterial",
+    "Turbulator",
+    "WireCoil",
+    "CustomTurbulator",
+    "GLC",
+]
 
-from typing import Union
-import matplotlib.pyplot as plt
-from scipy import integrate
-from TRIOMA.tools.Extractors import extractor
-from TRIOMA.tools.Extractors.PAV import Component
-from TRIOMA.tools.BreedingBlanket import BreedingBlanket
-from TRIOMA.tools.Circuit import Circuit
-import numpy as np
+
+if TYPE_CHECKING:
+    from TRIOMA.tools.Extractors.PAV import Component
+    from TRIOMA.tools.BreedingBlanket import BreedingBlanket
 
 
 def connect_to_component(
-    self, component2: Union["Component", "BreedingBlanket", "GLC"] = None
-):
-    """sets the inlet conc of the object component equal to the outlet of self"""
+    self: TriomaClass, component2: Optional[Union["Component", "BreedingBlanket", "GLC"]] = None
+) -> None:
+    """
+    Connect this component to another component.
+
+    Sets the inlet concentration of component2 equal to the outlet of self.
+
+    Args:
+        self: The TRIOMA component instance.
+        component2: The component to connect to.
+    """
+    if component2 is None:
+        raise ValueError("component2 cannot be None")
     component2.update_attribute("c_in", self.c_out)
 
 
-# Component.converge_split_HX = converge_split_HX
-# Component.split_HX = split_HX
+# Dynamically add connect_to_component method to component classes
+from TRIOMA.tools.Extractors.PAV import Component
+from TRIOMA.tools.BreedingBlanket import BreedingBlanket
+
 Component.connect_to_component = connect_to_component
 BreedingBlanket.connect_to_component = connect_to_component
 GLC.connect_to_component = connect_to_component

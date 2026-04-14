@@ -45,13 +45,9 @@ class BreedingBlanket(TriomaClass):
         )
         ax2.add_patch(rectangle)
         # Arrow pointing to the left side of the rectangle
-        ax2.arrow(
-            0.5, 0.7, 0, 0.1, head_width=0.05, head_length=0.1, fc="black", ec="black"
-        )
+        ax2.arrow(0.5, 0.7, 0, 0.1, head_width=0.05, head_length=0.1, fc="black", ec="black")
         # Arrow pointing out of the right side of the rectangle
-        ax2.arrow(
-            0.5, 0.1, 0.0, 0.1, head_width=0.05, head_length=0.1, fc="black", ec="black"
-        )
+        ax2.arrow(0.5, 0.1, 0.0, 0.1, head_width=0.05, head_length=0.1, fc="black", ec="black")
         ax2.set_aspect("equal")
         ax2.set_xlim(0, 1)
         ax2.set_ylim(0, 1)
@@ -85,12 +81,8 @@ class BreedingBlanket(TriomaClass):
             ha="center",
             va="center",
         )
-        ax2.text(
-            0.5, 0.6, f"Q={self.Q/1E6:.3g} MW", color="black", ha="center", va="center"
-        )
-        ax2.text(
-            0.5, 0.4, f"TBR={self.TBR:.3g}", color="black", ha="center", va="center"
-        )
+        ax2.text(0.5, 0.6, f"Q={self.Q/1E6:.3g} MW", color="black", ha="center", va="center")
+        ax2.text(0.5, 0.4, f"TBR={self.TBR:.3g}", color="black", ha="center", va="center")
 
         ax2.text(
             0.3,

@@ -58,9 +58,7 @@ def get_regime(D, k_t, K_S_S, K_S_L, k_r, thick, c0, print_var: bool = None):
     str: The regime based on the value of H and W.
     """
     W = lm.W(k_r=k_r, D=D, thick=thick, K_S=K_S_S, c0=c0, K_S_L=K_S_L)
-    partition_param = lm.partition_param(
-        D=D, k_t=k_t, K_S_S=K_S_S, K_S_L=K_S_L, t=thick
-    )
+    partition_param = lm.partition_param(D=D, k_t=k_t, K_S_S=K_S_S, K_S_L=K_S_L, t=thick)
     result = None  ## initialize the result variable
     match (partition_param, W):
         case (partition_param, W) if partition_param > 10 and W > 10:
