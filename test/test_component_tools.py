@@ -2,6 +2,7 @@ import unittest
 import sys
 import os
 import matplotlib
+import warnings
 
 matplotlib.use("Agg")
 
@@ -1172,7 +1173,8 @@ class TestLMComponentSurfaceLimited(unittest.TestCase):
 
 
 class testclosedCircuit(unittest.TestCase):
-    def setUp(self):
+    @patch("matplotlib.pyplot.show")
+    def setUp(self, mock_show):
         fluid = Fluid(
             T=900,
             D=1e-7,
@@ -1242,7 +1244,8 @@ class testclosedCircuit(unittest.TestCase):
         plt.close()
         self.circuit = Circuit([componentBB, component, HX, component2], closed=True)
 
-    def test_circuit(self):
+    @patch("matplotlib.pyplot.show")
+    def test_circuit(self, mock_show):
         # Only test that Circuit functions are called and return correctly
         # Test closed circuit
         self.circuit.solve_circuit()

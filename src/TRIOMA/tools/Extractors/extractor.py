@@ -275,7 +275,7 @@ def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
         method="Powell",
         bounds=[(float(c_out_max), float(c_in))],
         tol=1e-20,
-        options={"maxiter": 1e8, "xatol": 1e-20, "fatol": 1e-20},
+        options={"maxiter": 1e8},
     ).x[0]
     eff = 1 - c_out / c_in
     L_cout = length_extractor_lm(
@@ -354,7 +354,7 @@ def get_c_out_GLC_ms(Z, R, G_l, G_gas, pl_in, T, p_t, K_H, pg_in, kla):
         method="Powell",
         bounds=[(float(c_out_max), float(c_in))],
         tol=1e-20,
-        options={"maxiter": 1e8, "xatol": 1e-20, "fatol": 1e-20},
+        options={"maxiter": 1e8},
     ).x[0]
     eff = 1 - c_out / c_in
     L_cout = length_extractor_lm(
