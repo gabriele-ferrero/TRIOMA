@@ -42,9 +42,9 @@ class Circuit(TriomaClass):
 
     def __init__(
         self,
-        components: list = None,
+        components: list | None = None,
         closed: bool = False,
-    ):
+    ) -> None:
         vec_components = []
         if components is not None:
             for element in components:
@@ -60,7 +60,7 @@ class Circuit(TriomaClass):
 
     def add_component(
         self, component: Union["Component", "BreedingBlanket", "Circuit", "GLC"]
-    ):
+    ) -> None:
         """
         Adds a component to the circuit.
 
@@ -73,7 +73,7 @@ class Circuit(TriomaClass):
         else:
             self.components.append(component)
 
-    def get_circuit_pumping_power(self):
+    def get_circuit_pumping_power(self) -> float:
         """
         Calculates the pumping power required for the circuit.
 
@@ -89,7 +89,7 @@ class Circuit(TriomaClass):
         self.pumping_power = pumping_power
         return self.pumping_power
 
-    def get_eff_circuit(self):
+    def get_eff_circuit(self) -> None:
         """
         Calculates the efficiency of the circuit based on the components present.
 
@@ -112,9 +112,7 @@ class Circuit(TriomaClass):
         if ind is not None:
             # Move the element at index `ind` to the first position
             self.components = (
-                [self.components[ind]]
-                + self.components[:ind]
-                + self.components[ind + 1 :]
+                [self.components[ind]] + self.components[:ind] + self.components[ind + 1 :]
             )
 
         for i, component in enumerate(self.components):
@@ -127,12 +125,12 @@ class Circuit(TriomaClass):
                 component.outlet_c_comp()
             if i != len(self.components) - 1:
                 component.connect_to_component(self.components[i + 1])
-        eff_circuit = (
-            self.components[1].c_in - self.components[-1].c_out
-        ) / self.components[1].c_in
+        eff_circuit = (self.components[1].c_in - self.components[-1].c_out) / self.components[
+            1
+        ].c_in
         self.eff = eff_circuit
 
-    def get_gains_and_losses(self):
+    def get_gains_and_losses(self) -> None:
         """
         Calculates the gains and losses of the components in the circuit.
 
@@ -179,7 +177,7 @@ class Circuit(TriomaClass):
             self.loss_perc = losses / self.components[0].c_in / eff_circuit
         self.eff = eff_circuit
 
-    def plot_circuit(self):
+    def plot_circuit(self) -> plt.Figure:
         """
         Plot the circuit diagram for the components in the circuit.
 
@@ -202,9 +200,7 @@ class Circuit(TriomaClass):
             num_rows = (num_components // 10) + (1 if num_components % 10 != 0 else 0)
             num_columns = 10
 
-        fig, axs = plt.subplots(
-            num_rows + 1, num_columns, figsize=(5 * num_columns, 4 * num_rows)
-        )
+        fig, axs = plt.subplots(num_rows + 1, num_columns, figsize=(5 * num_columns, 4 * num_rows))
         fig.subplots_adjust(hspace=0)
         # for component in self.components:
         #     component.plot_component()
@@ -388,7 +384,7 @@ class Circuit(TriomaClass):
                 ax.set_ylim(0.2, 0.8)
         return fig
 
-    def get_inventory(self, flag_an=True):
+    def get_inventory(self, flag_an: bool = True) -> None:
         """
         Calculates the inventory (in mol) of the circuit based on the components present.
 
@@ -409,7 +405,7 @@ class Circuit(TriomaClass):
                 inventory += component.inv
         self.inv = inventory
 
-    def solve_circuit(self, tol=1e-6, iterative=False):
+    def solve_circuit(self, tol: float = 1e-6, iterative=False) -> None:
         """
         Solve the circuit by calculating the concentration of the components at the outlet.
         If the circuit is a closed loop, the concentration of the first component is set to the concentration of the last component until the stationary regime is reached.
@@ -488,7 +484,7 @@ class Circuit(TriomaClass):
                 else:
                     flag = 1
 
-    def inspect_circuit(self, name=None):
+    def inspect_circuit(self, name: str | None = None) -> None:
         """
         Inspects the circuit components.
 
@@ -507,7 +503,7 @@ class Circuit(TriomaClass):
                 if component.name == name:
                     component.inspect()
 
-    def estimate_cost(self, metal_cost=0, fluid_cost=0):
+    def estimate_cost(self, metal_cost: float = 0, fluid_cost: float = 0) -> float:
         """
         Estimates the cost of the circuit.
         metal_cost: cost of the metal in $/m^3 in a vector ordered as the components
@@ -517,9 +513,7 @@ class Circuit(TriomaClass):
         cost_circuit = 0
         for i, component in enumerate(self.components):
             if isinstance(component, Component):
-                component.estimate_cost(
-                    metal_cost=metal_cost[i], fluid_cost=fluid_cost[i]
-                )
+                component.estimate_cost(metal_cost=metal_cost[i], fluid_cost=fluid_cost[i])
                 cost_circuit += component.cost
         self.cost = cost_circuit
         return self.cost

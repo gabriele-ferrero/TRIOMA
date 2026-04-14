@@ -1,27 +1,24 @@
 import unittest
-import sys
-import os
 import matplotlib
 
-from TRIOMA.tools.Extractors.PipeSubclasses import CustomTurbulator
-
 matplotlib.use("Agg")
-sys.path.append(os.path.abspath("."))
-import unittest
-from src.TRIOMA.tools.component_tools import (
+
+from TRIOMA.tools.Extractors.PipeSubclasses import CustomTurbulator
+from TRIOMA.tools.Extractors.PAV import (
     Component,
     Fluid,
     Membrane,
-    FluidMaterial,
-    BreedingBlanket,
-    SolidMaterial,
     Geometry,
-    Circuit,
-    WireCoil,
-    GLC,
-    GLC_Gas,
 )
-from src.TRIOMA.tools.materials import Flibe, Steel, Sodium, LiPb
+from TRIOMA.tools.BreedingBlanket import BreedingBlanket
+from TRIOMA.tools.Circuit import Circuit
+from TRIOMA.tools.Extractors.PipeSubclasses import (
+    FluidMaterial,
+    SolidMaterial,
+    WireCoil,
+)
+from TRIOMA.tools.Extractors.GasLiquidContactor import GLC, GLC_Gas
+from TRIOMA.tools.materials import Flibe, Steel, Sodium, LiPb
 from io import StringIO
 from unittest.mock import patch
 import pytest
@@ -77,21 +74,14 @@ class TestMSComponent(unittest.TestCase):
     def test_outlet_c_comp(self):
         # Test the outlet_c_comp() method
         self.component.outlet_c_comp()
-        self.assertAlmostEqual(
-            self.component.c_out, self.c_in_component * (1 - self.eff_component)
-        )
+        self.assertAlmostEqual(self.component.c_out, self.c_in_component * (1 - self.eff_component))
 
     def test_T_leak(self):
         # Test the T_leak() method
         leak = self.component.T_leak()
         self.assertAlmostEqual(
             leak,
-            self.c_in_component
-            * (self.eff_component)
-            * self.D_geom**2
-            / 4
-            * np.pi
-            * self.U0_fluid,
+            self.c_in_component * (self.eff_component) * self.D_geom**2 / 4 * np.pi * self.U0_fluid,
         )
 
     def test_get_regime(self):
@@ -193,9 +183,7 @@ class TestLMComponent(unittest.TestCase):
     def test_outlet_c_comp(self):
         # Test the outlet_c_comp() method
         self.component.outlet_c_comp()
-        self.assertAlmostEqual(
-            self.component.c_out, self.component.c_in * (1 - self.component.eff)
-        )
+        self.assertAlmostEqual(self.component.c_out, self.component.c_in * (1 - self.component.eff))
 
     def test_T_leak(self):
         # Test the T_leak() method
@@ -564,9 +552,7 @@ class Test_BB_Component(unittest.TestCase):
 
 class TestMembrane(unittest.TestCase):
     def setUp(self):
-        self.component = Membrane(
-            k_d=1e7, D=0.4, thick=0.5, K_S=0.6, T=300, k_r=1e7, k=0.8
-        )
+        self.component = Membrane(k_d=1e7, D=0.4, thick=0.5, K_S=0.6, T=300, k_r=1e7, k=0.8)
 
     # def test_inspect(self):
     #     result = "T: 300\nD: 0.4\nthick: 0.5\nk_d: 10000000.0\nK_S: 0.6\nk_r: 10000000.0\nk: 0.8"
@@ -641,9 +627,7 @@ class TestFluid(unittest.TestCase):
         self.component.update_attribute("k_t", None)
 
         self.component.get_kt()
-        self.assertEqual(
-            (3.66 / self.component.d_Hyd * self.component.D), self.component.k_t
-        )
+        self.assertEqual((3.66 / self.component.d_Hyd * self.component.D), self.component.k_t)
         self.component.update_attribute("U0", 0.008)
         # test when Reynolds number is in a different correlation range
         self.component.get_kt()
@@ -666,9 +650,7 @@ class TestMSComponentDiffusionLimited(unittest.TestCase):
             d_Hyd=2e-2,
         )
         geometry = Geometry(L=1.0, thick=1e-2, D=2e-2)
-        membrane = Membrane(
-            k_d=1e7, D=1e-9, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e7, k=0.8
-        )
+        membrane = Membrane(k_d=1e7, D=1e-9, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e7, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -704,9 +686,7 @@ class TestMSComponentMixedDiffusionMassTransport(unittest.TestCase):
             d_Hyd=2e-2,
         )
         geometry = Geometry(L=1.0, thick=1e-2, D=2e-2)
-        membrane = Membrane(
-            k_d=1e7, D=1e-6, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e7, k=0.8
-        )
+        membrane = Membrane(k_d=1e7, D=1e-6, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e7, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -742,9 +722,7 @@ class TestMSComponentMixedDiffusionSurface(unittest.TestCase):
             d_Hyd=2e-2,
         )
         geometry = Geometry(L=1.0, thick=1e-2, D=2e-2)
-        membrane = Membrane(
-            k_d=1e-10, D=1e-7, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-10, k=0.8
-        )
+        membrane = Membrane(k_d=1e-10, D=1e-7, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-10, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -775,9 +753,7 @@ class TestMSComponentMixedMassTransportSurface(unittest.TestCase):
             d_Hyd=2e-2,
         )
         geometry = Geometry(L=1.0, thick=1e-2, D=2e-2)
-        membrane = Membrane(
-            k_d=1e-8, D=1e-2, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-8, k=0.8
-        )
+        membrane = Membrane(k_d=1e-8, D=1e-2, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-8, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -808,9 +784,7 @@ class TestMSComponentMassTransportLimited(unittest.TestCase):
             d_Hyd=2e-3,
         )
         geometry = Geometry(L=1.0, thick=1e-4, D=2e-3)
-        membrane = Membrane(
-            k_d=1e7, D=1e-2, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e7, k=0.8
-        )
+        membrane = Membrane(k_d=1e7, D=1e-2, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e7, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -851,9 +825,7 @@ class TestMSComponentSurfaceLimited(unittest.TestCase):
             d_Hyd=2e-2,
         )
         geometry = Geometry(L=1.0, thick=1e-2, D=2e-2)
-        membrane = Membrane(
-            k_d=1e-16, D=1e-9, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-16, k=0.8
-        )
+        membrane = Membrane(k_d=1e-16, D=1e-9, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-16, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -883,9 +855,7 @@ class TestMSComponentFullyMixed(unittest.TestCase):
             d_Hyd=2e-2,
         )
         geometry = Geometry(L=1.0, thick=1e-2, D=2e-2)
-        membrane = Membrane(
-            k_d=1e-10, D=1e-7, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-10, k=0.8
-        )
+        membrane = Membrane(k_d=1e-10, D=1e-7, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-10, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -916,9 +886,7 @@ class TestLMComponentMassTransportLimited(unittest.TestCase):
             d_Hyd=2e-3,
         )
         geometry = Geometry(L=1.0, thick=1e-4, D=2e-3)
-        membrane = Membrane(
-            k_d=1e7, D=1e-2, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e7, k=0.8
-        )
+        membrane = Membrane(k_d=1e7, D=1e-2, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e7, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -962,9 +930,7 @@ class TestLMComponentMixedDiffusionMassTransport(unittest.TestCase):
             d_Hyd=2e-3,
         )
         geometry = Geometry(L=1.0, thick=1e-4, D=2e-3)
-        membrane = Membrane(
-            k_d=1e7, D=1e-7, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e7, k=0.8
-        )
+        membrane = Membrane(k_d=1e7, D=1e-7, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e7, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -1003,9 +969,7 @@ class TestLMComponentMixedDiffusionSurface(unittest.TestCase):
             d_Hyd=2e-3,
         )
         geometry = Geometry(L=1.0, thick=1e-4, D=2e-3)
-        membrane = Membrane(
-            k_d=1e-3, D=1e-7, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e-3, k=0.8
-        )
+        membrane = Membrane(k_d=1e-3, D=1e-7, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e-3, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -1039,9 +1003,7 @@ class TestLMComponentMixedMassTransferSurface(unittest.TestCase):
             d_Hyd=2e-3,
         )
         geometry = Geometry(L=1.0, thick=1e-4, D=2e-3)
-        membrane = Membrane(
-            k_d=1e-3, D=1e-2, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e-3, k=0.8
-        )
+        membrane = Membrane(k_d=1e-3, D=1e-2, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e-3, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -1075,9 +1037,7 @@ class TestLMComponentFullyMixed(unittest.TestCase):
             d_Hyd=2e-3,
         )
         geometry = Geometry(L=1.0, thick=1e-4, D=2e-3)
-        membrane = Membrane(
-            k_d=1e-9, D=1e-9, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e-9, k=0.8
-        )
+        membrane = Membrane(k_d=1e-9, D=1e-9, thick=1e-4, K_S=0.6e-2, T=700, k_r=1e-9, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -1111,9 +1071,7 @@ class TestLMComponentDiffusionLimited(unittest.TestCase):
             d_Hyd=2e-2,
         )
         geometry = Geometry(L=1.0, thick=1e-2, D=2e-2)
-        membrane = Membrane(
-            k_d=1e7, D=1e-9, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e7, k=0.8
-        )
+        membrane = Membrane(k_d=1e7, D=1e-9, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e7, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -1157,9 +1115,7 @@ class TestLMComponentSurfaceLimited(unittest.TestCase):
             d_Hyd=2e-2,
         )
         geometry = Geometry(L=1.0, thick=1e-2, D=2e-2)
-        membrane = Membrane(
-            k_d=1e-16, D=1e-9, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-16, k=0.8
-        )
+        membrane = Membrane(k_d=1e-16, D=1e-9, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e-16, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -1178,7 +1134,8 @@ class TestLMComponentSurfaceLimited(unittest.TestCase):
 
 
 class testclosedCircuit(unittest.TestCase):
-    def setUp(self):
+    @patch("matplotlib.pyplot.show")
+    def setUp(self, mock_show):
         fluid = Fluid(
             T=900,
             D=1e-7,
@@ -1193,12 +1150,8 @@ class testclosedCircuit(unittest.TestCase):
             d_Hyd=2e-2,
         )
         geometry = Geometry(L=10.0, thick=0.5e-3, D=2e-2)
-        membrane = Membrane(
-            D_0=1e-7, E_d=1, thick=0.5e-3, K_S=0.6, T=900, k_r=1e7, k=0.8, k_d=1e7
-        )
-        component = Component(
-            geometry=geometry, fluid=fluid, membrane=membrane, loss=False
-        )
+        membrane = Membrane(D_0=1e-7, E_d=1, thick=0.5e-3, K_S=0.6, T=900, k_r=1e7, k=0.8, k_d=1e7)
+        component = Component(geometry=geometry, fluid=fluid, membrane=membrane, loss=False)
         component2 = Component(
             geometry=geometry, fluid=fluid, membrane=membrane, loss=False, name="PAV"
         )
@@ -1249,7 +1202,8 @@ class testclosedCircuit(unittest.TestCase):
         plt.close()
         self.circuit = Circuit([componentBB, component, HX, component2], closed=True)
 
-    def test_circuit(self):
+    @patch("matplotlib.pyplot.show")
+    def test_circuit(self, mock_show):
         # Only test that Circuit functions are called and return correctly
         # Test closed circuit
         self.circuit.solve_circuit()

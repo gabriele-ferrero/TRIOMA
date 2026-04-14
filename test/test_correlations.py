@@ -1,8 +1,6 @@
-import sys
-import os
+import numpy as np
 
-sys.path.append(os.path.abspath("."))
-from src.TRIOMA.tools.correlations import (
+from TRIOMA.tools.correlations import (
     get_deltaTML,
     Nu_SiederTate,
     Nu_Gnielinsky,
@@ -19,7 +17,6 @@ from src.TRIOMA.tools.correlations import (
     get_length_HX,
     Sherwood_bubbles,
 )
-import numpy as np
 
 
 def test_get_deltaTML():
@@ -55,9 +52,7 @@ def test_Nu_Gnielinsky():
     Pr = 0.7
     f = 0.02
 
-    expected_Nu = (
-        (f / 8) * (Re - 1000) * Pr / (1 + 12.7 * (f / 8) ** 0.5 * (Pr ** (2 / 3) - 1))
-    )
+    expected_Nu = (f / 8) * (Re - 1000) * Pr / (1 + 12.7 * (f / 8) ** 0.5 * (Pr ** (2 / 3) - 1))
 
     Nu = Nu_Gnielinsky(Re, Pr, f)
 

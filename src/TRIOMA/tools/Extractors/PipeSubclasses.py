@@ -136,9 +136,7 @@ class Fluid(TriomaClass):
         self.cp = cp
         self.inv = inv
 
-    def set_properties_from_fluid_material(
-        self, fluid_material: "FluidMaterial" = None
-    ):
+    def set_properties_from_fluid_material(self, fluid_material: "FluidMaterial" = None):
         """
         Sets the properties of the fluid from a FluidMaterial object.
 
@@ -157,9 +155,7 @@ class Fluid(TriomaClass):
         if self.D_0 is not None and self.E_d is not None:
             self.D = self.D_0 * np.exp(-self.E_d / (8.617333262145e-5 * self.T))
         if self.Solubility_0 is not None and self.E_s is not None:
-            self.Solubility = self.Solubility_0 * np.exp(
-                -self.E_s / (8.617333262145e-5 * self.T)
-            )
+            self.Solubility = self.Solubility_0 * np.exp(-self.E_s / (8.617333262145e-5 * self.T))
         return
 
     def get_kt(self, turbulator=None):
@@ -277,9 +273,7 @@ class Membrane(TriomaClass):
         self.K_S_0 = K_S_0
         self.E_S = E_S
 
-    def set_properties_from_solid_material(
-        self, solid_material: "SolidMaterial" = None
-    ):
+    def set_properties_from_solid_material(self, solid_material: "SolidMaterial" = None):
         """
         Sets the properties of the membrane from a SolidMaterial object.
 
@@ -343,9 +337,7 @@ class SolidMaterial(TriomaClass):
         K_S (float): The Sievert constant of the solid material.
     """
 
-    def __init__(
-        self, T: float = None, D: float = None, K_S: float = None, k: float = None
-    ):
+    def __init__(self, T: float = None, D: float = None, K_S: float = None, k: float = None):
         self.T = T
         self.D = D
         self.K_S = K_S
@@ -419,9 +411,7 @@ class WireCoil(Turbulator):
         k_t = corr.get_k_from_Sh(Sh=Sh, L=self.pitch, D=D)
         return k_t
 
-    def h_t_correlation(
-        self, Re: float = None, Pr: float = None, d_hyd: float = None, k=None
-    ):
+    def h_t_correlation(self, Re: float = None, Pr: float = None, d_hyd: float = None, k=None):
         """
         Calculates the heat transfer coefficient (h_t) for the fluid with a wire coil turbulator.
 

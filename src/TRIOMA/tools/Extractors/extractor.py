@@ -76,27 +76,31 @@ def NTU_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, c_max=0):
     # isotopes from Pb–17Li eutectic alloy. A rate based model using
     # experimental mass transfer coefficients from a Melodie loop""
     """
+    # Convert array inputs to scalars
+    pl_out = numpy.asarray(pl_out).item() if numpy.asarray(pl_out).ndim > 0 else float(pl_out)
+    c_max = numpy.asarray(c_max).item() if numpy.asarray(c_max).ndim > 0 else float(c_max)
+
     Area = numpy.pi * R**2
     u_l = G_l / Area  # Liquid velocity
 
     R_const = 8.314
     u_g = calculate_gas_velocity(G_gas=G_gas, p_t=p_t, T=T, R=R)
     R_g = 2 * u_g / u_l  ## gas on liquid ratio
-    c_in = pl_in**0.5 * K_S  # inlet concentration in liquid
-    c_out = pl_out**0.5 * K_S  # outlet concentration in liquid
-    c_in_gas = pg_in / R_const / T
+    c_in = float(pl_in**0.5 * K_S)  # inlet concentration in liquid
+    c_out = float(pl_out**0.5 * K_S)  # outlet concentration in liquid
+    c_in_gas = float(pg_in / R_const / T)
 
     def toint(c):
-        value = 1 / (
-            c - K_S * ((R_const * T / R_g) * (c - c_out + c_in_gas * R_g)) ** 0.5
-        )
+        value = 1 / (c - K_S * ((R_const * T / R_g) * (c - c_out + c_in_gas * R_g)) ** 0.5)
         return value
 
-    c_g_max = pl_in / R_const / T  # maximum concentration in gas
-    c_out_max = max(
-        c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
-        c_max,  # given input from equation
-        (pg_in) ** 0.5 * K_S,  ## if liquid is in equilibrium with gas at outlet
+    c_g_max = float(pl_in / R_const / T)  # maximum concentration in gas
+    c_out_max = float(
+        max(
+            c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
+            c_max,  # given input from equation
+            (pg_in) ** 0.5 * K_S,  ## if liquid is in equilibrium with gas at outlet
+        )
     )
 
     integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
@@ -130,28 +134,32 @@ def NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, c_max=0):
     # experimental mass transfer coefficients from a Melodie loop""
     # but for molten salts by changing the evolution of c star following the Henry's law
     """
+    # Convert array inputs to scalars
+    pl_out = numpy.asarray(pl_out).item() if numpy.asarray(pl_out).ndim > 0 else float(pl_out)
+    c_max = numpy.asarray(c_max).item() if numpy.asarray(c_max).ndim > 0 else float(c_max)
+
     Area = numpy.pi * R**2
     u_l = G_l / Area  # Liquid velocity
-    c_in = pl_in * K_H
-    c_out = pl_out * K_H
+    c_in = float(pl_in * K_H)
+    c_out = float(pl_out * K_H)
     R_const = 8.314
     u_g = calculate_gas_velocity(G_gas=G_gas, p_t=p_t, T=T, R=R)
-    c_in_gas = pg_in / R_const / T
+    c_in_gas = float(pg_in / R_const / T)
     R_g = u_g / u_l  ## gas on liquid ratio
 
     def toint(c):
-        return 1 / (
-            c - K_H * (u_l / u_g * R_const * T) * (c - c_out + c_in_gas * u_g / u_l)
-        )
+        return 1 / (c - K_H * (u_l / u_g * R_const * T) * (c - c_out + c_in_gas * u_g / u_l))
 
-    c_g_max = pl_in / R_const / T  # maximum concentration in gas
-    c_out_max = max(
-        c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
-        c_max,  # given input from equation
-        pg_in * K_H,  ## if liquid is in equilibrium with gas at outlet
+    c_g_max = float(pl_in / R_const / T)  # maximum concentration in gas
+    c_out_max = float(
+        max(
+            c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
+            c_max,  # given input from equation
+            pg_in * K_H,  ## if liquid is in equilibrium with gas at outlet
+        )
     )
 
-    integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
+    # integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
     integral = integrate.fixed_quad(toint, c_out, c_in)
     return integral[0]
 
@@ -203,7 +211,7 @@ def length_extractor_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, kla, c
     return Z
 
 
-from scipy.optimize import minimize, root
+from scipy.optimize import minimize
 
 
 def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
@@ -239,8 +247,7 @@ def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
         * (
             c_g_max - pg_in / R_const / T
         ),  ## liquid concentration if gas strips as much as possible and gets into eq with liquid
-        (pg_in) ** 0.5
-        * K_S,  ## liquid concentration if it gets in equilibrium with gas
+        (pg_in) ** 0.5 * K_S,  ## liquid concentration if it gets in equilibrium with gas
         c_out_max_reaction,  ## liquid concentration if reaction rate is at the maximum
     )
 
@@ -267,12 +274,10 @@ def get_c_out_GLC_lm(Z, R, G_l, G_gas, pl_in, T, p_t, K_S, pg_in, kla):
         method="Powell",
         bounds=[(float(c_out_max), float(c_in))],
         tol=1e-20,
-        options={"maxiter": 1e8, "xatol": 1e-20, "fatol": 1e-20},
+        options={"maxiter": 1e8},
     ).x[0]
     eff = 1 - c_out / c_in
-    L_cout = length_extractor_lm(
-        R, G_l, G_gas, pl_in, c_out**2 / K_S**2, T, p_t, K_S, pg_in, kla
-    )
+    L_cout = length_extractor_lm(R, G_l, G_gas, pl_in, c_out**2 / K_S**2, T, p_t, K_S, pg_in, kla)
     if abs(L_cout - Z) > 1e-3:
         print(
             "Warning!: guessed length is not equal to the height. Double check your result",
@@ -346,12 +351,10 @@ def get_c_out_GLC_ms(Z, R, G_l, G_gas, pl_in, T, p_t, K_H, pg_in, kla):
         method="Powell",
         bounds=[(float(c_out_max), float(c_in))],
         tol=1e-20,
-        options={"maxiter": 1e8, "xatol": 1e-20, "fatol": 1e-20},
+        options={"maxiter": 1e8},
     ).x[0]
     eff = 1 - c_out / c_in
-    L_cout = length_extractor_lm(
-        R, G_l, G_gas, pl_in, c_out / K_H, T, p_t, K_H, pg_in, kla
-    )
+    L_cout = length_extractor_lm(R, G_l, G_gas, pl_in, c_out / K_H, T, p_t, K_H, pg_in, kla)
     if abs(L_cout - Z) > 1e-3:
         print(
             "Warning!: guessed length is not equal to the height. Double check your result",
