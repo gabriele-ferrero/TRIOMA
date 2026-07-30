@@ -650,7 +650,7 @@ class TestMSComponentDiffusionLimited(unittest.TestCase):
             d_Hyd=2e-2,
         )
         geometry = Geometry(L=1.0, thick=1e-2, D=2e-2)
-        membrane = Membrane(k_d=1e7, D=1e-9, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e7, k=0.8)
+        membrane = Membrane(k_d=1e10, D=1e-9, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e10, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -662,11 +662,11 @@ class TestMSComponentDiffusionLimited(unittest.TestCase):
     def test_efficiency_vs_analytical(self):
         # Test the efficiency_vs_analytical() method
         self.component.analytical_efficiency()
-        self.component.get_efficiency(c_guess=self.component.c_in / 2)
+        self.component.get_efficiency(c_guess=self.component.c_in / 2, nodes=200)
         self.assertAlmostEqual(
-            abs(self.component.eff - self.component.eff_an) / self.component.eff_an,
-            0,
-            places=2,
+            self.component.eff,
+            self.component.eff_an,
+            places=5,
         )
 
 
