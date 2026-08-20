@@ -1100,13 +1100,13 @@ class Component(TriomaClass):
         if self.W > 10:
             if self.H / self.W > 1000:  # mass-transport limited
                 cw = c_eq
-                self.J_perm = -J_mt(cw)  # NEGATIVE (as original)
+                self.J_perm = -J_mt(cw)  # NEGATIVE (leaving the fluid)
             elif self.H / self.W < 1e-4:  # diffusion limited
                 cw = c
-                self.J_perm = -J_diff(cw)  # NEGATIVE (as original)
+                self.J_perm = -J_diff(cw)  # NEGATIVE (leaving the fluid)
             else:  # mixed MT <-> diffusion
                 cw = root(J_mt, J_diff)
-                self.J_perm = -J_mt(cw)  # NEGATIVE (as original)
+                self.J_perm = -J_mt(cw)  # NEGATIVE (leaving the fluid)
             return float(cw)
 
         # =====================================================================
@@ -1115,13 +1115,13 @@ class Component(TriomaClass):
         if self.W < 0.1:
             if self.H > 100:  # mass-transport limited
                 cw = c_eq
-                self.J_perm = -J_mt(cw)  # NEGATIVE (as original)
+                self.J_perm = -J_mt(cw)  # NEGATIVE (leaving the fluid)
             elif self.H < 1e-2:  # surface limited
                 cw = c
-                self.J_perm = -kd * (c / S)  # NEGATIVE (as original)
+                self.J_perm = -kd * (c / S)  # NEGATIVE (leaving the fluid)
             else:  # mixed MT <-> surface
                 cw = root(J_mt, J_surf)
-                self.J_perm = J_mt(cw)  # POSITIVE (as original)
+                self.J_perm = -J_mt(cw)  # negative (leaving the fluid)
             return float(cw)
 
         # =====================================================================
@@ -1129,12 +1129,12 @@ class Component(TriomaClass):
         # =====================================================================
         if self.H / self.W > 1000:  # mass-transport limited
             cw = c_eq
-            self.J_perm = -J_mt(cw)  # NEGATIVE (as original)
+            self.J_perm = -J_mt(cw)  # NEGATIVE (leaving the fluid)
             return float(cw)
 
         if self.H / self.W < 1e-4:  # surface <-> diffusion
             cw = root(J_surf, J_diff)
-            self.J_perm = J_diff(cw)  # POSITIVE (as original)
+            self.J_perm = -J_diff(cw)  # NEGATIVE (leaving the fluid)
             return float(cw)
 
         # --- fully coupled: mass transport + surface + diffusion -------------
@@ -1161,7 +1161,7 @@ class Component(TriomaClass):
             max_nfev=int(1e4),
         )
         cw = sol.x[0]
-        self.J_perm = J_mt(cw)  # POSITIVE (as original)
+        self.J_perm = -J_mt(cw)  # NEGATIVE (leaving the fluid)
         return float(cw)
 
     def get_global_HX_coeff(self, R_conv_sec: float = 0) -> None:
