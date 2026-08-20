@@ -659,7 +659,7 @@ class Component(TriomaClass):
         """
         self.get_pipe_flowrate()
         self.flowrate = self.pipe_flowrate * self.geometry.n_pipes
-        return self.flowrate * self.geometry.n_pipes
+        return self.flowrate
 
     def define_component_volumes(self) -> None:
         """
@@ -886,7 +886,6 @@ class Component(TriomaClass):
                 )
                 self.xi = self.alpha / self.c_in
                 p_in = self.c_in / self.fluid.Solubility
-                print(p_in)
                 match (self.xi, self.tau):
                     case (self.xi, self.tau) if self.xi > 1e5:
                         corr_p = 1 - (p_out / p_in)
@@ -894,7 +893,7 @@ class Component(TriomaClass):
                     case (
                         self.xi,
                         self.tau,
-                    ) if (self.xi**0.5 < 1e-2 and self.tau > 1 / self.xi**0.5):
+                    ) if (self.xi**0.5 < 1e-2 and self.tau < 1 / self.xi**0.5):
                         corr_p = 1 - (p_out / p_in) ** 0.5
                         self.eff_an = (1 - (1 - self.tau * self.xi**0.5) ** 2) * corr_p
                     case _:
