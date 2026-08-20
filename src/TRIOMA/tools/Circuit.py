@@ -4,6 +4,7 @@ from TRIOMA.tools.Extractors.GasLiquidContactor import GLC
 from TRIOMA.tools.TriomaClass import TriomaClass
 import matplotlib.pyplot as plt
 from typing import Union
+from scipy.optimize import minimize
 
 
 class Circuit(TriomaClass):
@@ -118,8 +119,6 @@ class Circuit(TriomaClass):
         for i, component in enumerate(self.components):
             if isinstance(component, GLC):
                 component.get_c_out()
-                if i != len(self.components) - 1:
-                    component.connect_to_component(self.components[i + 1])
             if isinstance(component, Component):
                 component.use_analytical_efficiency()
                 component.outlet_c_comp()
