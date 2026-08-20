@@ -5,7 +5,6 @@ from TRIOMA.tools.Extractors.PipeSubclasses import (
 )
 from TRIOMA.tools.TriomaClass import TriomaClass
 import numpy as np
-import math
 import matplotlib.pyplot as plt
 from scipy.special import lambertw
 from scipy import integrate
@@ -767,7 +766,7 @@ class Component(TriomaClass):
                     K_S_L=self.fluid.Solubility,
                 )
 
-    def use_analytical_efficiency(self, p_out: float = 0) -> None:
+    def use_analytical_efficiency(self) -> None:
         """Evaluates the analytical efficiency and substitutes it in the efficiency attribute of the component.
 
         Args:
@@ -775,7 +774,7 @@ class Component(TriomaClass):
         Returns:
             None
         """
-        self.analytical_efficiency(p_out=p_out)
+        self.analytical_efficiency()
         self.eff = self.eff_an
 
     def get_efficiency(
@@ -825,7 +824,7 @@ class Component(TriomaClass):
         self.c_out = c_vec[-1]
         self.eff = (self.c_in - self.c_out) / self.c_in
 
-    def analytical_efficiency(self, p_out: float = 0) -> None:
+    def analytical_efficiency(self) -> None:
         """
         Calculate the analytical efficiency of a tritium permeation through a component.
 
@@ -864,6 +863,10 @@ class Component(TriomaClass):
         Raises:
             ValueError: If imaginary component appears in eff_an calculation (numerical instability)
         """
+        if self.p_out:
+            p_out = self.p_out
+        else:
+            p_out = 0
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1249,6 +1252,10 @@ class Component(TriomaClass):
         return
 
     def analytical_solid_inventory(self, p_out: float = 0) -> float:
+        if self.p_out:
+            p_out = self.p_out
+        else:
+            p_out = 0
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1445,7 +1452,7 @@ class Component(TriomaClass):
                     inventory_one_pipe = c_ext_s * area_solid * L + F_cyl * (
                         c_w_s_integral - c_ext_s * L
                     )
-                    self.membrane.inv = inventory_one_pipe * self.geometry.n_pipes
+                    self.membrane.inv = inventory_one_pipe
                     return self.membrane.inv
 
                 inv = ms_integral(
@@ -1458,153 +1465,255 @@ class Component(TriomaClass):
 
                 return inv
 
-    def get_solid_inventory(self, p_out: float = 0, flag_an: bool = False) -> float:
+    def get_solid_inventory(
+        self,
+        flag_an: bool = False,
+    ) -> float:
+        """
+        Calculate the tritium inventory in the solid membrane.
+
+        The radial concentration profile is the steady-state solution for a
+        hollow cylindrical membrane:
+
+            c_s(r, z) = c_ext,s
+                        + [c_w,s(z) - c_ext,s]
+                        * ln(r_o / r) / ln(r_o / r_i)
+
+        The radial integral is evaluated analytically, while the axial
+        integral is evaluated numerically.
+
+        Parameters
+        ----------
+        p_out : float, optional
+            External Q2 partial pressure [Pa].
+        flag_an : bool, optional
+            If True, use analytical_solid_inventory(). If False, use the
+            numerical axial-integration implementation below.
+
+        Returns
+        -------
+        float
+            Total solid inventory in all pipes [mol].
+        """
+        if self.p_out:
+            p_out = self.p_out
+        else:
+            p_out = 0
         if flag_an:
             return self.analytical_solid_inventory(p_out=p_out)
 
-        def integrate_c_profile(self):
-            r_in = self.fluid.d_Hyd / 2
-            r_out = self.fluid.d_Hyd / 2 + self.membrane.thick
-            L_min = 0
-            L_max = self.geometry.L
-            N = 20
+        if p_out < 0.0:
+            raise ValueError("p_out must be non-negative.")
 
-            def integrand(r, L, p_out=p_out):
-                # return -c * np.log(r / r_out) / np.log(r_out / r_in) * 2 * np.pi * r
-                if self.fluid.k_t is None:
+        if self.c_in is None:
+            raise ValueError("The inlet concentration self.c_in must be defined.")
 
-                    self.fluid.get_kt(turbulator=self.geometry.turbulator)
-                if self.fluid.MS == False:
-                    c = self.c_in / self.fluid.Solubility * self.membrane.K_S
-                    dimless = (
-                        2
-                        * self.membrane.D
-                        * self.membrane.K_S
-                        / (
-                            self.fluid.k_t
-                            * self.fluid.Solubility
-                            * self.fluid.d_Hyd
-                            * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                            )
-                        )
-                    )
-                    dimless2 = (
-                        2
-                        * self.membrane.D
-                        * self.membrane.K_S
-                        / (
-                            self.fluid.Solubility
-                            * self.fluid.d_Hyd
-                            * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                            )
-                        )
-                    )
-                    L_ch = (
-                        -dimless
-                        / (1 + dimless)
-                        * 4
-                        * self.fluid.k_t
-                        / (self.fluid.U0 * self.fluid.d_Hyd)
-                    )
-                    conv_liquid_to_solid = self.membrane.K_S / self.fluid.Solubility
-                    c_ext = p_out**0.5 * self.membrane.K_S
-                    c_w = (
-                        c * np.exp(L_ch * L) / (dimless2 / self.fluid.k_t + 1) + c_ext
-                    )  # todo check this is liquid conc
+        if self.c_in < 0.0:
+            raise ValueError("The inlet concentration must be non-negative.")
 
-                    return (
-                        (-(c_w - c_ext) * np.log(r / r_out) / np.log(r_out / r_in) + c_ext)
-                        * 2
-                        * np.pi
-                        * r
-                    )
-                else:
-                    tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
-                    self.xi = (
-                        1
-                        / self.c_in
-                        / self.fluid.Solubility
-                        * (
-                            0.5  ##TODO: Check this
-                            * self.membrane.K_S
-                            * self.membrane.D
-                            / (
-                                self.fluid.k_t
-                                * self.fluid.d_Hyd
-                                * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                                )
-                            )
-                        )
-                        ** 2
-                    )
+        if self.fluid is None:
+            raise ValueError("A fluid must be assigned to the component.")
 
-                    beta = (1 / self.xi + 1) ** 0.5 + np.log((1 / self.xi + 1) ** 0.5 - 1)
-                    max_exp = np.log(np.finfo(np.float64).max)
-                    beta_tau = beta - tau - 1
-                    if beta_tau > max_exp:
+        if self.membrane is None:
+            raise ValueError("A membrane must be assigned to the component.")
 
-                        w = beta_tau - np.log(beta_tau)
+        if self.fluid.k_t is None:
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
+
+        # ---------------------------------------------------------------------
+        # Geometry
+        # ---------------------------------------------------------------------
+        r_i = float(self.fluid.d_Hyd) / 2.0
+        r_o = r_i + float(self.membrane.thick)
+        L = float(self.geometry.L)
+        n_pipes = int(self.geometry.n_pipes)
+
+        log_ro_ri = np.log(r_o / r_i)
+
+        # Cross-sectional area of the solid membrane.
+        area_solid = np.pi * (r_o**2 - r_i**2)
+
+        # Hollow-cylinder geometrical factor
+        F_cyl = np.pi * ((r_o**2 - r_i**2) / (2.0 * log_ro_ri) - r_i**2)
+
+        # ---------------------------------------------------------------------
+        # Liquid-metal carrier
+        # ---------------------------------------------------------------------
+        if not self.fluid.MS:
+
+            K_S_l = float(self.fluid.Solubility)
+            K_S_s = float(self.membrane.K_S)
+            D_s = float(self.membrane.D)
+            k_t = float(self.fluid.k_t)
+            U = float(self.fluid.U0)
+            d = float(self.fluid.d_Hyd)
+            c_ext_l = K_S_l * np.sqrt(p_out)
+            c_ext_s = K_S_s * np.sqrt(p_out)
+
+            zeta = 2.0 * D_s * K_S_s / (d * log_ro_ri * k_t * K_S_l)
+
+            axial_decay = 4.0 * k_t / (U * d) * zeta / (1.0 + zeta)
+
+            def solid_linear_inventory_density(z):
+                """
+                Solid inventory per unit axial length, lambda_I,s(z) [mol/m].
+                """
+
+                c_bulk_l = c_ext_l + (self.c_in - c_ext_l) * np.exp(-axial_decay * z)
+
+                c_wall_l = c_ext_l + (c_bulk_l - c_ext_l) / (1.0 + zeta)
+
+                # Sievert/Sievert partial-pressure continuity:
+                #
+                # c_w,l / K_S,l = c_w,s / K_S,s
+                #
+                c_wall_s = (K_S_s / K_S_l) * c_wall_l
+
+                return c_ext_s * area_solid + F_cyl * (c_wall_s - c_ext_s)
+
+        # ---------------------------------------------------------------------
+        # Molten-salt carrier
+        else:
+
+            K_H = float(self.fluid.Solubility)
+            K_S_s = float(self.membrane.K_S)
+            D_s = float(self.membrane.D)
+            k_t = float(self.fluid.k_t)
+            U = float(self.fluid.U0)
+            d = float(self.fluid.d_Hyd)
+
+            phi = D_s * K_S_s
+
+            alpha = 1.0 / K_H * (phi / (k_t * d * log_ro_ri)) ** 2
+            Pi_ext = np.sqrt(p_out * K_H / alpha)
+            self.alpha = alpha
+            self.Pi_ext = Pi_ext
+
+            b = 1.0 + 2.0 * Pi_ext
+            s_in = np.sqrt(1.0 + 4.0 * (self.c_in / alpha + Pi_ext))
+
+            y_in = s_in - b
+
+            c_ext_l = K_H * p_out
+            c_ext_s = K_S_s * np.sqrt(p_out)
+
+            # If the inlet is already in equilibrium with the external
+            # pressure, the membrane concentration is uniform.
+            equilibrium_tol = 1.0e-14 * max(
+                1.0,
+                abs(s_in),
+                abs(b),
+            )
+
+            if abs(y_in) <= equilibrium_tol:
+
+                def solid_linear_inventory_density(z):
+                    """
+                    Uniform solid inventory per unit axial length [mol/m].
+                    """
+                    return c_ext_s * area_solid
+
+            else:
+
+                sign = 1.0 if y_in > 0.0 else -1.0
+
+                # Integration constant from the manuscript.
+                beta = s_in / b + np.log(abs(y_in))
+
+                log_max = np.log(np.finfo(np.float64).max)
+                log_tiny = np.log(np.finfo(np.float64).tiny)
+
+                def q_of_z(z):
+                    """
+                    Lambert-W transformed variable q(z).
+                    """
+
+                    tau_z = 4.0 * k_t * z / (U * d)
+
+                    beta_tau = beta - tau_z / b - 1.0
+
+                    # Argument magnitude:
+                    #
+                    #   argument = sign * exp(beta_tau) / b
+                    #
+                    log_argument_abs = beta_tau - np.log(b)
+
+                    if sign > 0.0:
+                        # Normal extraction: principal branch W_0.
+                        if log_argument_abs < log_max:
+                            argument = np.exp(log_argument_abs)
+                            q = lambertw(argument, k=0).real
+                        else:
+                            # Large-positive-argument approximation.
+                            q = log_argument_abs - np.log(log_argument_abs)
 
                     else:
-                        z = np.exp(beta_tau)
-                        w = lambertw(z, tol=1e-10)
-                        if w.imag != 0:
-                            raise ValueError("self.eff_an has a non-zero imaginary part")
-                        w = w.real
-                    alpha = (
-                        1
-                        / self.fluid.Solubility
-                        * (
-                            (0.5 * self.membrane.D * self.membrane.K_S)  ## TODO: Check this
-                            / (
-                                self.fluid.k_t
-                                * self.fluid.d_Hyd
-                                * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                                )
-                            )
+                        # Inverse permeation: principal branch W_0.
+                        if log_argument_abs < log_tiny:
+                            argument = 0.0
+                        else:
+                            argument = -np.exp(log_argument_abs)
+
+                        # Protect against round-off below -1/e.
+                        argument = np.clip(
+                            argument,
+                            -1.0 / np.e,
+                            0.0,
                         )
-                        ** 2
-                    )
-                    c_ext = p_out**0.5 * self.membrane.K_S
-                    conv = (self.c_in / self.fluid.Solubility) ** 0.5 * self.membrane.K_S
-                    c_w_l = (
-                        alpha * (w**2 + 2 * w)
-                        + alpha * (2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5)  ## TODO: Check this
-                        + c_ext
-                    )
 
-                    if c_w_l < 0:
-                        c_w_l = 1e-17
-                    return (
-                        (
-                            -np.log(r / r_out)
-                            / np.log(r_out / r_in)
-                            * (
-                                (alpha / self.fluid.Solubility) ** 0.5 * w * self.membrane.K_S
-                                - c_ext
-                            )
-                            + c_ext
-                        )
-                        * 2
-                        * np.pi
-                        * r
-                    )
+                        q = lambertw(argument, k=0).real
 
-            result, err = integrate.nquad(integrand, [[r_in, r_out], [L_min, L_max]])
-            return result
+                    return float(q)
 
-        integral_pipe = integrate_c_profile(self)
-        self.membrane.inv = integral_pipe * self.geometry.n_pipes
-        if math.isnan(self.membrane.inv):
-            print("Error: Inventory calculation failed")
-            self.inspect()
+                def solid_linear_inventory_density(z):
+                    """
+                    Solid inventory per unit axial length, lambda_I,s(z) [mol/m].
+                    """
+
+                    q = q_of_z(z)
+
+                    # Local liquid-side wall concentration:
+                    #
+                    # c_w,l(z) =
+                    #     alpha [Pi_ext + b q(z)/2]^2
+                    #
+                    c_wall_l = alpha * (Pi_ext + 0.5 * b * q) ** 2
+
+                    # Henry/Sievert continuity:
+                    #
+                    # c_w,l/K_H = (c_w,s/K_S,s)^2
+                    #
+                    c_wall_s = K_S_s * np.sqrt(max(c_wall_l, 0.0) / K_H)
+
+                    return c_ext_s * area_solid + F_cyl * (c_wall_s - c_ext_s)
+
+        # ---------------------------------------------------------------------
+        # Numerical axial integration for one pipe
+        # ---------------------------------------------------------------------
+        inventory_one_pipe, integration_error = integrate.quad(
+            solid_linear_inventory_density,
+            0.0,
+            L,
+            epsabs=1.0e-12,
+            epsrel=1.0e-9,
+            limit=200,
+        )
+
+        if not np.isfinite(inventory_one_pipe):
+            raise ValueError("Solid inventory calculation returned a non-finite value.")
+        # Convert from one-pipe inventory to total inventory.
+        self.membrane.inv = inventory_one_pipe * n_pipes
+
+        if not np.isfinite(self.membrane.inv):
+            raise ValueError("Total solid inventory is non-finite.")
+
         return self.membrane.inv
 
     def analytical_fluid_inventory(self, p_out: float = 0) -> None:
+        if self.p_out:
+            p_out = self.p_out
+        else:
+            p_out = 0
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1652,9 +1761,9 @@ class Component(TriomaClass):
                 return inventory
             case True:
                 print("MS fluid integration is done numerically")
-                self.get_fluid_inventory(flag_an=False, p_out=p_out)
+                self.get_fluid_inventory(flag_an=False)
 
-    def get_fluid_inventory(self, flag_an: bool = False, p_out: float = 0) -> float:
+    def get_fluid_inventory(self, flag_an: bool = False) -> float:
         """
         Calculate the tritium inventory in the fluid region.
 
@@ -1668,7 +1777,10 @@ class Component(TriomaClass):
         The molten-salt inventory is multiplied by 2 to convert from mol Q2
         to mol Q, consistently with the manuscript's f_H_to_H2 factor.
         """
-
+        if self.p_out:
+            p_out = self.p_out
+        else:
+            p_out = 0
         if flag_an:
             return self.analytical_fluid_inventory(p_out=p_out)
 
@@ -1848,8 +1960,8 @@ class Component(TriomaClass):
         self.fluid.inv = inventory_one_pipe * n_pipes
         return self.fluid.inv
 
-    def get_inventory(self, flag_an: bool = True, p_out: float = 0) -> None:
-        self.get_solid_inventory(flag_an=flag_an, p_out=p_out)
-        self.get_fluid_inventory(flag_an=flag_an, p_out=p_out)
+    def get_inventory(self, flag_an: bool = True) -> None:
+        self.get_solid_inventory(flag_an=flag_an)
+        self.get_fluid_inventory(flag_an=flag_an)
         self.inv = self.fluid.inv + self.membrane.inv
         return

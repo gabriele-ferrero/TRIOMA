@@ -121,7 +121,7 @@ class Circuit(TriomaClass):
                 if i != len(self.components) - 1:
                     component.connect_to_component(self.components[i + 1])
             if isinstance(component, Component):
-                component.use_analytical_efficiency(p_out=component.p_out)
+                component.use_analytical_efficiency()
                 component.outlet_c_comp()
             if i != len(self.components) - 1:
                 component.connect_to_component(self.components[i + 1])
@@ -429,7 +429,7 @@ class Circuit(TriomaClass):
                 self.components[0].update_attribute("c_in", x)
                 for i, component in enumerate(self.components):
                     if isinstance(component, Component):
-                        component.use_analytical_efficiency(p_out=component.p_out)
+                        component.use_analytical_efficiency()
                         component.outlet_c_comp()
                         if i != len(self.components) - 1:
                             component.connect_to_component(self.components[i + 1])
@@ -465,7 +465,7 @@ class Circuit(TriomaClass):
                         if i != len(self.components) - 1:
                             component.connect_to_component(self.components[i + 1])
                     if isinstance(component, Component):
-                        component.use_analytical_efficiency(p_out=component.p_out)
+                        component.use_analytical_efficiency()
                         component.outlet_c_comp()
                         if i != len(self.components) - 1:
                             component.connect_to_component(self.components[i + 1])
