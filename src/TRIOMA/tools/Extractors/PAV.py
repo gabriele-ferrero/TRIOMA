@@ -866,111 +866,144 @@ class Component(TriomaClass):
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
         self.tau = 4 * self.fluid.k_t * self.geometry.L / (self.fluid.U0 * self.fluid.d_Hyd)
         match self.fluid.MS:
-            case True:
-                self.alpha = (
-                    1
-                    / (self.fluid.Solubility)
-                    * (
-                        0.5
-                        * self.membrane.K_S
-                        * self.membrane.D
-                        / (
-                            self.fluid.k_t
-                            * self.fluid.d_Hyd
-                            * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                            )
-                        )
-                    )
-                    ** 2
-                )
+            case True:  # Molten salt
+
+                KH = self.fluid.Solubility
+                d = self.fluid.d_Hyd
+                r_i = d / 2.0
+                r_o = r_i + self.membrane.thick
+                log_ro_ri = np.log(r_o / r_i)
+
+                phi = self.membrane.D * self.membrane.K_S
+
+                self.alpha = 1.0 / KH * (phi / (self.fluid.k_t * d * log_ro_ri)) ** 2
+
                 self.xi = self.alpha / self.c_in
-                p_in = self.c_in / self.fluid.Solubility
-                match (self.xi, self.tau):
-                    case (self.xi, self.tau) if self.xi > 1e5:
-                        corr_p = 1 - (p_out / p_in)
-                        self.eff_an = (1 - np.exp(-self.tau)) * corr_p
-                    case (
-                        self.xi,
-                        self.tau,
-                    ) if (self.xi**0.5 < 1e-2 and self.tau < 1 / self.xi**0.5):
-                        corr_p = 1 - (p_out / p_in) ** 0.5
-                        self.eff_an = (1 - (1 - self.tau * self.xi**0.5) ** 2) * corr_p
-                    case _:
-                        f = (self.p_out * self.fluid.Solubility / self.alpha) ** 0.5
-                        delta = (1.0 / self.xi + 1.0 + 2.0 * f) ** 0.5
-                        Y_in = (delta - 1.0 - f) / (1.0 + f)  # >0 extraction, <0 saturation
 
-                        if abs(Y_in) < 1e-14:  # p_out ~ p_in
-                            Y = 0.0
-                        else:
-                            # log|argument| = ln|Y_in| + Y_in - tau/(1+f)
-                            lnA = np.log(abs(Y_in)) + Y_in - self.tau / (1.0 + f)
+                if p_out < 0:
+                    raise ValueError("p_out must be non-negative.")
 
-                            if Y_in > 0.0:  # extraction: arg > 0
-                                if lnA < np.log(np.finfo(np.float64).max):
-                                    Y = lambertw(np.exp(lnA), k=0).real
-                                else:  # overflow -> asymptotic W0
-                                    Y = lnA - np.log(lnA)  # (optionally 1–2 Newton steps)
-                            else:  # saturation (p_out > p_in): arg < 0
-                                A = -np.exp(lnA)  # in [-1/e, 0), safe for W0
-                                Y = lambertw(A, k=0).real
+                p_in = self.c_in / KH
 
-                        cl_over_alpha = (1.0 + f) ** 2 * (Y + 1.0) ** 2 - 1.0 - 2.0 * f
-                        self.eff_an = 1.0 - self.xi * cl_over_alpha
+                self.Pi_ext = np.sqrt(p_out * KH / self.alpha)
+
+                # -------------------------------------------------------------
+                # Mass-transfer-limited approximation: xi >> 1
+                # -------------------------------------------------------------
+                if self.xi > 1.0e5:
+                    correction_p = 1.0 - p_out / p_in
+
+                    self.eff_an = (1.0 - np.exp(-self.tau)) * correction_p
+
+                # -------------------------------------------------------------
+                # Diffusion-limited approximation:
+                # xi << 1 and tau < 1 / sqrt(xi)
+                # -------------------------------------------------------------
+                elif self.xi < 1.0e-4 and self.tau < 1.0 / np.sqrt(self.xi):
+                    correction_p = 1.0 - np.sqrt(p_out / p_in)
+
+                    self.eff_an = (
+                        1.0 - (1.0 - 0.5 * self.tau * np.sqrt(self.xi)) ** 2
+                    ) * correction_p
+
+                # -------------------------------------------------------------
+                # Exact Lambert-W solution
+                # -------------------------------------------------------------
+                else:
+                    Pi_ext = self.Pi_ext
+                    b = 1.0 + 2.0 * Pi_ext
+
+                    s_in = np.sqrt(1.0 + 4.0 * (1.0 / self.xi + Pi_ext))
+
+                    y_in = s_in - b
+
+                    # No driving force: p_out = p_in
+                    if abs(y_in) < 1.0e-14:
+                        self.eff_an = 0.0
                         return
-                        # e = (self.alpha * p_out * self.fluid.Solubility) ** 0.5
-                        # f = e / self.alpha
-                        # delta = (1 / self.xi + 1 + 2 * f) ** 0.5
-                        # beta = delta + (1 + f) * np.log(abs(delta - 1 - f))
-                        # print("beta is ", beta)
-                        # max_exp = np.log(np.finfo(np.float64).max)
-                        # beta_tau = beta - self.tau - 1
-                        # print("beta tau is ", beta_tau)
-                        # print("max exp is ", max_exp)
-                        # saturation = (p_out * self.fluid.Solubility) > self.c_in
-                        # if beta_tau > max_exp :
-                        #     # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
 
-                        #     def eq(var):
-                        #         cl = var
-                        #         self.alpha = self.xi * self.c_in
+                    beta = s_in / b + np.log(abs(y_in))
 
-                        #         left = (cl / self.alpha + 1 + 2 * f) ** 0.5 + (1 + f) * np.log(
-                        #             abs(-f + ((cl/self.alpha + 1 + 2*f)**0.5 - 1))
-                        #         )
+                    beta_tau = beta - self.tau / b - 1.0
+                    # Lambert-W argument:
+                    # extraction:     exp(beta_tau) / b
+                    # inverse permeation:
+                    #                 -exp(beta_tau) / b
+                    log_argument_abs = beta_tau - np.log(b)
+                    if y_in > 0.0:
+                        # Normal extraction: principal branch W_0
+                        log_max = np.log(np.finfo(np.float64).max)
+                        if log_argument_abs < log_max:
+                            argument = np.exp(log_argument_abs)
+                            q_out = lambertw(argument, k=0).real
+                        else:
+                            # Large-positive-argument asymptotic
+                            q_out = log_argument_abs - np.log(log_argument_abs)
+                    else:
+                        # Inverse permeation:
+                        # the physical solution remains on W_0
+                        argument = -np.exp(log_argument_abs)
+                        # Protect against round-off below -1/e
+                        argument = np.clip(argument, -1.0 / np.e, 0.0)
+                        q_out = lambertw(argument, k=0).real
+                    s_out = b * (1.0 + q_out)
+                    c_out_over_alpha = (s_out**2 - 1.0 - 4.0 * Pi_ext) / 4.0
 
-                        #         right = beta - self.tau
+                    self.eff_an = 1.0 - self.xi * c_out_over_alpha
 
-                        #         return abs(left - right)
+                    return
+                    # e = (self.alpha * p_out * self.fluid.Solubility) ** 0.5
+                    # f = e / self.alpha
+                    # delta = (1 / self.xi + 1 + 2 * f) ** 0.5
+                    # beta = delta + (1 + f) * np.log(abs(delta - 1 - f))
+                    # print("beta is ", beta)
+                    # max_exp = np.log(np.finfo(np.float64).max)
+                    # beta_tau = beta - self.tau - 1
+                    # print("beta tau is ", beta_tau)
+                    # print("max exp is ", max_exp)
+                    # saturation = (p_out * self.fluid.Solubility) > self.c_in
+                    # if beta_tau > max_exp :
+                    #     # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
 
-                        #     p_in = self.c_in / self.fluid.Solubility
-                        #     if (
-                        #         abs(self.p_out * self.fluid.Solubility - self.c_in) / self.c_in
-                        #         < 1e-2
-                        #     ):
-                        #         self.eff_an = 1e-6
-                        #         return
-                        #     lower_bound = min(self.p_out * self.fluid.Solubility, self.c_in)
-                        #     upper_bound = max(self.p_out * self.fluid.Solubility, self.c_in)
-                        #     cl = minimize(
-                        #         eq,
-                        #         x0=(lower_bound + upper_bound) / 2,
-                        #         method="Powell",
-                        #         bounds=[(lower_bound, upper_bound)],
-                        #         tol=1e-7,
-                        #     ).x[0]
-                        #     # corr_p=1-(p_out/p_in)
-                        #     self.eff_an = 1 - (cl / self.c_in)
-                        #     return
-                        # else:
-                        #     z = np.exp(beta_tau)
-                        #     w = lambertw(z, tol=1e-10)
-                        #     self.eff_an = 1 - self.xi * (w**2 + 2 * w)
-                        #     if self.eff_an.imag != 0:
-                        #         raise ValueError("self.eff_an has a non-zero imaginary part")
-                        #     else:
-                        #         self.eff_an = self.eff_an.real  # get rid of 0*j
+                    #     def eq(var):
+                    #         cl = var
+                    #         self.alpha = self.xi * self.c_in
+
+                    #         left = (cl / self.alpha + 1 + 2 * f) ** 0.5 + (1 + f) * np.log(
+                    #             abs(-f + ((cl/self.alpha + 1 + 2*f)**0.5 - 1))
+                    #         )
+
+                    #         right = beta - self.tau
+
+                    #         return abs(left - right)
+
+                    #     p_in = self.c_in / self.fluid.Solubility
+                    #     if (
+                    #         abs(self.p_out * self.fluid.Solubility - self.c_in) / self.c_in
+                    #         < 1e-2
+                    #     ):
+                    #         self.eff_an = 1e-6
+                    #         return
+                    #     lower_bound = min(self.p_out * self.fluid.Solubility, self.c_in)
+                    #     upper_bound = max(self.p_out * self.fluid.Solubility, self.c_in)
+                    #     cl = minimize(
+                    #         eq,
+                    #         x0=(lower_bound + upper_bound) / 2,
+                    #         method="Powell",
+                    #         bounds=[(lower_bound, upper_bound)],
+                    #         tol=1e-7,
+                    #     ).x[0]
+                    #     # corr_p=1-(p_out/p_in)
+                    #     self.eff_an = 1 - (cl / self.c_in)
+                    #     return
+                    # else:
+                    #     z = np.exp(beta_tau)
+                    #     w = lambertw(z, tol=1e-10)
+                    #     self.eff_an = 1 - self.xi * (w**2 + 2 * w)
+                    #     if self.eff_an.imag != 0:
+                    #         raise ValueError("self.eff_an has a non-zero imaginary part")
+                    #     else:
+                    #         self.eff_an = self.eff_an.real  # get rid of 0*j
             case False:  # Liquid Metal
                 self.zeta = (2 * self.membrane.K_S * self.membrane.D) / (
                     self.fluid.k_t
