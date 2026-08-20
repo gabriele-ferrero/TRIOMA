@@ -71,6 +71,49 @@ def length_extractor_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, kla, c
     return Z
 
 
+def _integrate_linear_denominator(c_out, c_in, slope, intercept):
+    """
+    Integrate 1 / (slope*c + intercept) from c_out to c_in.
+
+    Returns infinity when the denominator vanishes at an endpoint,
+    which corresponds to an equilibrium/saturation limit.
+    """
+
+    d_out = slope * c_out + intercept
+    d_in = slope * c_in + intercept
+
+    tolerance = 1.0e-14 * max(
+        1.0,
+        abs(d_out),
+        abs(d_in),
+        abs(c_out),
+        abs(c_in),
+    )
+
+    # Endpoint singularity: the physical equilibrium limit.
+    if abs(d_out) <= tolerance or abs(d_in) <= tolerance:
+        return numpy.inf
+
+    # A linear denominator changing sign has a pole inside the interval.
+    if d_out * d_in < 0.0:
+        raise ValueError(
+            "The MS GLC NTU integrand has a singularity inside " "the integration interval."
+        )
+
+    # Constant denominator.
+    if abs(slope) <= numpy.finfo(float).eps:
+        if abs(intercept) <= tolerance:
+            return numpy.inf
+        return (c_in - c_out) / intercept
+
+    integral_value = numpy.log(abs(d_in / d_out)) / slope
+
+    if numpy.isnan(integral_value):
+        raise ValueError("The MS GLC NTU integral returned NaN.")
+
+    return float(integral_value)
+
+
 def NTU_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, c_max=0):
     """
     solving integral equation from (5) of "The engineering sizing of the packed desorption column of hydrogen
@@ -216,18 +259,33 @@ def NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, c_max=0):
     if c_out >= c_in - concentration_tolerance:
         return 0.0
 
-    integral_value, integration_error = integrate.quad(
-        toint,
-        c_out,
-        c_in,
-        epsabs=1.0e-11,
-        epsrel=1.0e-9,
-        limit=200,
+    # The MS integrand has the form:
+    #
+    #     1 / (slope * c + intercept)
+    #
+    # where
+    #
+    #     c - K_H * (u_l / u_g * R_const * T)
+    #         * (c - c_out + c_in_gas * u_g / u_l)
+    #
+    # is linear in c.
+
+    A = K_H * (u_l / u_g) * R_const * T
+
+    slope = 1.0 - A
+    intercept = A * (c_out - c_in_gas * u_g / u_l)
+
+    integral_value = _integrate_linear_denominator(
+        c_out=c_out,
+        c_in=c_in,
+        slope=slope,
+        intercept=intercept,
     )
 
-    if not numpy.isfinite(integral_value):
-        raise ValueError("The MS GLC NTU integral returned a non-finite value.")
-
+    # Infinite NTU is expected at the physical saturation limit.
+    # It is handled by get_c_out_GLC_ms().
+    if numpy.isnan(integral_value):
+        raise ValueError("The MS GLC NTU integral returned NaN.")
     if integral_value < 0.0:
         print(
             "Warning: negative MS GLC NTU integral. "
@@ -527,23 +585,32 @@ def get_c_out_GLC_ms(
     length_at_limit = length_from_cout(c_out_min)
 
     if length_at_limit <= Z + 1.0e-10:
-        # The column is limited by gas saturation, equilibrium, or
-        # the specified maximum-transfer constraint.
         c_out = c_out_min
     else:
+        lower_bound = c_out_min
+
+        if numpy.isinf(length_at_limit):
+            concentration_step = 100.0 * 1.0e-14 * max(1.0, abs(c_in), abs(c_out_min))
+
+            lower_bound = c_out_min + concentration_step
+
+            # Keep the lower bound strictly below c_in.
+            lower_bound = min(
+                lower_bound,
+                numpy.nextafter(c_in, c_out_min),
+            )
 
         def residual(c_out):
             return length_from_cout(c_out) - Z
 
         c_out = brentq(
             residual,
-            c_out_min,
+            lower_bound,
             c_in,
             xtol=1.0e-12,
             rtol=1.0e-12,
             maxiter=200,
         )
-
     c_out = float(numpy.clip(c_out, c_out_min, c_in))
     eff = 1.0 - c_out / c_in if c_in > 0.0 else 0.0
 
