@@ -59,7 +59,7 @@ class Component(TriomaClass):
         self.c_in = c_in
         self.geometry = geometry
         self.eff = eff
-        self.n_pipes = (self.geometry.n_pipes,)
+        self.n_pipes = self.geometry.n_pipes
         self.fluid = fluid
         self.membrane = membrane
         self.name = name
@@ -380,7 +380,7 @@ class Component(TriomaClass):
             err = 1
             tol = 1e-6
             if self.c_in == 0:
-                RaiseError("The inlet concentration is zero")
+                raise ValueError("The inlet concentration is zero")
             c0 = self.c_in
             c_in = c0
             while err > tol:
@@ -394,14 +394,16 @@ class Component(TriomaClass):
                 err = abs((c_in - c_in1) / c_in)
         elif self.fluid.recirculation < 0:
             if self.fluid.recirculation <= -1:
-                RaiseError("Bypass(negative recirculation) not valid: it is more than the flowrate")
+                raise ValueError(
+                    "Bypass(negative recirculation) not valid: it is more than the flowrate"
+                )
             if self.c_in == 0:
-                RaiseError("The inlet concentration is zero")
+                raise ValueError("The inlet concentration is zero")
             self.c_out = self.c_in * (1 - self.eff) * (1 + self.fluid.recirculation) + self.c_in * (
                 -self.fluid.recirculation
             )
         else:
-            RaiseError("Recirculation factor not valid")
+            raise ValueError("Recirculation factor not valid")
         return self.c_out
 
     def converge_split_HX(
@@ -820,7 +822,8 @@ class Component(TriomaClass):
                     c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in), p_out=p_out)
         if plotvar:
             plt.plot(L_vec, c_vec)
-        self.eff = (self.c_in - c_vec[-1]) / self.c_in
+        self.c_out = c_vec[-1]
+        self.eff = (self.c_in - self.c_out) / self.c_in
 
     def analytical_efficiency(self, p_out: float = 0) -> None:
         """
@@ -1061,8 +1064,9 @@ class Component(TriomaClass):
             mt = 1.0
             exp = 1.0  # (cw/S) in diffusion driving force
             des_pow = 1.0  # desorption uses K_S (fully-mixed)
-            c_eq = S * p_out**0.5
-            lo, hi = 0.0, c * (1 + 1e-4)
+            c_eq = S * np.sqrt(p_out)
+            lo = min(c, c_eq)
+            hi = max(c, c_eq)
 
         # --- signed fluxes (positive = leaving the fluid) --------------------
         def J_mt(cw):
@@ -1143,7 +1147,7 @@ class Component(TriomaClass):
             cw, cs = v
             Jmt = mt * kt * (c - cw)
             Jd = kd * (cw / KS) - kd * (KS**des_pow) * cs**2
-            Jdiff = P / KS * (KS * cs - p_out**0.5)  # P already contains K_S
+            Jdiff = P / KS * (cs - KS * p_out**0.5)  # P already contains K_S
             return [Jmt - Jd, Jmt - Jdiff]
 
         if hi - lo <= 1e-12 * max(abs(hi), 1e-30):
@@ -1309,7 +1313,7 @@ class Component(TriomaClass):
                     circle(self.geometry.D / 2 + self.geometry.thick) - circle(self.geometry.D / 2)
                 )
                 inventory = integral
-                self.membrane.inv = inventory
+                self.membrane.inv = inventory * self.geometry.n_pipes
                 return inventory
             case True:
 
@@ -1441,8 +1445,8 @@ class Component(TriomaClass):
                     inventory_one_pipe = c_ext_s * area_solid * L + F_cyl * (
                         c_w_s_integral - c_ext_s * L
                     )
-
-                    return inventory_one_pipe
+                    self.membrane.inv = inventory_one_pipe * self.geometry.n_pipes
+                    return self.membrane.inv
 
                 inv = ms_integral(
                     self=self,
