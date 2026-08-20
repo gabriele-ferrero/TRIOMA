@@ -1290,19 +1290,18 @@ class Component(TriomaClass):
                     * self.fluid.k_t
                     / (self.fluid.U0 * self.fluid.d_Hyd)
                 )
+                L_factor = (np.exp(L_ch * self.geometry.L) - 1) / L_ch
                 K = (
                     -2
                     * np.pi
                     * (
-                        self.c_in
+                        (self.c_in - self.fluid.Solubility * p_out**0.5)
                         / (dimless2 / self.fluid.k_t + 1)
                         / self.fluid.Solubility
                         * self.membrane.K_S
                     )
                     / np.log((self.geometry.D / 2 + self.geometry.thick) / (self.geometry.D / 2))
-                )
-                L_factor = (np.exp(L_ch * self.geometry.L) - 1) / L_ch
-                K = K * L_factor
+                ) * L_factor
                 integral = (
                     K * integralfun(self.geometry.D / 2 + self.geometry.thick)
                     - K * integralfun(self.geometry.D / 2)
@@ -1640,13 +1639,10 @@ class Component(TriomaClass):
                     / (self.fluid.U0 * self.fluid.d_Hyd)
                 )
                 c_ext = p_out**0.5 * self.fluid.Solubility
-                K = self.c_in - c_ext
-
                 L_factor = (np.exp(L_ch * self.geometry.L) - 1) / L_ch
-                K = K * L_factor
-                integral = (K) * circle(self.geometry.D / 2) + c_ext * circle(
+                integral = (self.c_in - c_ext) * circle(
                     self.geometry.D / 2
-                ) * self.geometry.L
+                ) * L_factor + c_ext * circle(self.geometry.D / 2) * self.geometry.L
                 inventory = integral
                 self.fluid.inv = inventory * self.geometry.n_pipes
                 return inventory
@@ -1655,101 +1651,197 @@ class Component(TriomaClass):
                 self.get_fluid_inventory(flag_an=False, p_out=p_out)
 
     def get_fluid_inventory(self, flag_an: bool = False, p_out: float = 0) -> float:
-        if flag_an == True:
+        """
+        Calculate the tritium inventory in the fluid region.
+
+        For liquid metals, the inventory is calculated analytically from the
+        exponential axial concentration profile.
+
+        For molten salts, the bulk concentration is evaluated using the same
+        Lambert-W solution used by analytical_efficiency(), then integrated
+        numerically along the pipe.
+
+        The molten-salt inventory is multiplied by 2 to convert from mol Q2
+        to mol Q, consistently with the manuscript's f_H_to_H2 factor.
+        """
+
+        if flag_an:
             return self.analytical_fluid_inventory(p_out=p_out)
-        r_in = self.fluid.d_Hyd / 2
 
-        L_min = 0
-        L_max = self.geometry.L
-        N = 100
+        if p_out < 0:
+            raise ValueError("p_out must be non-negative.")
 
-        def integrand(L):
-            if self.fluid.k_t is None:
-                self.fluid.get_kt(turbulator=self.geometry.turbulator)
-            match self.fluid.MS:
-                case False:
-                    dimless = (
-                        2
-                        * self.membrane.D
-                        * self.membrane.K_S
-                        / (
-                            self.fluid.k_t
-                            * self.fluid.Solubility
-                            * self.fluid.d_Hyd
-                            * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                            )
-                        )
-                    )
+        if self.fluid.k_t is None:
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
 
-                    L_ch = (
-                        -dimless
-                        / (1 + dimless)
-                        * 4
-                        * self.fluid.k_t
-                        / (self.fluid.U0 * self.fluid.d_Hyd)
-                    )
-                    c_ext = p_out**0.5 * self.fluid.Solubility
-                    return (self.c_in - c_ext) * np.exp(L_ch * L) + c_ext
-                case True:
-                    if self.tau is None or self.xi is None:
-                        self.analytical_efficiency(p_out=p_out)
-                    tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
-                    self.xi = (
-                        1
-                        / self.c_in
-                        / self.fluid.Solubility
-                        * (
-                            0.5  ##TODO: Check this
-                            * self.membrane.K_S
-                            * self.membrane.D
-                            / (
-                                self.fluid.k_t
-                                * self.fluid.d_Hyd
-                                * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                                )
-                            )
-                        )
-                        ** 2
-                    )
+        c_in = float(self.c_in)
+        kt = float(self.fluid.k_t)
+        U = float(self.fluid.U0)
+        d = float(self.fluid.d_Hyd)
+        r_in = d / 2.0
+        area_fluid = np.pi * r_in**2
+        L = float(self.geometry.L)
+        n_pipes = self.geometry.n_pipes
 
-                    beta = (1 / self.xi + 1) ** 0.5 + np.log((1 / self.xi + 1) ** 0.5 - 1)
-                    max_exp = np.log(np.finfo(np.float64).max)
-                    beta_tau = beta - tau - 1
-                    if beta_tau > max_exp:
-                        # print(
-                        #     "Warning: Overflow encountered in exp, input too large.Approximation triggered"
-                        # )
+        if c_in < 0:
+            raise ValueError("The inlet concentration must be non-negative.")
 
-                        w = beta_tau - np.log(beta_tau)
+        # ---------------------------------------------------------------------
+        # Liquid-metal carrier: Sievert's law
+        # ---------------------------------------------------------------------
+        if not self.fluid.MS:
+
+            K_S_l = float(self.fluid.Solubility)
+            K_S_s = float(self.membrane.K_S)
+            D_s = float(self.membrane.D)
+            thickness = float(self.membrane.thick)
+
+            log_ro_ri = np.log((d + 2.0 * thickness) / d)
+
+            # Manuscript definition of zeta
+            zeta = 2.0 * D_s * K_S_s / (d * log_ro_ri * kt * K_S_l)
+
+            # Axial decay coefficient:
+            #
+            # c_b(z) = c_ext + (c_in - c_ext) exp(-a*z)
+            #
+            a = 4.0 * kt / (U * d) * zeta / (1.0 + zeta)
+
+            c_ext = K_S_l * np.sqrt(p_out)
+
+            if abs(a) < 1.0e-14:
+                axial_integral = c_in * L
+            else:
+                axial_integral = c_ext * L + (c_in - c_ext) * (1.0 - np.exp(-a * L)) / a
+
+            inventory_one_pipe = area_fluid * axial_integral
+
+            self.fluid.inv = inventory_one_pipe * n_pipes
+            return self.fluid.inv
+
+        # ---------------------------------------------------------------------
+        # Molten-salt carrier: Henry's law and Lambert-W solution
+        # ---------------------------------------------------------------------
+
+        if c_in == 0.0:
+            if p_out == 0.0:
+                self.fluid.inv = 0.0
+                return 0.0
+            raise ValueError(
+                "A positive c_in is required for the molten-salt Lambert-W "
+                "inventory formulation when p_out > 0."
+            )
+
+        K_H = float(self.fluid.Solubility)
+        K_S = float(self.membrane.K_S)
+        D_s = float(self.membrane.D)
+
+        r_o = r_in + float(self.membrane.thick)
+        log_ro_ri = np.log(r_o / r_in)
+
+        # These definitions must match analytical_efficiency()
+        phi = D_s * K_S
+
+        alpha = 1.0 / K_H * (phi / (kt * d * log_ro_ri)) ** 2
+
+        xi = alpha / c_in
+        Pi_ext = np.sqrt(p_out * K_H / alpha)
+
+        # Store the parameters for consistency with the rest of the class
+        self.alpha = alpha
+        self.xi = xi
+        self.Pi_ext = Pi_ext
+        self.tau = 4.0 * kt * L / (U * d)
+
+        b = 1.0 + 2.0 * Pi_ext
+
+        # Initial transformed variable
+        s_in = np.sqrt(1.0 + 4.0 * (1.0 / xi + Pi_ext))
+        y_in = s_in - b
+
+        # If the inlet is already in equilibrium with the external pressure,
+        # the bulk concentration is constant along the pipe.
+        if abs(y_in) < 1.0e-14:
+            axial_integral = c_in * L
+
+        else:
+            sign = 1.0 if y_in > 0.0 else -1.0
+
+            # Same beta definition as analytical_efficiency()
+            beta = s_in / b + np.log(abs(y_in))
+
+            log_max = np.log(np.finfo(np.float64).max)
+            log_tiny = np.log(np.finfo(np.float64).tiny)
+
+            def q_of_z(z):
+                """
+                Evaluate the Lambert-W transformed variable at axial position z.
+                """
+
+                tau_z = 4.0 * kt * z / (U * d)
+
+                # Same beta_tau definition as analytical_efficiency()
+                beta_tau = beta - tau_z / b - 1.0
+
+                # Lambert-W argument magnitude:
+                # argument = sign * exp(beta_tau) / b
+                log_argument_abs = beta_tau - np.log(b)
+
+                if sign > 0.0:
+                    # Normal extraction: principal real branch W_0
+                    if log_argument_abs < log_max:
+                        argument = np.exp(log_argument_abs)
+                        q = lambertw(argument, k=0).real
                     else:
-                        z = np.exp(beta_tau)
-                        w = lambertw(z, tol=1e-10)
-                        if w.imag != 0:
-                            raise ValueError("self.eff_an has a non-zero imaginary part")
-                        w = w.real
-                    alpha = (
-                        1
-                        / self.fluid.Solubility
-                        * (
-                            (0.5 * self.membrane.D * self.membrane.K_S)  ## TODO: Check this
-                            / (
-                                self.fluid.k_t
-                                * self.fluid.d_Hyd
-                                * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                                )
-                            )
-                        )
-                        ** 2
-                    )
-                    conv = (self.c_in / self.fluid.Solubility) ** 0.5 * self.membrane.K_S
-                    c_w_l = alpha * (w**2 + 2 * w)
-                    return c_w_l
+                        # Large-positive-argument approximation
+                        q = log_argument_abs - np.log(log_argument_abs)
 
-        result, err = integrate.nquad(integrand, [[L_min, L_max]])
-        self.fluid.inv = result * np.pi * r_in**2 * self.geometry.n_pipes
+                else:
+                    # Inverse permeation: principal real branch W_0
+                    if log_argument_abs < log_tiny:
+                        argument = 0.0
+                    else:
+                        argument = -np.exp(log_argument_abs)
+
+                    # Protect against small round-off excursions below -1/e
+                    argument = np.clip(argument, -1.0 / np.e, 0.0)
+                    q = lambertw(argument, k=0).real
+
+                return float(q)
+
+            def c_bulk(z):
+                """
+                Molten-salt bulk concentration c_b,l(z).
+
+                This is the local form of the manuscript's cbz_ms_pav equation.
+                """
+
+                q = q_of_z(z)
+                s = b * (1.0 + q)
+
+                c_b = alpha / 4.0 * (s**2 - 1.0 - 4.0 * Pi_ext)
+
+                # Remove tiny negative values caused only by floating-point error
+                if c_b < 0.0 and abs(c_b) < 1.0e-12 * max(c_in, 1.0):
+                    c_b = 0.0
+
+                return float(c_b)
+
+            # Integrate the bulk concentration along one pipe
+            axial_integral, _ = integrate.quad(
+                c_bulk,
+                0.0,
+                L,
+                epsabs=1.0e-12,
+                epsrel=1.0e-9,
+                limit=200,
+            )
+
+        f_H2_to_H = 2.0
+
+        inventory_one_pipe = f_H2_to_H * area_fluid * axial_integral
+
+        self.fluid.inv = inventory_one_pipe * n_pipes
         return self.fluid.inv
 
     def get_inventory(self, flag_an: bool = True, p_out: float = 0) -> None:
