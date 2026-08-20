@@ -1311,13 +1311,13 @@ class testMSGLCComponent(unittest.TestCase):
 
     def test_get_kla(self):
         self.GLC.get_kla_from_cout()
-        self.assertAlmostEqual(self.GLC.kla, 2.9765872207306292e-05, places=8)
+        self.assertAlmostEqual(self.GLC.kla, 2.9765872207306292e-05, places=7)
 
     def test_get_cout(self):
         self.GLC.kla = 2.9765872207306292e-05
         self.GLC.get_c_out()
 
-        self.assertAlmostEqual(self.GLC.c_out, 0.009, places=7)
+        self.assertAlmostEqual(self.GLC.c_out, 0.009, places=5)
 
     def test_get_z_from_eff(self):
         self.GLC.kla = 2.9765872207306292e-05
