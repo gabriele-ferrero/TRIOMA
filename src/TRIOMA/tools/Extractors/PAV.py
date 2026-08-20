@@ -1314,78 +1314,145 @@ class Component(TriomaClass):
                 return inventory
             case True:
 
-                def ms_integral(self, p_out: float = 0, L: float = 0):
-                    if self.tau is None or self.xi is None or self.alpha is None:
+                def ms_integral(self, p_out: float = 0.0, L: float = None):
+                    """
+                    Solid MS inventory for one pipe, using the paper's
+                    alpha, xi and Pi_ext definitions.
+                    """
+
+                    if L is None:
+                        L = self.geometry.L
+
+                    if not (
+                        hasattr(self, "alpha")
+                        and hasattr(self, "xi")
+                        and self.alpha is not None
+                        and self.xi is not None
+                    ):
                         self.analytical_efficiency(p_out=p_out)
-                    beta = (1 / self.xi + 1) ** 0.5 + np.log((1 / self.xi + 1) ** 0.5 - 1)
-                    max_exp = np.log(np.finfo(np.float64).max)
-                    beta_tau = beta - self.tau - 1
-                    if beta_tau > max_exp:
-                        w = beta_tau - np.log(beta_tau)
-                        w2 = -beta_tau
 
+                    KH = self.fluid.Solubility
+                    KS = self.membrane.K_S
+                    kt = self.fluid.k_t
+                    U = self.fluid.U0
+                    d = self.fluid.d_Hyd
+
+                    r_i = d / 2.0
+                    r_o = r_i + self.membrane.thick
+                    log_ro_ri = np.log(r_o / r_i)
+
+                    alpha = self.alpha
+                    xi = self.xi
+
+                    # Paper definition:
+                    # Pi_ext = sqrt(p_out * K_H / alpha)
+                    Pi_ext = np.sqrt(p_out * KH / alpha)
+                    b = 1.0 + 2.0 * Pi_ext
+
+                    # Initial transformed variable
+                    s_in = np.sqrt(1.0 + 4.0 * (1.0 / xi + Pi_ext))
+                    y_in = s_in - b
+
+                    if abs(y_in) < 1.0e-14:
+                        # No concentration driving force
+                        c_w_s_integral = KS * np.sqrt(p_out) * L
                     else:
-                        z = np.exp(beta_tau)
-                        z2 = np.exp(-beta_tau)
-                        w = lambertw(z, tol=1e-10)
-                        w2 = lambertw(z2, tol=1e-10)
-                        if w.imag != 0:
-                            raise ValueError("self.eff_an has a non-zero imaginary part")
-                        if w2.imag != 0:
-                            raise ValueError("self.eff_an has a non-zero imaginary part")
-                        w = w.real
-                        w2 = w2.real
-                    c_ext = p_out**0.5 * self.membrane.K_S
-                    conv = (self.c_in / self.fluid.Solubility) ** 0.5 * self.membrane.K_S
-                    c_w_l = self.alpha * (w**2 + 2 * w) + self.alpha * (
-                        2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5
-                    )
-                    K = (
-                        self.alpha**0.5
-                        / self.fluid.Solubility**0.5
-                        * (
-                            -beta_tau
-                            * (w**2 - w + 1)
-                            / (4 * self.fluid.k_t / (self.fluid.U0 * self.fluid.d_Hyd) * w2)
+                        sign = 1.0 if y_in > 0.0 else -1.0
+
+                        # Paper definition of beta
+                        beta = s_in / b + np.log(abs(y_in))
+
+                        def q_of_z(z):
+                            tau_z = 4.0 * kt * z / (U * d)
+
+                            beta_z = beta - tau_z / b - 1.0
+
+                            # q = W_k[sign * exp(beta_z) / b]
+                            log_argument_abs = beta_z - np.log(b)
+
+                            if sign > 0.0:
+                                # Normal extraction: W_0
+                                log_max = np.log(np.finfo(np.float64).max)
+
+                                if log_argument_abs < log_max:
+                                    argument = np.exp(log_argument_abs)
+                                    q = lambertw(argument, k=0).real
+                                else:
+                                    # Large-positive-argument
+                                    # asymptotic approximation
+                                    q = log_argument_abs - np.log(log_argument_abs)
+
+                            else:
+                                # Inverse permeation: physical branch W_0
+                                if log_argument_abs < np.log(np.finfo(np.float64).tiny):
+                                    argument = 0.0
+                                else:
+                                    argument = -np.exp(log_argument_abs)
+
+                                argument = np.clip(argument, -1.0 / np.e, 0.0)
+
+                                q = lambertw(argument, k=0).real
+
+                            return q
+
+                        def c_w_l(z):
+                            """
+                            MS liquid-side wall concentration:
+
+                            c_w,l = alpha *
+                                    [Pi_ext +
+                                     (1 + 2 Pi_ext) q / 2]^2
+                            """
+                            q = q_of_z(z)
+
+                            return alpha * (Pi_ext + 0.5 * b * q) ** 2
+
+                        def c_w_s(z):
+                            """
+                            MS solid-side wall concentration:
+
+                            c_w,s = K_S * sqrt(c_w,l / K_H)
+                            """
+                            cwl = max(c_w_l(z), 0.0)
+
+                            return KS * np.sqrt(cwl / KH)
+
+                        # Numerical axial integration of c_w,s(z)
+                        c_w_s_integral, _ = integrate.quad(
+                            c_w_s,
+                            0.0,
+                            L,
+                            epsabs=1.0e-12,
+                            epsrel=1.0e-8,
+                            limit=200,
                         )
-                        * self.membrane.K_S
+
+                    # Radial hollow-cylinder geometry
+                    area_solid = np.pi * (r_o**2 - r_i**2)
+
+                    F_cyl = np.pi * ((r_o**2 - r_i**2) / (2.0 * log_ro_ri) - r_i**2)
+
+                    # External-equilibrium concentration in the solid
+                    c_ext_s = KS * np.sqrt(p_out)
+
+                    # Solid inventory in one pipe:
+                    #
+                    # I_s = c_ext,s * A_s * L
+                    #       + F_cyl * integral[c_w,s(z)-c_ext,s] dz
+                    inventory_one_pipe = c_ext_s * area_solid * L + F_cyl * (
+                        c_w_s_integral - c_ext_s * L
                     )
 
-                    def integralfun(r):
-                        return (
-                            1
-                            / 4
-                            * r**2
-                            * (2 * np.log(r / (self.geometry.D / 2 + self.geometry.thick)) - 1)
-                        )
+                    return inventory_one_pipe
 
-                    integral = K * integralfun(
-                        self.geometry.D / 2 + self.geometry.thick
-                    ) - K * integralfun(self.geometry.D / 2)
-                    return integral
-
-                def p_out_term(self, p_out):
-                    def circle(r):
-                        return np.pi * r**2
-
-                    add = (
-                        self.geometry.L
-                        * p_out**0.5
-                        * self.membrane.K_S
-                        * (
-                            circle(self.geometry.D / 2 + self.geometry.thick)
-                            - circle(self.geometry.D / 2)
-                        )
-                    )
-
-                    return add
-
-                inv = (
-                    ms_integral(self=self, L=self.geometry.L, p_out=p_out)
-                    - ms_integral(self=self, L=0, p_out=p_out)
-                    + p_out_term(self, p_out)
+                inv = ms_integral(
+                    self=self,
+                    p_out=p_out,
+                    L=self.geometry.L,
                 )
+
                 self.membrane.inv = inv * self.geometry.n_pipes
+
                 return inv
 
     def get_solid_inventory(self, p_out: float = 0, flag_an: bool = False) -> float:
