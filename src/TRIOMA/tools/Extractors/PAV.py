@@ -783,10 +783,10 @@ class Component(TriomaClass):
         """
         Calculates the efficiency of the component.
         """
-        if self.p_out:
-            p_out = self.p_out
+        if self.p_out is None:
+            p_out = 0.0
         else:
-            p_out = 0
+            p_out = self.p_out
         if self.c_in == 0:
             self.c_out = 0
             self.eff = 0
@@ -863,10 +863,10 @@ class Component(TriomaClass):
         Raises:
             ValueError: If imaginary component appears in eff_an calculation (numerical instability)
         """
-        if self.p_out:
-            p_out = self.p_out
+        if self.p_out is None:
+            p_out = 0.0
         else:
-            p_out = 0
+            p_out = self.p_out
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1252,10 +1252,10 @@ class Component(TriomaClass):
         return
 
     def analytical_solid_inventory(self, p_out: float = 0) -> float:
-        if self.p_out:
-            p_out = self.p_out
+        if self.p_out is None:
+            p_out = 0.0
         else:
-            p_out = 0
+            p_out = self.p_out
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1339,7 +1339,7 @@ class Component(TriomaClass):
                         and self.alpha is not None
                         and self.xi is not None
                     ):
-                        self.analytical_efficiency(p_out=p_out)
+                        self.analytical_efficiency()
 
                     KH = self.fluid.Solubility
                     KS = self.membrane.K_S
@@ -1495,10 +1495,10 @@ class Component(TriomaClass):
         float
             Total solid inventory in all pipes [mol].
         """
-        if self.p_out:
-            p_out = self.p_out
+        if self.p_out is None:
+            p_out = 0.0
         else:
-            p_out = 0
+            p_out = self.p_out
         if flag_an:
             return self.analytical_solid_inventory(p_out=p_out)
 
@@ -1710,10 +1710,10 @@ class Component(TriomaClass):
         return self.membrane.inv
 
     def analytical_fluid_inventory(self, p_out: float = 0) -> None:
-        if self.p_out:
-            p_out = self.p_out
+        if self.p_out is None:
+            p_out = 0.0
         else:
-            p_out = 0
+            p_out = self.p_out
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1758,7 +1758,7 @@ class Component(TriomaClass):
                 ) * L_factor + c_ext * circle(self.geometry.D / 2) * self.geometry.L
                 inventory = integral
                 self.fluid.inv = inventory * self.geometry.n_pipes
-                return inventory
+                return self.fluid.inv
             case True:
                 print("MS fluid integration is done numerically")
                 self.get_fluid_inventory(flag_an=False)
@@ -1777,10 +1777,10 @@ class Component(TriomaClass):
         The molten-salt inventory is multiplied by 2 to convert from mol Q2
         to mol Q, consistently with the manuscript's f_H_to_H2 factor.
         """
-        if self.p_out:
-            p_out = self.p_out
+        if self.p_out is None:
+            p_out = 0.0
         else:
-            p_out = 0
+            p_out = self.p_out
         if flag_an:
             return self.analytical_fluid_inventory(p_out=p_out)
 
