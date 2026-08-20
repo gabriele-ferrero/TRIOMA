@@ -1251,7 +1251,7 @@ class Component(TriomaClass):
         self.U = 1 / R_tot
         return
 
-    def analytical_solid_inventory(self, p_out: float = 0) -> float:
+    def analytical_solid_inventory(self) -> float:
         if self.p_out is None:
             p_out = 0.0
         else:
@@ -1321,7 +1321,7 @@ class Component(TriomaClass):
                 )
                 inventory = integral
                 self.membrane.inv = inventory * self.geometry.n_pipes
-                return inventory
+                return self.membrane.inv
             case True:
 
                 def ms_integral(self, p_out: float = 0.0, L: float = None):
