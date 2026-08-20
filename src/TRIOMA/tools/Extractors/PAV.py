@@ -34,7 +34,7 @@ class Component(TriomaClass):
         fluid: "Fluid" = None,
         membrane: "Membrane" = None,
         name: str = None,
-        p_out: float = 0,
+        p_ext: float = 0,
         loss: bool = False,
         inv: float = None,
         delta_p: float = None,
@@ -64,7 +64,7 @@ class Component(TriomaClass):
         self.name = name
         self.loss = loss
         self.inv = inv
-        self.p_out = p_out
+        self.p_ext = p_ext
         self.delta_p = delta_p
         self.U = U
         self.pumping_power = pumping_power
@@ -783,10 +783,10 @@ class Component(TriomaClass):
         """
         Calculates the efficiency of the component.
         """
-        if self.p_out is None:
-            p_out = 0.0
+        if self.p_ext is None:
+            p_ext = 0.0
         else:
-            p_out = self.p_out
+            p_ext = self.p_ext
         if self.c_in == 0:
             self.c_out = 0
             self.eff = 0
@@ -806,9 +806,9 @@ class Component(TriomaClass):
                 c_vec[i] = float(self.c_in)
 
                 if isinstance(c_guess, float):
-                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess, p_out=p_out)
+                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess, p_ext=p_ext)
                 else:
-                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in), p_out=p_out)
+                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in), p_ext=p_ext)
             else:
                 c_vec[i] = c_vec[
                     i - 1
@@ -816,9 +816,9 @@ class Component(TriomaClass):
                     np.pi * self.fluid.d_Hyd**2 / 4 * dl
                 )
                 if isinstance(c_guess, float):
-                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess, p_out=p_out)
+                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess, p_ext=p_ext)
                 else:
-                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in), p_out=p_out)
+                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in), p_ext=p_ext)
         if plotvar:
             plt.plot(L_vec, c_vec)
         self.c_out = c_vec[-1]
@@ -832,13 +832,12 @@ class Component(TriomaClass):
         for tritium transport in the membrane. The efficiency represents the fraction of tritium
         extracted from the component relative to inlet concentration.
 
-        The calculation solves three coupled transport phenomena:
+        The calculation solves two coupled transport phenomena:
         1. **Mass transport** (fluid boundary layer): Convective mass transfer from bulk fluid to wall
         2. **Diffusion** (solid membrane): Fickian diffusion through the membrane thickness
-        3. **Surface reactions** (membrane surfaces): Adsorption/desorption kinetics at interfaces
 
         Parameters:
-            p_out (float): Outlet tritium partial pressure [Pa]. Defaults to 0 Pa (essentially zero).
+            p_ext (float): Outlet tritium partial pressure [Pa]. Defaults to 0 Pa (essentially zero).
                            Controls the driving force for tritium extraction.
 
         Updates (self attributes):
@@ -846,7 +845,8 @@ class Component(TriomaClass):
             self.tau (float): Dimensionless time parameter = 4*k_t*L/(U0*d_Hyd)
             self.alpha (float): Adsorption/surface parameter
             self.xi (float): Extraction parameter
-
+            self.Pi_ext (float): Dimensionless external pressure parameter
+            self.c_out (float): Outlet concentration [mol/m³] = c_in * (1 - eff_an)
         Physics:
             For **Molten Salt** fluids (MS=True):
                 Uses solution of coupled convective-diffusive equations with Lambert W function.
@@ -854,7 +854,7 @@ class Component(TriomaClass):
 
             For **Liquid Metal** fluids (MS=False):
                 Uses simplified solution based on partition equilibrium effects.
-                Includes pressure correction factor: (1 - p_out/p_in)^0.5
+                Includes pressure correction factor: (1 - p_ext/p_in)^0.5
 
         References:
             Humrickhouse, P. W., "Tritium Transport in the DCLL Blanket",
@@ -863,10 +863,10 @@ class Component(TriomaClass):
         Raises:
             ValueError: If imaginary component appears in eff_an calculation (numerical instability)
         """
-        if self.p_out is None:
-            p_out = 0.0
+        if self.p_ext is None:
+            p_ext = 0.0
         else:
-            p_out = self.p_out
+            p_ext = self.p_ext
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -886,18 +886,18 @@ class Component(TriomaClass):
 
                 self.xi = self.alpha / self.c_in
 
-                if p_out < 0:
-                    raise ValueError("p_out must be non-negative.")
+                if p_ext < 0:
+                    raise ValueError("p_ext must be non-negative.")
 
                 p_in = self.c_in / KH
 
-                self.Pi_ext = np.sqrt(p_out * KH / self.alpha)
+                self.Pi_ext = np.sqrt(p_ext * KH / self.alpha)
 
                 # -------------------------------------------------------------
                 # Mass-transfer-limited approximation: xi >> 1
                 # -------------------------------------------------------------
                 if self.xi > 1.0e5:
-                    correction_p = 1.0 - p_out / p_in
+                    correction_p = 1.0 - p_ext / p_in
 
                     self.eff_an = (1.0 - np.exp(-self.tau)) * correction_p
 
@@ -906,7 +906,7 @@ class Component(TriomaClass):
                 # xi << 1 and tau < 1 / sqrt(xi)
                 # -------------------------------------------------------------
                 elif self.xi < 1.0e-4 and self.tau < 1.0 / np.sqrt(self.xi):
-                    correction_p = 1.0 - np.sqrt(p_out / p_in)
+                    correction_p = 1.0 - np.sqrt(p_ext / p_in)
 
                     self.eff_an = (
                         1.0 - (1.0 - 0.5 * self.tau * np.sqrt(self.xi)) ** 2
@@ -923,7 +923,7 @@ class Component(TriomaClass):
 
                     y_in = s_in - b
 
-                    # No driving force: p_out = p_in
+                    # No driving force: p_ext = p_in
                     if abs(y_in) < 1.0e-14:
                         self.eff_an = 0.0
                         return
@@ -956,9 +956,9 @@ class Component(TriomaClass):
                     c_out_over_alpha = (s_out**2 - 1.0 - 4.0 * Pi_ext) / 4.0
 
                     self.eff_an = 1.0 - self.xi * c_out_over_alpha
-
+                    self.c_out = self.c_in * (1.0 - self.eff_an)
                     return
-                    # e = (self.alpha * p_out * self.fluid.Solubility) ** 0.5
+                    # e = (self.alpha * p_ext * self.fluid.Solubility) ** 0.5
                     # f = e / self.alpha
                     # delta = (1 / self.xi + 1 + 2 * f) ** 0.5
                     # beta = delta + (1 + f) * np.log(abs(delta - 1 - f))
@@ -967,7 +967,7 @@ class Component(TriomaClass):
                     # beta_tau = beta - self.tau - 1
                     # print("beta tau is ", beta_tau)
                     # print("max exp is ", max_exp)
-                    # saturation = (p_out * self.fluid.Solubility) > self.c_in
+                    # saturation = (p_ext * self.fluid.Solubility) > self.c_in
                     # if beta_tau > max_exp :
                     #     # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
 
@@ -985,13 +985,13 @@ class Component(TriomaClass):
 
                     #     p_in = self.c_in / self.fluid.Solubility
                     #     if (
-                    #         abs(self.p_out * self.fluid.Solubility - self.c_in) / self.c_in
+                    #         abs(self.p_ext * self.fluid.Solubility - self.c_in) / self.c_in
                     #         < 1e-2
                     #     ):
                     #         self.eff_an = 1e-6
                     #         return
-                    #     lower_bound = min(self.p_out * self.fluid.Solubility, self.c_in)
-                    #     upper_bound = max(self.p_out * self.fluid.Solubility, self.c_in)
+                    #     lower_bound = min(self.p_ext * self.fluid.Solubility, self.c_in)
+                    #     upper_bound = max(self.p_ext * self.fluid.Solubility, self.c_in)
                     #     cl = minimize(
                     #         eq,
                     #         x0=(lower_bound + upper_bound) / 2,
@@ -999,7 +999,7 @@ class Component(TriomaClass):
                     #         bounds=[(lower_bound, upper_bound)],
                     #         tol=1e-7,
                     #     ).x[0]
-                    #     # corr_p=1-(p_out/p_in)
+                    #     # corr_p=1-(p_ext/p_in)
                     #     self.eff_an = 1 - (cl / self.c_in)
                     #     return
                     # else:
@@ -1018,16 +1018,17 @@ class Component(TriomaClass):
                     * np.log((self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd)
                 )
                 p_in = (self.c_in / self.fluid.Solubility) ** 2
-                corr_p = 1 - (p_out / p_in) ** 0.5
+                corr_p = 1 - (p_ext / p_in) ** 0.5
 
                 self.eff_an = (1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))) * corr_p
+                self.c_out = self.c_in * (1 - self.eff_an)
 
     def _diff_conductance(self) -> float:
         """Cylindrical diffusion conductance D*K_S / (r ln((r+t)/r)), computed once."""
         r = self.fluid.d_Hyd / 2.0
         return self.membrane.D * self.membrane.K_S / (r * np.log((r + self.membrane.thick) / r))
 
-    def get_flux(self, c: float | None = None, c_guess: float = 1e-9, p_out: float = 0) -> float:
+    def get_flux(self, c: float | None = None, c_guess: float = 1e-9, p_ext: float = 0) -> float:
         """
         Tritium permeation flux across the membrane.
 
@@ -1061,13 +1062,13 @@ class Component(TriomaClass):
             mt = 2.0
             exp = 0.5  # (cw/S)**0.5 in diffusion driving force
             des_pow = 2.0  # desorption uses K_S**2 (fully-mixed)
-            c_eq = S * p_out  # wall conc. in equilibrium with p_out
+            c_eq = S * p_ext  # wall conc. in equilibrium with p_ext
             lo, hi = min(c, c_eq), max(c, c_eq)
         else:  # atomic H, Sieverts
             mt = 1.0
             exp = 1.0  # (cw/S) in diffusion driving force
             des_pow = 1.0  # desorption uses K_S (fully-mixed)
-            c_eq = S * np.sqrt(p_out)
+            c_eq = S * np.sqrt(p_ext)
             lo = min(c, c_eq)
             hi = max(c, c_eq)
 
@@ -1076,7 +1077,7 @@ class Component(TriomaClass):
             return mt * kt * (c - cw)
 
         def J_diff(cw):
-            return P * ((cw / S) ** exp - p_out**0.5)
+            return P * ((cw / S) ** exp - p_ext**0.5)
 
         def J_surf(cw):
             return kd * (c / S) - kd * KS**2 * cw**2
@@ -1150,7 +1151,7 @@ class Component(TriomaClass):
             cw, cs = v
             Jmt = mt * kt * (c - cw)
             Jd = kd * (cw / KS) - kd * (KS**des_pow) * cs**2
-            Jdiff = P / KS * (cs - KS * p_out**0.5)  # P already contains K_S
+            Jdiff = P / KS * (cs - KS * p_ext**0.5)  # P already contains K_S
             return [Jmt - Jd, Jmt - Jdiff]
 
         if hi - lo <= 1e-12 * max(abs(hi), 1e-30):
@@ -1252,10 +1253,10 @@ class Component(TriomaClass):
         return
 
     def analytical_solid_inventory(self) -> float:
-        if self.p_out is None:
-            p_out = 0.0
+        if self.p_ext is None:
+            p_ext = 0.0
         else:
-            p_out = self.p_out
+            p_ext = self.p_ext
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1306,7 +1307,7 @@ class Component(TriomaClass):
                     -2
                     * np.pi
                     * (
-                        (self.c_in - self.fluid.Solubility * p_out**0.5)
+                        (self.c_in - self.fluid.Solubility * p_ext**0.5)
                         / (dimless2 / self.fluid.k_t + 1)
                         / self.fluid.Solubility
                         * self.membrane.K_S
@@ -1316,7 +1317,7 @@ class Component(TriomaClass):
                 integral = (
                     K * integralfun(self.geometry.D / 2 + self.geometry.thick)
                     - K * integralfun(self.geometry.D / 2)
-                ) + self.geometry.L * p_out**0.5 * self.membrane.K_S * (
+                ) + self.geometry.L * p_ext**0.5 * self.membrane.K_S * (
                     circle(self.geometry.D / 2 + self.geometry.thick) - circle(self.geometry.D / 2)
                 )
                 inventory = integral
@@ -1324,7 +1325,7 @@ class Component(TriomaClass):
                 return self.membrane.inv
             case True:
 
-                def ms_integral(self, p_out: float = 0.0, L: float = None):
+                def ms_integral(self, p_ext: float = 0.0, L: float = None):
                     """
                     Solid MS inventory for one pipe, using the paper's
                     alpha, xi and Pi_ext definitions.
@@ -1355,8 +1356,8 @@ class Component(TriomaClass):
                     xi = self.xi
 
                     # Paper definition:
-                    # Pi_ext = sqrt(p_out * K_H / alpha)
-                    Pi_ext = np.sqrt(p_out * KH / alpha)
+                    # Pi_ext = sqrt(p_ext * K_H / alpha)
+                    Pi_ext = np.sqrt(p_ext * KH / alpha)
                     b = 1.0 + 2.0 * Pi_ext
 
                     # Initial transformed variable
@@ -1365,7 +1366,7 @@ class Component(TriomaClass):
 
                     if abs(y_in) < 1.0e-14:
                         # No concentration driving force
-                        c_w_s_integral = KS * np.sqrt(p_out) * L
+                        c_w_s_integral = KS * np.sqrt(p_ext) * L
                     else:
                         sign = 1.0 if y_in > 0.0 else -1.0
 
@@ -1443,7 +1444,7 @@ class Component(TriomaClass):
                     F_cyl = np.pi * ((r_o**2 - r_i**2) / (2.0 * log_ro_ri) - r_i**2)
 
                     # External-equilibrium concentration in the solid
-                    c_ext_s = KS * np.sqrt(p_out)
+                    c_ext_s = KS * np.sqrt(p_ext)
 
                     # Solid inventory in one pipe:
                     #
@@ -1457,7 +1458,7 @@ class Component(TriomaClass):
 
                 inv = ms_integral(
                     self=self,
-                    p_out=p_out,
+                    p_ext=p_ext,
                     L=self.geometry.L,
                 )
 
@@ -1484,7 +1485,7 @@ class Component(TriomaClass):
 
         Parameters
         ----------
-        p_out : float, optional
+        p_ext : float, optional
             External Q2 partial pressure [Pa].
         flag_an : bool, optional
             If True, use analytical_solid_inventory(). If False, use the
@@ -1495,15 +1496,15 @@ class Component(TriomaClass):
         float
             Total solid inventory in all pipes [mol].
         """
-        if self.p_out is None:
-            p_out = 0.0
+        if self.p_ext is None:
+            p_ext = 0.0
         else:
-            p_out = self.p_out
+            p_ext = self.p_ext
         if flag_an:
-            return self.analytical_solid_inventory(p_out=p_out)
+            return self.analytical_solid_inventory()
 
-        if p_out < 0.0:
-            raise ValueError("p_out must be non-negative.")
+        if p_ext < 0.0:
+            raise ValueError("p_ext must be non-negative.")
 
         if self.c_in is None:
             raise ValueError("The inlet concentration self.c_in must be defined.")
@@ -1547,8 +1548,8 @@ class Component(TriomaClass):
             k_t = float(self.fluid.k_t)
             U = float(self.fluid.U0)
             d = float(self.fluid.d_Hyd)
-            c_ext_l = K_S_l * np.sqrt(p_out)
-            c_ext_s = K_S_s * np.sqrt(p_out)
+            c_ext_l = K_S_l * np.sqrt(p_ext)
+            c_ext_s = K_S_s * np.sqrt(p_ext)
 
             zeta = 2.0 * D_s * K_S_s / (d * log_ro_ri * k_t * K_S_l)
 
@@ -1585,7 +1586,7 @@ class Component(TriomaClass):
             phi = D_s * K_S_s
 
             alpha = 1.0 / K_H * (phi / (k_t * d * log_ro_ri)) ** 2
-            Pi_ext = np.sqrt(p_out * K_H / alpha)
+            Pi_ext = np.sqrt(p_ext * K_H / alpha)
             self.alpha = alpha
             self.Pi_ext = Pi_ext
 
@@ -1594,8 +1595,8 @@ class Component(TriomaClass):
 
             y_in = s_in - b
 
-            c_ext_l = K_H * p_out
-            c_ext_s = K_S_s * np.sqrt(p_out)
+            c_ext_l = K_H * p_ext
+            c_ext_s = K_S_s * np.sqrt(p_ext)
 
             # If the inlet is already in equilibrium with the external
             # pressure, the membrane concentration is uniform.
@@ -1709,11 +1710,11 @@ class Component(TriomaClass):
 
         return self.membrane.inv
 
-    def analytical_fluid_inventory(self, p_out: float = 0) -> None:
-        if self.p_out is None:
-            p_out = 0.0
+    def analytical_fluid_inventory(self) -> float:
+        if self.p_ext is None:
+            p_ext = 0.0
         else:
-            p_out = self.p_out
+            p_ext = self.p_ext
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1751,7 +1752,7 @@ class Component(TriomaClass):
                     * self.fluid.k_t
                     / (self.fluid.U0 * self.fluid.d_Hyd)
                 )
-                c_ext = p_out**0.5 * self.fluid.Solubility
+                c_ext = p_ext**0.5 * self.fluid.Solubility
                 L_factor = (np.exp(L_ch * self.geometry.L) - 1) / L_ch
                 integral = (self.c_in - c_ext) * circle(
                     self.geometry.D / 2
@@ -1777,15 +1778,15 @@ class Component(TriomaClass):
         The molten-salt inventory is multiplied by 2 to convert from mol Q2
         to mol Q, consistently with the manuscript's f_H_to_H2 factor.
         """
-        if self.p_out is None:
-            p_out = 0.0
+        if self.p_ext is None:
+            p_ext = 0.0
         else:
-            p_out = self.p_out
+            p_ext = self.p_ext
         if flag_an:
-            return self.analytical_fluid_inventory(p_out=p_out)
+            return self.analytical_fluid_inventory()
 
-        if p_out < 0:
-            raise ValueError("p_out must be non-negative.")
+        if p_ext < 0:
+            raise ValueError("p_ext must be non-negative.")
 
         if self.fluid.k_t is None:
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1823,7 +1824,7 @@ class Component(TriomaClass):
             #
             a = 4.0 * kt / (U * d) * zeta / (1.0 + zeta)
 
-            c_ext = K_S_l * np.sqrt(p_out)
+            c_ext = K_S_l * np.sqrt(p_ext)
 
             if abs(a) < 1.0e-14:
                 axial_integral = c_in * L
@@ -1840,12 +1841,12 @@ class Component(TriomaClass):
         # ---------------------------------------------------------------------
 
         if c_in == 0.0:
-            if p_out == 0.0:
+            if p_ext == 0.0:
                 self.fluid.inv = 0.0
                 return 0.0
             raise ValueError(
                 "A positive c_in is required for the molten-salt Lambert-W "
-                "inventory formulation when p_out > 0."
+                "inventory formulation when p_ext > 0."
             )
 
         K_H = float(self.fluid.Solubility)
@@ -1861,7 +1862,7 @@ class Component(TriomaClass):
         alpha = 1.0 / K_H * (phi / (kt * d * log_ro_ri)) ** 2
 
         xi = alpha / c_in
-        Pi_ext = np.sqrt(p_out * K_H / alpha)
+        Pi_ext = np.sqrt(p_ext * K_H / alpha)
 
         # Store the parameters for consistency with the rest of the class
         self.alpha = alpha
