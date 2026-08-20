@@ -776,6 +776,7 @@ class Component(TriomaClass):
         """
         self.analytical_efficiency()
         self.eff = self.eff_an
+        self.c_out = self.c_in * (1.0 - self.eff_an)
 
     def get_efficiency(
         self, plotvar: bool = False, c_guess: float | None = None, nodes=100
@@ -873,7 +874,14 @@ class Component(TriomaClass):
         self.tau = 4 * self.fluid.k_t * self.geometry.L / (self.fluid.U0 * self.fluid.d_Hyd)
         match self.fluid.MS:
             case True:  # Molten salt
-
+                if self.c_in == 0 and p_ext == 0:
+                    self.eff_an = 0.0
+                    self.c_out = 0.0
+                    return
+                elif self.c_in == 0 and p_ext > 0:
+                    raise ValueError(
+                        "c_in cannot be zero when p_ext is non-zero`for code implementation."
+                    )
                 KH = self.fluid.Solubility
                 d = self.fluid.d_Hyd
                 r_i = d / 2.0
@@ -900,6 +908,8 @@ class Component(TriomaClass):
                     correction_p = 1.0 - p_ext / p_in
 
                     self.eff_an = (1.0 - np.exp(-self.tau)) * correction_p
+                    self.c_out = self.c_in * (1.0 - self.eff_an)
+                    return
 
                 # -------------------------------------------------------------
                 # Diffusion-limited approximation:
@@ -911,6 +921,8 @@ class Component(TriomaClass):
                     self.eff_an = (
                         1.0 - (1.0 - 0.5 * self.tau * np.sqrt(self.xi)) ** 2
                     ) * correction_p
+                    self.c_out = self.c_in * (1.0 - self.eff_an)
+                    return
 
                 # -------------------------------------------------------------
                 # Exact Lambert-W solution
@@ -926,6 +938,7 @@ class Component(TriomaClass):
                     # No driving force: p_ext = p_in
                     if abs(y_in) < 1.0e-14:
                         self.eff_an = 0.0
+                        self.c_out = self.c_in * (1.0 - self.eff_an)
                         return
 
                     beta = s_in / b + np.log(abs(y_in))
@@ -958,58 +971,60 @@ class Component(TriomaClass):
                     self.eff_an = 1.0 - self.xi * c_out_over_alpha
                     self.c_out = self.c_in * (1.0 - self.eff_an)
                     return
-                    # e = (self.alpha * p_ext * self.fluid.Solubility) ** 0.5
-                    # f = e / self.alpha
-                    # delta = (1 / self.xi + 1 + 2 * f) ** 0.5
-                    # beta = delta + (1 + f) * np.log(abs(delta - 1 - f))
-                    # print("beta is ", beta)
-                    # max_exp = np.log(np.finfo(np.float64).max)
-                    # beta_tau = beta - self.tau - 1
-                    # print("beta tau is ", beta_tau)
-                    # print("max exp is ", max_exp)
-                    # saturation = (p_ext * self.fluid.Solubility) > self.c_in
-                    # if beta_tau > max_exp :
-                    #     # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
+                self.c_out = self.c_in * (1.0 - self.eff_an)
+                return
+                # e = (self.alpha * p_ext * self.fluid.Solubility) ** 0.5
+                # f = e / self.alpha
+                # delta = (1 / self.xi + 1 + 2 * f) ** 0.5
+                # beta = delta + (1 + f) * np.log(abs(delta - 1 - f))
+                # print("beta is ", beta)
+                # max_exp = np.log(np.finfo(np.float64).max)
+                # beta_tau = beta - self.tau - 1
+                # print("beta tau is ", beta_tau)
+                # print("max exp is ", max_exp)
+                # saturation = (p_ext * self.fluid.Solubility) > self.c_in
+                # if beta_tau > max_exp :
+                #     # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
 
-                    #     def eq(var):
-                    #         cl = var
-                    #         self.alpha = self.xi * self.c_in
+                #     def eq(var):
+                #         cl = var
+                #         self.alpha = self.xi * self.c_in
 
-                    #         left = (cl / self.alpha + 1 + 2 * f) ** 0.5 + (1 + f) * np.log(
-                    #             abs(-f + ((cl/self.alpha + 1 + 2*f)**0.5 - 1))
-                    #         )
+                #         left = (cl / self.alpha + 1 + 2 * f) ** 0.5 + (1 + f) * np.log(
+                #             abs(-f + ((cl/self.alpha + 1 + 2*f)**0.5 - 1))
+                #         )
 
-                    #         right = beta - self.tau
+                #         right = beta - self.tau
 
-                    #         return abs(left - right)
+                #         return abs(left - right)
 
-                    #     p_in = self.c_in / self.fluid.Solubility
-                    #     if (
-                    #         abs(self.p_ext * self.fluid.Solubility - self.c_in) / self.c_in
-                    #         < 1e-2
-                    #     ):
-                    #         self.eff_an = 1e-6
-                    #         return
-                    #     lower_bound = min(self.p_ext * self.fluid.Solubility, self.c_in)
-                    #     upper_bound = max(self.p_ext * self.fluid.Solubility, self.c_in)
-                    #     cl = minimize(
-                    #         eq,
-                    #         x0=(lower_bound + upper_bound) / 2,
-                    #         method="Powell",
-                    #         bounds=[(lower_bound, upper_bound)],
-                    #         tol=1e-7,
-                    #     ).x[0]
-                    #     # corr_p=1-(p_ext/p_in)
-                    #     self.eff_an = 1 - (cl / self.c_in)
-                    #     return
-                    # else:
-                    #     z = np.exp(beta_tau)
-                    #     w = lambertw(z, tol=1e-10)
-                    #     self.eff_an = 1 - self.xi * (w**2 + 2 * w)
-                    #     if self.eff_an.imag != 0:
-                    #         raise ValueError("self.eff_an has a non-zero imaginary part")
-                    #     else:
-                    #         self.eff_an = self.eff_an.real  # get rid of 0*j
+                #     p_in = self.c_in / self.fluid.Solubility
+                #     if (
+                #         abs(self.p_ext * self.fluid.Solubility - self.c_in) / self.c_in
+                #         < 1e-2
+                #     ):
+                #         self.eff_an = 1e-6
+                #         return
+                #     lower_bound = min(self.p_ext * self.fluid.Solubility, self.c_in)
+                #     upper_bound = max(self.p_ext * self.fluid.Solubility, self.c_in)
+                #     cl = minimize(
+                #         eq,
+                #         x0=(lower_bound + upper_bound) / 2,
+                #         method="Powell",
+                #         bounds=[(lower_bound, upper_bound)],
+                #         tol=1e-7,
+                #     ).x[0]
+                #     # corr_p=1-(p_ext/p_in)
+                #     self.eff_an = 1 - (cl / self.c_in)
+                #     return
+                # else:
+                #     z = np.exp(beta_tau)
+                #     w = lambertw(z, tol=1e-10)
+                #     self.eff_an = 1 - self.xi * (w**2 + 2 * w)
+                #     if self.eff_an.imag != 0:
+                #         raise ValueError("self.eff_an has a non-zero imaginary part")
+                #     else:
+                #         self.eff_an = self.eff_an.real  # get rid of 0*j
             case False:  # Liquid Metal
                 self.zeta = (2 * self.membrane.K_S * self.membrane.D) / (
                     self.fluid.k_t
@@ -1022,6 +1037,7 @@ class Component(TriomaClass):
 
                 self.eff_an = (1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))) * corr_p
                 self.c_out = self.c_in * (1 - self.eff_an)
+                return
 
     def _diff_conductance(self) -> float:
         """Cylindrical diffusion conductance D*K_S / (r ln((r+t)/r)), computed once."""
@@ -1464,7 +1480,7 @@ class Component(TriomaClass):
 
                 self.membrane.inv = inv * self.geometry.n_pipes
 
-                return inv
+                return self.membrane.inv
 
     def get_solid_inventory(
         self,
