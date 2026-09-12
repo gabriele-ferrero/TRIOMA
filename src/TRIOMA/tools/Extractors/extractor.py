@@ -147,57 +147,50 @@ def NTU_lm(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_S, pg_in, c_max=0):
         )
     )
 
-    # Physical outlet-concentration checks.
-    # c_out_max is the lowest physically achievable liquid concentration
-    # for the specified gas flow, inlet gas loading, and optional c_max.
-    concentration_tolerance = 1.0e-12 * max(1.0, abs(c_in))
+    integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
+    if integral[0] < 0 or not numpy.isfinite(integral[0]):
+        # quad cannot resolve the endpoint singularity when c_out approaches its
+        # equilibrium limit (e.g. pg_in=0 -> c_out_max=0): the true NTU is divergent
+        # (infinite length needed to reach that limit exactly), not negative.
+        return numpy.inf
+    return integral[0]
 
-    if c_out_max > c_in + concentration_tolerance:
-        raise ValueError(
-            "No physical LM GLC extraction solution exists: "
-            f"c_out_max={c_out_max:.6e} is greater than "
-            f"c_in={c_in:.6e}."
+
+def NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, c_max=0):
+    """
+    solving integral equation from (5) of "The engineering sizing of the packed desorption column of hydrogen
+    # isotopes from Pb–17Li eutectic alloy. A rate based model using
+    # experimental mass transfer coefficients from a Melodie loop""
+    # but for molten salts by changing the evolution of c star following the Henry's law
+    """
+    # Convert array inputs to scalars
+    pl_out = numpy.asarray(pl_out).item() if numpy.asarray(pl_out).ndim > 0 else float(pl_out)
+    c_max = numpy.asarray(c_max).item() if numpy.asarray(c_max).ndim > 0 else float(c_max)
+
+    Area = numpy.pi * R**2
+    u_l = G_l / Area  # Liquid velocity
+    c_in = float(pl_in * K_H)
+    c_out = float(pl_out * K_H)
+    R_const = 8.314
+    u_g = calculate_gas_velocity(G_gas=G_gas, p_t=p_t, T=T, R=R)
+    c_in_gas = float(pg_in / R_const / T)
+    R_g = u_g / u_l  ## gas on liquid ratio
+
+    def toint(c):
+        return 1 / (c - K_H * (u_l / u_g * R_const * T) * (c - c_out + c_in_gas * u_g / u_l))
+
+    c_g_max = float(pl_in / R_const / T)  # maximum concentration in gas
+    c_out_max = float(
+        max(
+            c_in - R_g * (c_g_max - pg_in / R_const / T),  # maximum gas stripping
+            c_max,  # given input from equation
+            pg_in * K_H,  ## if liquid is in equilibrium with gas at outlet
         )
-
-    if c_out > c_in + concentration_tolerance:
-        raise ValueError(
-            f"c_out={c_out:.6e} cannot be greater than "
-            f"c_in={c_in:.6e} for an extraction calculation."
-        )
-
-    if c_out < c_out_max - concentration_tolerance:
-        raise ValueError(
-            "The requested LM outlet concentration is below the "
-            "physical gas-saturation/equilibrium limit: "
-            f"c_out={c_out:.6e}, c_out_min={c_out_max:.6e}."
-        )
-
-    # No concentration change means zero NTU.
-    if c_out >= c_in - concentration_tolerance:
-        return 0.0
-
-    integral_value, integration_error = integrate.quad(
-        toint,
-        c_out,
-        c_in,
-        epsabs=1.0e-11,
-        epsrel=1.0e-9,
-        limit=200,
     )
 
-    if not numpy.isfinite(integral_value):
-        raise ValueError("The LM GLC NTU integral returned a non-finite value.")
-
-    if integral_value < 0.0:
-        print(
-            "Warning: negative LM GLC NTU integral. "
-            f"NTU={integral_value:.6e}, "
-            f"c_out={c_out:.6e}, "
-            f"c_in={c_in:.6e}, "
-            f"c_out_min={c_out_max:.6e}."
-        )
-
-    return integral_value
+    # integral = integrate.quad(toint, c_out, c_in, points=c_out_max, maxp1=1e3)
+    integral = integrate.fixed_quad(toint, c_out, c_in)
+    return integral[0]
 
 
 def NTU_ms(R, G_l, G_gas, pl_in, pl_out, T, p_t, K_H, pg_in, c_max=0):
@@ -587,25 +580,13 @@ def get_c_out_GLC_ms(
     if length_at_limit <= Z + 1.0e-10:
         c_out = c_out_min
     else:
-        lower_bound = c_out_min
-
-        if numpy.isinf(length_at_limit):
-            concentration_step = 100.0 * 1.0e-14 * max(1.0, abs(c_in), abs(c_out_min))
-
-            lower_bound = c_out_min + concentration_step
-
-            # Keep the lower bound strictly below c_in.
-            lower_bound = min(
-                lower_bound,
-                numpy.nextafter(c_in, c_out_min),
-            )
 
         def residual(c_out):
             return length_from_cout(c_out) - Z
 
         c_out = brentq(
             residual,
-            lower_bound,
+            c_out_min,
             c_in,
             xtol=1.0e-12,
             rtol=1.0e-12,
