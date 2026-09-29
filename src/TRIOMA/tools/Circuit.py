@@ -4,6 +4,7 @@ from TRIOMA.tools.Extractors.GasLiquidContactor import GLC
 from TRIOMA.tools.TriomaClass import TriomaClass
 import matplotlib.pyplot as plt
 from typing import Union
+from scipy.optimize import minimize
 
 
 class Circuit(TriomaClass):
@@ -118,10 +119,8 @@ class Circuit(TriomaClass):
         for i, component in enumerate(self.components):
             if isinstance(component, GLC):
                 component.get_c_out()
-                if i != len(self.components) - 1:
-                    component.connect_to_component(self.components[i + 1])
             if isinstance(component, Component):
-                component.use_analytical_efficiency(p_out=component.p_out)
+                component.use_analytical_efficiency()
                 component.outlet_c_comp()
             if i != len(self.components) - 1:
                 component.connect_to_component(self.components[i + 1])
@@ -429,7 +428,7 @@ class Circuit(TriomaClass):
                 self.components[0].update_attribute("c_in", x)
                 for i, component in enumerate(self.components):
                     if isinstance(component, Component):
-                        component.use_analytical_efficiency(p_out=component.p_out)
+                        component.use_analytical_efficiency()
                         component.outlet_c_comp()
                         if i != len(self.components) - 1:
                             component.connect_to_component(self.components[i + 1])
@@ -465,7 +464,7 @@ class Circuit(TriomaClass):
                         if i != len(self.components) - 1:
                             component.connect_to_component(self.components[i + 1])
                     if isinstance(component, Component):
-                        component.use_analytical_efficiency(p_out=component.p_out)
+                        component.use_analytical_efficiency()
                         component.outlet_c_comp()
                         if i != len(self.components) - 1:
                             component.connect_to_component(self.components[i + 1])
