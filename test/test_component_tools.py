@@ -145,7 +145,7 @@ class TestMSComponent(unittest.TestCase):
     def test_component_inventory(self):
         self.component.use_analytical_efficiency()
         self.component.get_inventory()
-        self.assertEqual(self.component.inv, 0.00531677445914132)
+        self.assertAlmostEqual(self.component.inv, 0.00531677445914132)
 
     # def test_inspect(self):
     #     result = "c_in: 0.5\neff: 0.8\nL: 1.0\nfluid is a <class 'tools.component_tools.Fluid'> class, printing its variables:\n    T: 300\n    Solubility: 0.5\n    MS: True\n    D: 1e-09\n    k_t: 0.1\n    d_Hyd: 0.3\n    mu: 0.001\n    rho: 1000\n    U0: 0.2\n    k: 0.5\n    cp: 1.0\nmembrane is a <class 'tools.component_tools.Membrane'> class, printing its variables:\n    T: 300\n    D: 0.4\n    thick: 0.5\n    k_d: 10000000.0\n    K_S: 0.6\n    k_r: 10000000.0\n    k: 0.8\nH: None\nW: None"
