@@ -21,7 +21,8 @@ class BreedingBlanket(TriomaClass):
     def __init__(
         self,
         c_in: float = None,
-        Q: float = None,
+        Q_tot: float = None,
+        Q_plasma: float = None,
         TBR: float = None,
         T_out: float = None,
         T_in: float = None,
@@ -30,7 +31,8 @@ class BreedingBlanket(TriomaClass):
         m_coolant: float = None,
     ):
         self.c_in = c_in
-        self.Q = Q
+        self.Q_tot = Q_tot
+        self.Q_plasma = Q_plasma
         self.TBR = TBR
         self.T_out = T_out
         self.T_in = T_in
@@ -81,7 +83,14 @@ class BreedingBlanket(TriomaClass):
             ha="center",
             va="center",
         )
-        ax2.text(0.5, 0.6, f"Q={self.Q/1E6:.3g} MW", color="black", ha="center", va="center")
+        ax2.text(
+            0.5,
+            0.6,
+            f"Q={self.Q_tot/1E6:.3g} MW",
+            color="black",
+            ha="center",
+            va="center",
+        )
         ax2.text(0.5, 0.4, f"TBR={self.TBR:.3g}", color="black", ha="center", va="center")
 
         ax2.text(
@@ -101,7 +110,7 @@ class BreedingBlanket(TriomaClass):
         """
         Calculates the flow rate of the coolant in the breeding blanket component.
         """
-        self.m_coolant = self.Q / ((self.T_out - self.T_in) * self.fluid.cp)
+        self.m_coolant = self.Q_tot / ((self.T_out - self.T_in) * self.fluid.cp)
         return
 
     # def connect_to_component(self, component2: Union["Component", "BreedingBlanket"]):
@@ -123,7 +132,7 @@ class BreedingBlanket(TriomaClass):
             self.get_flowrate()
         eV_to_J = physical_constants["electron volt-joule relationship"][0]
         reaction_energy = 17.6e6  # reaction energy in eV 17.6 MeV
-        neutrons = self.Q / (reaction_energy * eV_to_J)
+        neutrons = self.Q_plasma / (reaction_energy * eV_to_J)
 
         tritium_gen = self.TBR * neutrons / N_A  ##moles
         if print_var:

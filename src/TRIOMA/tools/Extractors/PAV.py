@@ -5,15 +5,14 @@ from TRIOMA.tools.Extractors.PipeSubclasses import (
 )
 from TRIOMA.tools.TriomaClass import TriomaClass
 import numpy as np
-import math
 import matplotlib.pyplot as plt
-from scipy.optimize import minimize
 from scipy.special import lambertw
 from scipy import integrate
 from typing import Union
 from TRIOMA.tools import correlations as corr
 import TRIOMA.tools.molten_salts as MS
 import TRIOMA.tools.liquid_metals as LM
+from scipy.optimize import brentq, least_squares, minimize_scalar
 
 
 class Component(TriomaClass):
@@ -35,7 +34,7 @@ class Component(TriomaClass):
         fluid: "Fluid" = None,
         membrane: "Membrane" = None,
         name: str = None,
-        p_out: float = 1e-15,
+        p_ext: float = 0,
         loss: bool = False,
         inv: float = None,
         delta_p: float = None,
@@ -59,13 +58,13 @@ class Component(TriomaClass):
         self.c_in = c_in
         self.geometry = geometry
         self.eff = eff
-        self.n_pipes = (self.geometry.n_pipes,)
+        self.n_pipes = self.geometry.n_pipes
         self.fluid = fluid
         self.membrane = membrane
         self.name = name
         self.loss = loss
         self.inv = inv
-        self.p_out = p_out
+        self.p_ext = p_ext
         self.delta_p = delta_p
         self.U = U
         self.pumping_power = pumping_power
@@ -380,7 +379,7 @@ class Component(TriomaClass):
             err = 1
             tol = 1e-6
             if self.c_in == 0:
-                RaiseError("The inlet concentration is zero")
+                raise ValueError("The inlet concentration is zero")
             c0 = self.c_in
             c_in = c0
             while err > tol:
@@ -394,14 +393,16 @@ class Component(TriomaClass):
                 err = abs((c_in - c_in1) / c_in)
         elif self.fluid.recirculation < 0:
             if self.fluid.recirculation <= -1:
-                RaiseError("Bypass(negative recirculation) not valid: it is more than the flowrate")
+                raise ValueError(
+                    "Bypass(negative recirculation) not valid: it is more than the flowrate"
+                )
             if self.c_in == 0:
-                RaiseError("The inlet concentration is zero")
+                raise ValueError("The inlet concentration is zero")
             self.c_out = self.c_in * (1 - self.eff) * (1 + self.fluid.recirculation) + self.c_in * (
                 -self.fluid.recirculation
             )
         else:
-            RaiseError("Recirculation factor not valid")
+            raise ValueError("Recirculation factor not valid")
         return self.c_out
 
     def converge_split_HX(
@@ -659,7 +660,7 @@ class Component(TriomaClass):
         """
         self.get_pipe_flowrate()
         self.flowrate = self.pipe_flowrate * self.geometry.n_pipes
-        return self.flowrate * self.geometry.n_pipes
+        return self.flowrate
 
     def define_component_volumes(self) -> None:
         """
@@ -765,7 +766,7 @@ class Component(TriomaClass):
                     K_S_L=self.fluid.Solubility,
                 )
 
-    def use_analytical_efficiency(self, p_out: float = 1e-15) -> None:
+    def use_analytical_efficiency(self) -> None:
         """Evaluates the analytical efficiency and substitutes it in the efficiency attribute of the component.
 
         Args:
@@ -773,22 +774,26 @@ class Component(TriomaClass):
         Returns:
             None
         """
-        self.analytical_efficiency(p_out=p_out)
+        self.analytical_efficiency()
         self.eff = self.eff_an
+        self.c_out = self.c_in * (1.0 - self.eff_an)
 
     def get_efficiency(
-        self, plotvar: bool = False, c_guess: float | None = None, p_out: float = 1e-15
+        self, plotvar: bool = False, c_guess: float | None = None, nodes=100
     ) -> None:
         """
         Calculates the efficiency of the component.
         """
-
+        if self.p_ext is None:
+            p_ext = 0.0
+        else:
+            p_ext = self.p_ext
         if self.c_in == 0:
             self.c_out = 0
             self.eff = 0
             return
 
-        L_vec = np.linspace(0, self.geometry.L, 100)
+        L_vec = np.linspace(0, self.geometry.L, nodes)
         dl = L_vec[1] - L_vec[0]
 
         c_vec = np.ndarray(len(L_vec))
@@ -802,9 +807,9 @@ class Component(TriomaClass):
                 c_vec[i] = float(self.c_in)
 
                 if isinstance(c_guess, float):
-                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess, p_out=p_out)
+                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess, p_ext=p_ext)
                 else:
-                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in), p_out=p_out)
+                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in), p_ext=p_ext)
             else:
                 c_vec[i] = c_vec[
                     i - 1
@@ -812,14 +817,15 @@ class Component(TriomaClass):
                     np.pi * self.fluid.d_Hyd**2 / 4 * dl
                 )
                 if isinstance(c_guess, float):
-                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess, p_out=p_out)
+                    c_guess = self.get_flux(c_vec[i], c_guess=c_guess, p_ext=p_ext)
                 else:
-                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in), p_out=p_out)
+                    c_guess = self.get_flux(c_vec[i], c_guess=float(self.c_in), p_ext=p_ext)
         if plotvar:
             plt.plot(L_vec, c_vec)
-        self.eff = (self.c_in - c_vec[-1]) / self.c_in
+        self.c_out = c_vec[-1]
+        self.eff = (self.c_in - self.c_out) / self.c_in
 
-    def analytical_efficiency(self, p_out: float = 1e-15) -> None:
+    def analytical_efficiency(self) -> None:
         """
         Calculate the analytical efficiency of a tritium permeation through a component.
 
@@ -827,13 +833,12 @@ class Component(TriomaClass):
         for tritium transport in the membrane. The efficiency represents the fraction of tritium
         extracted from the component relative to inlet concentration.
 
-        The calculation solves three coupled transport phenomena:
+        The calculation solves two coupled transport phenomena:
         1. **Mass transport** (fluid boundary layer): Convective mass transfer from bulk fluid to wall
         2. **Diffusion** (solid membrane): Fickian diffusion through the membrane thickness
-        3. **Surface reactions** (membrane surfaces): Adsorption/desorption kinetics at interfaces
 
         Parameters:
-            p_out (float): Outlet tritium partial pressure [Pa]. Defaults to 1e-15 Pa (essentially zero).
+            p_ext (float): Outlet tritium partial pressure [Pa]. Defaults to 0 Pa (essentially zero).
                            Controls the driving force for tritium extraction.
 
         Updates (self attributes):
@@ -841,7 +846,8 @@ class Component(TriomaClass):
             self.tau (float): Dimensionless time parameter = 4*k_t*L/(U0*d_Hyd)
             self.alpha (float): Adsorption/surface parameter
             self.xi (float): Extraction parameter
-
+            self.Pi_ext (float): Dimensionless external pressure parameter
+            self.c_out (float): Outlet concentration [mol/m³] = c_in * (1 - eff_an)
         Physics:
             For **Molten Salt** fluids (MS=True):
                 Uses solution of coupled convective-diffusive equations with Lambert W function.
@@ -849,7 +855,7 @@ class Component(TriomaClass):
 
             For **Liquid Metal** fluids (MS=False):
                 Uses simplified solution based on partition equilibrium effects.
-                Includes pressure correction factor: (1 - p_out/p_in)^0.5
+                Includes pressure correction factor: (1 - p_ext/p_in)^0.5
 
         References:
             Humrickhouse, P. W., "Tritium Transport in the DCLL Blanket",
@@ -858,90 +864,167 @@ class Component(TriomaClass):
         Raises:
             ValueError: If imaginary component appears in eff_an calculation (numerical instability)
         """
+        if self.p_ext is None:
+            p_ext = 0.0
+        else:
+            p_ext = self.p_ext
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
         self.tau = 4 * self.fluid.k_t * self.geometry.L / (self.fluid.U0 * self.fluid.d_Hyd)
         match self.fluid.MS:
-            case True:
-                self.alpha = (
-                    1
-                    / (self.fluid.Solubility)
-                    * (
-                        0.5
-                        * self.membrane.K_S
-                        * self.membrane.D
-                        / (
-                            self.fluid.k_t
-                            * self.fluid.d_Hyd
-                            * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                            )
-                        )
+            case True:  # Molten salt
+                if self.c_in == 0 and p_ext == 0:
+                    self.eff_an = 0.0
+                    self.c_out = 0.0
+                    return
+                elif self.c_in == 0 and p_ext > 0:
+                    raise ValueError(
+                        "c_in cannot be zero when p_ext is non-zero`for code implementation."
                     )
-                    ** 2
-                )
+                KH = self.fluid.Solubility
+                d = self.fluid.d_Hyd
+                r_i = d / 2.0
+                r_o = r_i + self.membrane.thick
+                log_ro_ri = np.log(r_o / r_i)
+
+                phi = self.membrane.D * self.membrane.K_S
+
+                self.alpha = 1.0 / KH * (phi / (self.fluid.k_t * d * log_ro_ri)) ** 2
+
                 self.xi = self.alpha / self.c_in
-                p_in = self.c_in / self.fluid.Solubility
-                match (self.xi, self.tau):
-                    case (self.xi, self.tau) if self.xi > 1e5:
-                        corr_p = 1 - (p_out / p_in)
-                        self.eff_an = (1 - np.exp(-self.tau)) * corr_p
-                    case (
-                        self.xi,
-                        self.tau,
-                    ) if (self.xi**0.5 < 1e-2 and self.tau > 1 / self.xi**0.5):
-                        corr_p = 1 - (p_out / p_in) ** 0.5
-                        self.eff_an = (1 - (1 - self.tau * self.xi**0.5) ** 2) * corr_p
-                    case _:
-                        e = (self.alpha * p_out * self.fluid.Solubility) ** 0.5
-                        f = e / self.alpha
-                        delta = (1 / self.xi + 1 + 2 * f) ** 0.5
-                        beta = delta + (1 + f) * np.log(delta - 1 - f)
-                        max_exp = np.log(np.finfo(np.float64).max)
-                        beta_tau = beta - self.tau - 1
-                        if beta_tau > max_exp or p_out > 1e-5:
-                            # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
 
-                            def eq(var):
-                                cl = var
-                                self.alpha = self.xi * self.c_in
+                if p_ext < 0:
+                    raise ValueError("p_ext must be non-negative.")
 
-                                left = (cl / self.alpha + 1 + 2 * f) ** 0.5 + (1 + f) * np.log(
-                                    -f + ((cl / self.alpha + 1 + 2 * f) ** 0.5 - 1)
-                                )
+                p_in = self.c_in / KH
 
-                                right = beta - self.tau
+                self.Pi_ext = np.sqrt(p_ext * KH / self.alpha)
 
-                                return abs(left - right)
+                # -------------------------------------------------------------
+                # Mass-transfer-limited approximation: xi >> 1
+                # -------------------------------------------------------------
+                if self.xi > 1.0e5:
+                    correction_p = 1.0 - p_ext / p_in
 
-                            p_in = self.c_in / self.fluid.Solubility
-                            if (
-                                abs(self.p_out * self.fluid.Solubility - self.c_in) / self.c_in
-                                < 1e-2
-                            ):
-                                self.eff_an = 1e-6
-                                return
-                            lower_bound = min(self.p_out * self.fluid.Solubility, self.c_in)
-                            upper_bound = max(self.p_out * self.fluid.Solubility, self.c_in)
-                            cl = minimize(
-                                eq,
-                                x0=(lower_bound + upper_bound) / 2,
-                                method="Powell",
-                                bounds=[(lower_bound, upper_bound)],
-                                tol=1e-7,
-                            ).x[0]
-                            # corr_p=1-(p_out/p_in)
-                            self.eff_an = 1 - (cl / self.c_in)
-                            return
+                    self.eff_an = (1.0 - np.exp(-self.tau)) * correction_p
+                    self.c_out = self.c_in * (1.0 - self.eff_an)
+                    return
+
+                # -------------------------------------------------------------
+                # Diffusion-limited approximation:
+                # xi << 1 and tau < 1 / sqrt(xi)
+                # -------------------------------------------------------------
+                elif self.xi < 1.0e-4 and self.tau < 1.0 / np.sqrt(self.xi):
+                    correction_p = 1.0 - np.sqrt(p_ext / p_in)
+
+                    self.eff_an = (
+                        1.0 - (1.0 - 0.5 * self.tau * np.sqrt(self.xi)) ** 2
+                    ) * correction_p
+                    self.c_out = self.c_in * (1.0 - self.eff_an)
+                    return
+
+                # -------------------------------------------------------------
+                # Exact Lambert-W solution
+                # -------------------------------------------------------------
+                else:
+                    Pi_ext = self.Pi_ext
+                    b = 1.0 + 2.0 * Pi_ext
+
+                    s_in = np.sqrt(1.0 + 4.0 * (1.0 / self.xi + Pi_ext))
+
+                    y_in = s_in - b
+
+                    # No driving force: p_ext = p_in
+                    if abs(y_in) < 1.0e-14:
+                        self.eff_an = 0.0
+                        self.c_out = self.c_in * (1.0 - self.eff_an)
+                        return
+
+                    beta = s_in / b + np.log(abs(y_in))
+
+                    beta_tau = beta - self.tau / b - 1.0
+                    # Lambert-W argument:
+                    # extraction:     exp(beta_tau) / b
+                    # inverse permeation:
+                    #                 -exp(beta_tau) / b
+                    log_argument_abs = beta_tau - np.log(b)
+                    if y_in > 0.0:
+                        # Normal extraction: principal branch W_0
+                        log_max = np.log(np.finfo(np.float64).max)
+                        if log_argument_abs < log_max:
+                            argument = np.exp(log_argument_abs)
+                            q_out = lambertw(argument, k=0).real
                         else:
-                            z = np.exp(beta_tau)
-                            w = lambertw(z, tol=1e-10)
-                            self.eff_an = 1 - self.xi * (w**2 + 2 * w)
-                            if self.eff_an.imag != 0:
-                                raise ValueError("self.eff_an has a non-zero imaginary part")
-                            else:
-                                self.eff_an = self.eff_an.real  # get rid of 0*j
+                            # Large-positive-argument asymptotic
+                            q_out = log_argument_abs - np.log(log_argument_abs)
+                    else:
+                        # Inverse permeation:
+                        # the physical solution remains on W_0
+                        argument = -np.exp(log_argument_abs)
+                        # Protect against round-off below -1/e
+                        argument = np.clip(argument, -1.0 / np.e, 0.0)
+                        q_out = lambertw(argument, k=0).real
+                    s_out = b * (1.0 + q_out)
+                    c_out_over_alpha = (s_out**2 - 1.0 - 4.0 * Pi_ext) / 4.0
+
+                    self.eff_an = 1.0 - self.xi * c_out_over_alpha
+                    self.c_out = self.c_in * (1.0 - self.eff_an)
+                    return
+                self.c_out = self.c_in * (1.0 - self.eff_an)
+                return
+                # e = (self.alpha * p_ext * self.fluid.Solubility) ** 0.5
+                # f = e / self.alpha
+                # delta = (1 / self.xi + 1 + 2 * f) ** 0.5
+                # beta = delta + (1 + f) * np.log(abs(delta - 1 - f))
+                # print("beta is ", beta)
+                # max_exp = np.log(np.finfo(np.float64).max)
+                # beta_tau = beta - self.tau - 1
+                # print("beta tau is ", beta_tau)
+                # print("max exp is ", max_exp)
+                # saturation = (p_ext * self.fluid.Solubility) > self.c_in
+                # if beta_tau > max_exp :
+                #     # we can use the approximation w=beta_tau-np.log(beta_tau)for the lambert W function but it leads to error up to 40 % in very niche scenarios.
+
+                #     def eq(var):
+                #         cl = var
+                #         self.alpha = self.xi * self.c_in
+
+                #         left = (cl / self.alpha + 1 + 2 * f) ** 0.5 + (1 + f) * np.log(
+                #             abs(-f + ((cl/self.alpha + 1 + 2*f)**0.5 - 1))
+                #         )
+
+                #         right = beta - self.tau
+
+                #         return abs(left - right)
+
+                #     p_in = self.c_in / self.fluid.Solubility
+                #     if (
+                #         abs(self.p_ext * self.fluid.Solubility - self.c_in) / self.c_in
+                #         < 1e-2
+                #     ):
+                #         self.eff_an = 1e-6
+                #         return
+                #     lower_bound = min(self.p_ext * self.fluid.Solubility, self.c_in)
+                #     upper_bound = max(self.p_ext * self.fluid.Solubility, self.c_in)
+                #     cl = minimize(
+                #         eq,
+                #         x0=(lower_bound + upper_bound) / 2,
+                #         method="Powell",
+                #         bounds=[(lower_bound, upper_bound)],
+                #         tol=1e-7,
+                #     ).x[0]
+                #     # corr_p=1-(p_ext/p_in)
+                #     self.eff_an = 1 - (cl / self.c_in)
+                #     return
+                # else:
+                #     z = np.exp(beta_tau)
+                #     w = lambertw(z, tol=1e-10)
+                #     self.eff_an = 1 - self.xi * (w**2 + 2 * w)
+                #     if self.eff_an.imag != 0:
+                #         raise ValueError("self.eff_an has a non-zero imaginary part")
+                #     else:
+                #         self.eff_an = self.eff_an.real  # get rid of 0*j
             case False:  # Liquid Metal
                 self.zeta = (2 * self.membrane.K_S * self.membrane.D) / (
                     self.fluid.k_t
@@ -950,495 +1033,160 @@ class Component(TriomaClass):
                     * np.log((self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd)
                 )
                 p_in = (self.c_in / self.fluid.Solubility) ** 2
-                corr_p = 1 - (p_out / p_in) ** 0.5
+                corr_p = 1 - (p_ext / p_in) ** 0.5
 
                 self.eff_an = (1 - np.exp(-self.tau * self.zeta / (1 + self.zeta))) * corr_p
+                self.c_out = self.c_in * (1 - self.eff_an)
+                return
 
-    def get_flux(
-        self, c: float | None = None, c_guess: float = 1e-9, p_out: float = 1e-15
-    ) -> float:
+    def _diff_conductance(self) -> float:
+        """Cylindrical diffusion conductance D*K_S / (r ln((r+t)/r)), computed once."""
+        r = self.fluid.d_Hyd / 2.0
+        return self.membrane.D * self.membrane.K_S / (r * np.log((r + self.membrane.thick) / r))
+
+    def get_flux(self, c: float | None = None, c_guess: float = 1e-9, p_ext: float = 0) -> float:
         """
-        Calculate the tritium permeation flux across the membrane.
+        Tritium permeation flux across the membrane.
 
-        This method evaluates the tritium flux by solving for the wall/interface concentrations
-        that simultaneously satisfy mass transport, diffusion, and surface reaction equations.
-        It automatically identifies the governing transport regime and selects the appropriate
-        solution method.
+        Solves for the wall/interface concentration satisfying the coupled
+        mass-transport / diffusion / surface-reaction fluxes, stores the result
+        in ``self.J_perm`` [mol/(m^2 s)] and returns the wall concentration.
 
-        Parameters:
-            c (float): Bulk tritium concentration in fluid [mol/m³]. Required.
-            c_guess (float): Initial guess for iterative solver [mol/m³]. Default 1e-9.
-                            Used as starting point in minimization algorithm.
-            p_out (float): Outlet tritium partial pressure [Pa]. Default 1e-15 Pa.
 
-        Returns:
-            float: Wall/interface tritium concentration [mol/m³] for subsequent calculations.
-                   The flux is stored in self.J_perm [mol/(m²·s)].
 
-        Transport Regimes (automatically selected via H and W parameters):
-            1. **Mass Transport Limited** (H/W >> 1000):
-                Convection dominates: J = -2*k_t*(c - c_outlet) [Molten Salt]
-
-            2. **Diffusion Limited** (H/W << 0.0001):
-                Solid-state diffusion dominates: J = -(D/δ)*K_S*((c/K_H)^0.5 - p_out^0.5)
-
-            3. **Surface Reaction Limited** (W < 0.1):
-                Adsorption/desorption kinetics dominate: J = -k_d*(c/K_H)
-
-            4. **Mixed Regimes**:
-                All three mechanisms coupled; solved by minimizing residual between fluxes.
-
-        Solution Method:
-            Uses scipy.optimize.minimize (Powell method) to find wall concentration where:
-            |J_mass_transport - J_diffusion| = 0  (for diffusion-limited cases)
-            |J_mass_transport - J_surface| = 0    (for surface-limited cases)
-
-        Notes:
-            - For Molten Salts: includes factor of 2 for H dissociation: H₂ ↔ 2H
-            - For Liquid Metals: factor of 1 (atomic hydrogen)
-            - Numerical solver may fail for extremely low/high concentrations (raises ValueError)
-
-        Raises:
-            ValueError: If c is not float or c_guess not float
+        Raises
+        ------
+        ValueError
+            If ``c`` or ``c_guess`` is not a float.
         """
         if not isinstance(c, float):
             print(c)
-            raise ValueError("Input 'c' must be a non-empty numpy array")
-
+            raise ValueError("Input 'c' must be a float")
         if not isinstance(c_guess, float):
             raise ValueError("c_guess must be a float")
+
         self.get_adimensionals()
-        if self.fluid.MS:
-            if self.W > 10:
-                # DIFFUSION LIMITED V // Surface limited X
-                if self.H / self.W > 1000:
-                    # Mass transport limited V // Diffusion limited X
-                    self.J_perm = (
-                        -2 * self.fluid.k_t * (c - p_out * self.fluid.Solubility)
-                    )  ## MS factor
-                elif self.H / self.W < 0.0001:
-                    # Diffusion limited V // Mass Transport limited X
-                    self.J_perm = -(
-                        self.membrane.D
-                        / (
-                            self.fluid.d_Hyd
-                            / 2
-                            * np.log(
-                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                / (self.fluid.d_Hyd / 2)
-                            )
-                        )
-                        * self.membrane.K_S
-                        * ((c / self.fluid.Solubility) ** 0.5 - p_out**0.5)
-                    )
-                else:
-                    # Mixed regime mass transport diffusion
-                    def equations(vars):
-                        if vars.size == 0:
-                            return upper_bound
-                        c_wl = vars
-                        J_mt = 2 * self.fluid.k_t * (c - c_wl)
-                        J_diff = (
-                            self.membrane.D
-                            / (
-                                self.fluid.d_Hyd
-                                / 2
-                                * np.log(
-                                    (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                    / (self.fluid.d_Hyd / 2)
-                                )
-                            )
-                            * (
-                                self.membrane.K_S
-                                * ((c_wl / self.fluid.Solubility) ** 0.5 - p_out**0.5)
-                            )
-                        )
-                        return abs(J_diff - J_mt)
 
-                    if isinstance(c_guess, float):
+        # --- constants -------------------------------------------------------
+        S = self.fluid.Solubility
+        kt = self.fluid.k_t
+        kd = self.membrane.k_d
+        KS = self.membrane.K_S
+        P = self._diff_conductance()  # D*K_S / (r ln((r+t)/r))
 
-                        initial_guess = c_guess
-                    else:
-                        ValueError("c_guess must be a float")
-                    initial_guess = c_guess
-                    min_upper_bound = 1e-4  # Set a minimum value for the upper bound
-                    upper_bound = max(c * (1 + 1e-4), min_upper_bound)
-                    solution = minimize(
-                        equations,
-                        initial_guess,
-                        method="Powell",
-                        bounds=[
-                            (0, upper_bound),
-                        ],
-                        tol=1e-8,
-                        options={
-                            "maxiter": int(1e7),
-                        },
-                    )
-                    self.J_perm = -2 * self.fluid.k_t * (c - solution.x[0])  ## MS factor
-                    return float(solution.x[0])
-            elif self.W < 0.1:
-                # Surface limited V // Diffusion Limited X
-                if self.H > 100:
-                    # Mass transport limited V // Surface limited X
-                    self.J_perm = (
-                        -2 * self.fluid.k_t * (c - p_out * self.fluid.Solubility)
-                    )  ## MS factor
-                elif self.H < 0.01:
-                    # Surface limited V // Mass Transport limited X
-                    self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
-                else:
-                    # Mixed regime mass transfer surface
-                    def equations(vars):
-                        if vars.size == 0:
-                            return upper_bound
-                        c_wl = vars
-                        c_bl = c
-                        J_mt = 2 * self.fluid.k_t * (c_bl - c_wl)  ## MS factor
-                        J_surf = (
-                            self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
-                        )
+        if self.fluid.MS:  # H2 <-> 2H, Henry
+            mt = 2.0
+            exp = 0.5  # (cw/S)**0.5 in diffusion driving force
+            des_pow = 2.0  # desorption uses K_S**2 (fully-mixed)
+            c_eq = S * p_ext  # wall conc. in equilibrium with p_ext
+            lo, hi = min(c, c_eq), max(c, c_eq)
+        else:  # atomic H, Sieverts
+            mt = 1.0
+            exp = 1.0  # (cw/S) in diffusion driving force
+            des_pow = 1.0  # desorption uses K_S (fully-mixed)
+            c_eq = S * np.sqrt(p_ext)
+            lo = min(c, c_eq)
+            hi = max(c, c_eq)
 
-                        return abs(J_mt - J_surf)
+        # --- signed fluxes (positive = leaving the fluid) --------------------
+        def J_mt(cw):
+            return mt * kt * (c - cw)
 
-                    initial_guess = [c * 1e-1]
-                    solution = minimize(
-                        equations,
-                        initial_guess,
-                        method="Powell",
-                        bounds=[
-                            (0, c * (1 + 1e-4)),
-                        ],
-                        tol=1e-8,
-                        options={
-                            "maxiter": int(1e6),
-                        },
-                    )
-                    c_bl = c
-                    c_wl = solution.x[0]
-                    self.J_perm = 2 * self.fluid.k_t * (c_bl - c_wl)  ## MS factor
-                    return float(solution.x[0])
-            else:
-                # Mixed Diffusion Surface
-                if self.H / self.W > 1000:
-                    # Mass transport limited V // Mixed Surface Diffusion Limited X
-                    self.J_perm = (
-                        -2 * self.fluid.k_t * (c - p_out * self.fluid.Solubility)
-                    )  ## MS factor
-                elif self.H / self.W < 0.0001:
-                    # Mixed Diffusion Surface
-                    def equations(vars):
-                        if vars.size == 0:
-                            return upper_bound
-                        c_wl = vars
-                        c_bl = c
-                        J_surf = (
-                            self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
-                        )
-                        J_diff = (
-                            self.membrane.D
-                            / (
-                                self.fluid.d_Hyd
-                                / 2
-                                * np.log(
-                                    (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                    / (self.fluid.d_Hyd / 2)
-                                )
-                            )
-                            * (
-                                self.membrane.K_S
-                                * ((c_wl / self.fluid.Solubility) ** 0.5 - p_out**0.5)
-                            )
-                        )
+        def J_diff(cw):
+            return P * ((cw / S) ** exp - p_ext**0.5)
 
-                        return abs(J_diff - J_surf)
+        def J_surf(cw):
+            return kd * (c / S) - kd * KS**2 * cw**2
 
-                    if c_guess is None:
-                        initial_guess = [c / 2]
-                    else:
-                        initial_guess = c_guess
-                    solution = minimize(
-                        equations,
-                        initial_guess,
-                        method="Powell",
-                        bounds=[
-                            (1e-14, c),
-                        ],
-                        tol=1e-7,
-                        options={
-                            "maxiter": int(1e6),
-                        },
-                    )
-                    c_wall = solution.x[0]
-                    self.J_perm = (
-                        self.membrane.D
-                        / (
-                            self.fluid.d_Hyd
-                            / 2
-                            * np.log(
-                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                / (self.fluid.d_Hyd / 2)
-                            )
-                        )
-                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility) ** 0.5 - p_out**0.5)
-                    )
-                    return float(solution.x[0])
-                else:
-                    # Mixed regime mass transport diffusion surface and diffusion
-                    def equations(vars):
-                        c_wl, c_ws = vars
+        def root(f, g):
+            """cw where f==g on [lo, hi]. brentq if bracketed, else bounded |f-g| min."""
+            if hi - lo <= 1e-12 * max(abs(hi), 1e-30):  # no driving force
+                return c
+            h = lambda cw: f(cw) - g(cw)
+            flo, fhi = h(lo), h(hi)
+            if flo == 0.0:
+                return lo
+            if fhi == 0.0:
+                return hi
+            if flo * fhi < 0.0:  # sign change -> exact root
+                return brentq(h, lo, hi, xtol=1e-18, rtol=1e-12, maxiter=200)
+            res = minimize_scalar(  # no bracket -> minimise |residual|
+                lambda cw: abs(h(cw)),
+                bounds=(lo, hi),
+                method="bounded",
+                options={"xatol": 1e-14},
+            )
+            return float(res.x)
 
-                        c_bl = c
-                        J_mt = 2 * self.fluid.k_t * (c_bl - c_wl)  ## MS factor
+        # =====================================================================
+        #  W > 10 : diffusion vs mass transport (surface fast)
+        # =====================================================================
+        if self.W > 10:
+            if self.H / self.W > 1000:  # mass-transport limited
+                cw = c_eq
+                self.J_perm = -J_mt(cw)  # NEGATIVE (leaving the fluid)
+            elif self.H / self.W < 1e-4:  # diffusion limited
+                cw = c
+                self.J_perm = -J_diff(cw)  # NEGATIVE (leaving the fluid)
+            else:  # mixed MT <-> diffusion
+                cw = root(J_mt, J_diff)
+                self.J_perm = -J_mt(cw)  # NEGATIVE (leaving the fluid)
+            return float(cw)
 
-                        J_d = self.membrane.k_d * (
-                            c_wl / self.membrane.K_S
-                        ) - self.membrane.k_d * self.membrane.K_S**2 * (c_ws**2)
-                        J_diff = (
-                            self.membrane.D
-                            / (
-                                self.fluid.d_Hyd
-                                / 2
-                                * np.log(
-                                    (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                    / (self.fluid.d_Hyd / 2)
-                                )
-                            )
-                            * ((self.membrane.K_S * c_ws) - p_out**0.5)
-                        )
-                        eq1 = abs(J_mt - J_d)
-                        eq2 = abs(J_mt - J_diff)
-                        eq3 = abs(J_d - J_diff)
+        # =====================================================================
+        #  W < 0.1 : surface reaction vs mass transport (diffusion fast)
+        # =====================================================================
+        if self.W < 0.1:
+            if self.H > 100:  # mass-transport limited
+                cw = c_eq
+                self.J_perm = -J_mt(cw)  # NEGATIVE (leaving the fluid)
+            elif self.H < 1e-2:  # surface limited
+                cw = c
+                self.J_perm = -kd * (c / S)  # NEGATIVE (leaving the fluid)
+            else:  # mixed MT <-> surface
+                cw = root(J_mt, J_surf)
+                self.J_perm = -J_mt(cw)  # negative (leaving the fluid)
+            return float(cw)
 
-                        return eq1 + eq2 + eq3
+        # =====================================================================
+        #  Intermediate W : coupled surface + diffusion (mass transport fast)
+        # =====================================================================
+        if self.H / self.W > 1000:  # mass-transport limited
+            cw = c_eq
+            self.J_perm = -J_mt(cw)  # NEGATIVE (leaving the fluid)
+            return float(cw)
 
-                    initial_guess = [(2 * c / 3), (c / 3)]
-                    solution = minimize(
-                        equations,
-                        initial_guess,
-                        method="Powell",
-                        bounds=[(0, c), (0, c)],
-                        tol=1e-8,
-                        options={
-                            "maxiter": int(1e6),
-                        },
-                    )
-                    c_wl = solution.x[0]
-                    self.J_perm = 2 * self.fluid.k_t * (c - c_wl)
-                    result = float(solution.x[0])
-                    if np.isscalar(result):
-                        return result
+        if self.H / self.W < 1e-4:  # surface <-> diffusion
+            cw = root(J_surf, J_diff)
+            self.J_perm = -J_diff(cw)  # NEGATIVE (leaving the fluid)
+            return float(cw)
 
-        else:
-            if self.W > 10:
-                # DIFFUSION LIMITED V // Surface limited X
-                if self.H / self.W > 1000:
-                    # Mass transport limited V // Diffusion limited X
-                    self.J_perm = -self.fluid.k_t * (
-                        c - p_out**0.5 * self.fluid.Solubility
-                    )  ## LM factor
-                elif self.H / self.W < 0.0001:
-                    # Diffusion limited V // Mass Transport limited X
-                    self.J_perm = -(
-                        self.membrane.D
-                        / (
-                            self.fluid.d_Hyd
-                            / 2
-                            * np.log(
-                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                / (self.fluid.d_Hyd / 2)
-                            )
-                        )
-                        * (self.membrane.K_S * (c / self.fluid.Solubility - p_out**0.5))
-                    )
-                else:
-                    # Mixed regime mass transport diffusion
-                    def equations(vars):
-                        c_wl = vars
-                        J_mt = self.fluid.k_t * (c - c_wl)  ## LM factor
-                        J_diff = (
-                            self.membrane.D
-                            / (
-                                self.fluid.d_Hyd
-                                / 2
-                                * np.log(
-                                    (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                    / (self.fluid.d_Hyd / 2)
-                                )
-                            )
-                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility - p_out**0.5))
-                        )
-                        return abs((J_diff - J_mt))
+        # --- fully coupled: mass transport + surface + diffusion -------------
+        # Desorption K_S power differs by fluid (MS: K_S**2, LM: K_S) -> des_pow.
+        def system(v):
+            cw, cs = v
+            Jmt = mt * kt * (c - cw)
+            Jd = kd * (cw / KS) - kd * (KS**des_pow) * cs**2
+            Jdiff = P / KS * (cs - KS * p_ext**0.5)  # P already contains K_S
+            return [Jmt - Jd, Jmt - Jdiff]
 
-                    if c_guess is None:
-                        initial_guess = [c * 1e-2]
-                    else:
-                        initial_guess = c_guess
-                    solution = minimize(
-                        equations,
-                        initial_guess,
-                        method="Powell",
-                        bounds=[
-                            (0, c * (1 + 1e-4)),
-                        ],
-                        tol=1e-8,
-                        options={
-                            "maxiter": int(1e6),
-                        },
-                    )
-                    self.J_perm = -self.fluid.k_t * (c - solution.x[0])  ## LM factor
-                    return float(solution.x[0])
-            elif self.W < 0.1:
-                # Surface limited V // Diffusion Limited X
-                if self.H > 100:
-                    # Mass transport limited V // Surface limited X
-                    self.J_perm = -self.fluid.k_t * (
-                        c - p_out**0.5 * self.fluid.Solubility
-                    )  ## LM factor
-                elif self.H < 0.01:
-                    # Surface limited V // Mass Transport limited X
-                    self.J_perm = -self.membrane.k_d * (c / self.fluid.Solubility)
-                else:
-                    # Mixed regime mass transfer surface
-                    def equations(vars):
-                        c_wl = vars
-                        c_bl = c
-                        J_mt = self.fluid.k_t * (
-                            c_bl - c_wl - p_out**0.5 * self.fluid.Solubility
-                        )  ## LM factor
-                        J_surf = (
-                            self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
-                        )
+        if hi - lo <= 1e-12 * max(abs(hi), 1e-30):
+            self.J_perm = 0.0
+            return float(c)
 
-                        return abs(J_mt - J_surf)
-
-                    initial_guess = [c * 1e-1]
-                    solution = minimize(
-                        equations,
-                        initial_guess,
-                        method="Powell",
-                        bounds=[
-                            (0, c * (1 + 1e-4)),
-                        ],
-                        tol=1e-8,
-                        options={
-                            "maxiter": int(1e6),
-                        },
-                    )
-                    c_bl = c
-                    c_wl = solution.x[0]
-                    self.J_perm = self.fluid.k_t * (
-                        c_bl - c_wl - p_out * self.fluid.Solubility
-                    )  ## LM factor
-                    return float(solution.x[0])
-            else:
-                if self.H / self.W < 0.0001:
-                    # Mass transport limited V // Mixed Surface Diffusion  X
-                    self.J_perm = -self.fluid.k_t * (
-                        c - p_out**0.5 * self.fluid.Solubility
-                    )  ## LM factor
-                elif self.H / self.W > 1000:
-                    # Mixed Diffusion Surface V // Mass Transport limited X
-                    def equations(vars):
-                        c_wl = vars
-                        c_bl = c
-                        J_surf = (
-                            self.membrane.k_d * (c_bl / self.fluid.Solubility)
-                            - self.membrane.k_d * self.membrane.K_S**2 * c_wl**2
-                        )
-                        J_diff = (
-                            self.membrane.D
-                            / (
-                                self.fluid.d_Hyd
-                                / 2
-                                * np.log(
-                                    (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                    / (self.fluid.d_Hyd / 2)
-                                )
-                            )
-                            * (self.membrane.K_S * (c_wl / self.fluid.Solubility - p_out**0.5))
-                        )
-
-                        return abs(J_diff - J_surf)
-
-                    if c_guess is None:
-                        initial_guess = [c / 2]
-                    else:
-                        initial_guess = c_guess
-                    solution = minimize(
-                        equations,
-                        initial_guess,
-                        method="Powell",
-                        bounds=[
-                            (1e-14, c),
-                        ],
-                        tol=1e-8,
-                        options={
-                            "maxiter": int(1e6),
-                        },
-                    )
-                    c_wall = solution.x[0]
-                    self.J_perm = (
-                        self.membrane.D
-                        / (
-                            self.fluid.d_Hyd
-                            / 2
-                            * np.log(
-                                (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                / (self.fluid.d_Hyd / 2)
-                            )
-                        )
-                        * (self.membrane.K_S * (c_wall / self.fluid.Solubility - p_out**0.5))
-                    )
-                    return float(solution.x[0])
-                else:
-                    # Mixed regime mass transport diffusion surface and diffusion
-                    def equations(vars):
-                        c_wl, c_ws = vars
-
-                        c_bl = c
-                        J_mt = self.fluid.k_t * (c_bl - c_wl)  ## LM factor
-
-                        J_d = self.membrane.k_d * (
-                            c_wl / self.membrane.K_S
-                        ) - self.membrane.k_d * self.membrane.K_S * (c_ws**2)
-                        J_diff = (
-                            self.membrane.D
-                            / (
-                                self.fluid.d_Hyd
-                                / 2
-                                * np.log(
-                                    (self.fluid.d_Hyd / 2 + self.membrane.thick)
-                                    / (self.fluid.d_Hyd / 2)
-                                )
-                            )
-                            * ((self.membrane.K_S * c_ws) - p_out**0.5)
-                        )
-                        eq1 = abs(J_mt - J_d)
-                        eq2 = abs(J_mt - J_diff)
-                        eq3 = abs(J_d - J_diff)
-
-                        return eq1 + eq2 + eq3
-
-                    initial_guess = [(2 * c / 3), (c / 3)]
-                    solution = minimize(
-                        equations,
-                        initial_guess,
-                        method="Powell",
-                        bounds=[
-                            (0, c * (1 + 1e-4)),
-                        ],
-                        tol=1e-8,
-                        options={
-                            "maxiter": int(1e6),
-                        },
-                    )
-                    c_wl = solution.x[0]
-                    self.J_perm = self.fluid.k_t * (c - c_wl)  # LM factor
-                    return float(solution.x[0])
+        cw0 = float(np.clip(2.0 * c / 3.0, lo, hi))  # original guess, clamped
+        cs0 = max(c / 3.0, 0.0)
+        sol = least_squares(
+            system,
+            [cw0, cs0],
+            bounds=([lo, 0.0], [hi, np.inf]),
+            xtol=1e-12,
+            ftol=1e-12,
+            max_nfev=int(1e4),
+        )
+        cw = sol.x[0]
+        self.J_perm = -J_mt(cw)  # NEGATIVE (leaving the fluid)
+        return float(cw)
 
     def get_global_HX_coeff(self, R_conv_sec: float = 0) -> None:
         """
@@ -1520,7 +1268,11 @@ class Component(TriomaClass):
         self.U = 1 / R_tot
         return
 
-    def analytical_solid_inventory(self, p_out: float = 0) -> float:
+    def analytical_solid_inventory(self) -> float:
+        if self.p_ext is None:
+            p_ext = 0.0
+        else:
+            p_ext = self.p_ext
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1566,251 +1318,419 @@ class Component(TriomaClass):
                     * self.fluid.k_t
                     / (self.fluid.U0 * self.fluid.d_Hyd)
                 )
+                L_factor = (np.exp(L_ch * self.geometry.L) - 1) / L_ch
                 K = (
                     -2
                     * np.pi
                     * (
-                        self.c_in
+                        (self.c_in - self.fluid.Solubility * p_ext**0.5)
                         / (dimless2 / self.fluid.k_t + 1)
                         / self.fluid.Solubility
                         * self.membrane.K_S
                     )
                     / np.log((self.geometry.D / 2 + self.geometry.thick) / (self.geometry.D / 2))
-                )
-                L_factor = (np.exp(L_ch * self.geometry.L) - 1) / L_ch
-                K = K * L_factor
+                ) * L_factor
                 integral = (
                     K * integralfun(self.geometry.D / 2 + self.geometry.thick)
                     - K * integralfun(self.geometry.D / 2)
-                ) + self.geometry.L * p_out**0.5 * self.membrane.K_S * (
+                ) + self.geometry.L * p_ext**0.5 * self.membrane.K_S * (
                     circle(self.geometry.D / 2 + self.geometry.thick) - circle(self.geometry.D / 2)
                 )
                 inventory = integral
-                self.membrane.inv = inventory
-                return inventory
+                self.membrane.inv = inventory * self.geometry.n_pipes
+                return self.membrane.inv
             case True:
 
-                def ms_integral(self, p_out: float = 0, L: float = 0):
-                    if self.tau is None or self.xi is None or self.alpha is None:
-                        self.analytical_efficiency(p_out=p_out)
-                    beta = (1 / self.xi + 1) ** 0.5 + np.log((1 / self.xi + 1) ** 0.5 - 1)
-                    max_exp = np.log(np.finfo(np.float64).max)
-                    beta_tau = beta - self.tau - 1
-                    if beta_tau > max_exp:
-                        w = beta_tau - np.log(beta_tau)
-                        w2 = -beta_tau
+                def ms_integral(self, p_ext: float = 0.0, L: float = None):
+                    """
+                    Solid MS inventory for one pipe, using the paper's
+                    alpha, xi and Pi_ext definitions.
+                    """
 
+                    if L is None:
+                        L = self.geometry.L
+
+                    if not (
+                        hasattr(self, "alpha")
+                        and hasattr(self, "xi")
+                        and self.alpha is not None
+                        and self.xi is not None
+                    ):
+                        self.analytical_efficiency()
+
+                    KH = self.fluid.Solubility
+                    KS = self.membrane.K_S
+                    kt = self.fluid.k_t
+                    U = self.fluid.U0
+                    d = self.fluid.d_Hyd
+
+                    r_i = d / 2.0
+                    r_o = r_i + self.membrane.thick
+                    log_ro_ri = np.log(r_o / r_i)
+
+                    alpha = self.alpha
+                    xi = self.xi
+
+                    # Paper definition:
+                    # Pi_ext = sqrt(p_ext * K_H / alpha)
+                    Pi_ext = np.sqrt(p_ext * KH / alpha)
+                    b = 1.0 + 2.0 * Pi_ext
+
+                    # Initial transformed variable
+                    s_in = np.sqrt(1.0 + 4.0 * (1.0 / xi + Pi_ext))
+                    y_in = s_in - b
+
+                    if abs(y_in) < 1.0e-14:
+                        # No concentration driving force
+                        c_w_s_integral = KS * np.sqrt(p_ext) * L
                     else:
-                        z = np.exp(beta_tau)
-                        z2 = np.exp(-beta_tau)
-                        w = lambertw(z, tol=1e-10)
-                        w2 = lambertw(z2, tol=1e-10)
-                        if w.imag != 0:
-                            raise ValueError("self.eff_an has a non-zero imaginary part")
-                        if w2.imag != 0:
-                            raise ValueError("self.eff_an has a non-zero imaginary part")
-                        w = w.real
-                        w2 = w2.real
-                    c_ext = p_out**0.5 * self.membrane.K_S
-                    conv = (self.c_in / self.fluid.Solubility) ** 0.5 * self.membrane.K_S
-                    c_w_l = self.alpha * (w**2 + 2 * w) + self.alpha * (
-                        2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5
-                    )
-                    K = (
-                        self.alpha**0.5
-                        / self.fluid.Solubility**0.5
-                        * (
-                            -beta_tau
-                            * (w**2 - w + 1)
-                            / (4 * self.fluid.k_t / (self.fluid.U0 * self.fluid.d_Hyd) * w2)
+                        sign = 1.0 if y_in > 0.0 else -1.0
+
+                        # Paper definition of beta
+                        beta = s_in / b + np.log(abs(y_in))
+
+                        def q_of_z(z):
+                            tau_z = 4.0 * kt * z / (U * d)
+
+                            beta_z = beta - tau_z / b - 1.0
+
+                            # q = W_k[sign * exp(beta_z) / b]
+                            log_argument_abs = beta_z - np.log(b)
+
+                            if sign > 0.0:
+                                # Normal extraction: W_0
+                                log_max = np.log(np.finfo(np.float64).max)
+
+                                if log_argument_abs < log_max:
+                                    argument = np.exp(log_argument_abs)
+                                    q = lambertw(argument, k=0).real
+                                else:
+                                    # Large-positive-argument
+                                    # asymptotic approximation
+                                    q = log_argument_abs - np.log(log_argument_abs)
+
+                            else:
+                                # Inverse permeation: physical branch W_0
+                                if log_argument_abs < np.log(np.finfo(np.float64).tiny):
+                                    argument = 0.0
+                                else:
+                                    argument = -np.exp(log_argument_abs)
+
+                                argument = np.clip(argument, -1.0 / np.e, 0.0)
+
+                                q = lambertw(argument, k=0).real
+
+                            return q
+
+                        def c_w_l(z):
+                            """
+                            MS liquid-side wall concentration:
+
+                            c_w,l = alpha *
+                                    [Pi_ext +
+                                     (1 + 2 Pi_ext) q / 2]^2
+                            """
+                            q = q_of_z(z)
+
+                            return alpha * (Pi_ext + 0.5 * b * q) ** 2
+
+                        def c_w_s(z):
+                            """
+                            MS solid-side wall concentration:
+
+                            c_w,s = K_S * sqrt(c_w,l / K_H)
+                            """
+                            cwl = max(c_w_l(z), 0.0)
+
+                            return KS * np.sqrt(cwl / KH)
+
+                        # Numerical axial integration of c_w,s(z)
+                        c_w_s_integral, _ = integrate.quad(
+                            c_w_s,
+                            0.0,
+                            L,
+                            epsabs=1.0e-12,
+                            epsrel=1.0e-8,
+                            limit=200,
                         )
-                        * self.membrane.K_S
+
+                    # Radial hollow-cylinder geometry
+                    area_solid = np.pi * (r_o**2 - r_i**2)
+
+                    F_cyl = np.pi * ((r_o**2 - r_i**2) / (2.0 * log_ro_ri) - r_i**2)
+
+                    # External-equilibrium concentration in the solid
+                    c_ext_s = KS * np.sqrt(p_ext)
+
+                    # Solid inventory in one pipe:
+                    #
+                    # I_s = c_ext,s * A_s * L
+                    #       + F_cyl * integral[c_w,s(z)-c_ext,s] dz
+                    inventory_one_pipe = c_ext_s * area_solid * L + F_cyl * (
+                        c_w_s_integral - c_ext_s * L
                     )
+                    self.membrane.inv = inventory_one_pipe
+                    return self.membrane.inv
 
-                    def integralfun(r):
-                        return (
-                            1
-                            / 4
-                            * r**2
-                            * (2 * np.log(r / (self.geometry.D / 2 + self.geometry.thick)) - 1)
-                        )
-
-                    integral = K * integralfun(
-                        self.geometry.D / 2 + self.geometry.thick
-                    ) - K * integralfun(self.geometry.D / 2)
-                    return integral
-
-                def p_out_term(self, p_out):
-                    def circle(r):
-                        return np.pi * r**2
-
-                    add = (
-                        self.geometry.L
-                        * p_out**0.5
-                        * self.membrane.K_S
-                        * (
-                            circle(self.geometry.D / 2 + self.geometry.thick)
-                            - circle(self.geometry.D / 2)
-                        )
-                    )
-
-                    return add
-
-                inv = (
-                    ms_integral(self=self, L=self.geometry.L, p_out=p_out)
-                    - ms_integral(self=self, L=0, p_out=p_out)
-                    + p_out_term(self, p_out)
+                inv = ms_integral(
+                    self=self,
+                    p_ext=p_ext,
+                    L=self.geometry.L,
                 )
+
                 self.membrane.inv = inv * self.geometry.n_pipes
-                return inv
 
-    def get_solid_inventory(self, p_out: float = 0, flag_an: bool = False) -> float:
+                return self.membrane.inv
+
+    def get_solid_inventory(
+        self,
+        flag_an: bool = False,
+    ) -> float:
+        """
+        Calculate the tritium inventory in the solid membrane.
+
+        The radial concentration profile is the steady-state solution for a
+        hollow cylindrical membrane:
+
+            c_s(r, z) = c_ext,s
+                        + [c_w,s(z) - c_ext,s]
+                        * ln(r_o / r) / ln(r_o / r_i)
+
+        The radial integral is evaluated analytically, while the axial
+        integral is evaluated numerically.
+
+        Parameters
+        ----------
+        p_ext : float, optional
+            External Q2 partial pressure [Pa].
+        flag_an : bool, optional
+            If True, use analytical_solid_inventory(). If False, use the
+            numerical axial-integration implementation below.
+
+        Returns
+        -------
+        float
+            Total solid inventory in all pipes [mol].
+        """
+        if self.p_ext is None:
+            p_ext = 0.0
+        else:
+            p_ext = self.p_ext
         if flag_an:
-            return self.analytical_solid_inventory(p_out=p_out)
+            return self.analytical_solid_inventory()
 
-        def integrate_c_profile(self):
-            r_in = self.fluid.d_Hyd / 2
-            r_out = self.fluid.d_Hyd / 2 + self.membrane.thick
-            L_min = 0
-            L_max = self.geometry.L
-            N = 20
+        if p_ext < 0.0:
+            raise ValueError("p_ext must be non-negative.")
 
-            def integrand(r, L, p_out=p_out):
-                # return -c * np.log(r / r_out) / np.log(r_out / r_in) * 2 * np.pi * r
-                if self.fluid.k_t is None:
+        if self.c_in is None:
+            raise ValueError("The inlet concentration self.c_in must be defined.")
 
-                    self.fluid.get_kt(turbulator=self.geometry.turbulator)
-                if self.fluid.MS == False:
-                    c = self.c_in / self.fluid.Solubility * self.membrane.K_S
-                    dimless = (
-                        2
-                        * self.membrane.D
-                        * self.membrane.K_S
-                        / (
-                            self.fluid.k_t
-                            * self.fluid.Solubility
-                            * self.fluid.d_Hyd
-                            * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                            )
-                        )
-                    )
-                    dimless2 = (
-                        2
-                        * self.membrane.D
-                        * self.membrane.K_S
-                        / (
-                            self.fluid.Solubility
-                            * self.fluid.d_Hyd
-                            * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                            )
-                        )
-                    )
-                    L_ch = (
-                        -dimless
-                        / (1 + dimless)
-                        * 4
-                        * self.fluid.k_t
-                        / (self.fluid.U0 * self.fluid.d_Hyd)
-                    )
-                    conv_liquid_to_solid = self.membrane.K_S / self.fluid.Solubility
-                    c_ext = p_out**0.5 * self.membrane.K_S
-                    c_w = (
-                        c * np.exp(L_ch * L) / (dimless2 / self.fluid.k_t + 1) + c_ext
-                    )  # todo check this is liquid conc
+        if self.c_in < 0.0:
+            raise ValueError("The inlet concentration must be non-negative.")
 
-                    return (
-                        (-(c_w - c_ext) * np.log(r / r_out) / np.log(r_out / r_in) + c_ext)
-                        * 2
-                        * np.pi
-                        * r
-                    )
-                else:
-                    tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
-                    self.xi = (
-                        1
-                        / self.c_in
-                        / self.fluid.Solubility
-                        * (
-                            0.5  ##TODO: Check this
-                            * self.membrane.K_S
-                            * self.membrane.D
-                            / (
-                                self.fluid.k_t
-                                * self.fluid.d_Hyd
-                                * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                                )
-                            )
-                        )
-                        ** 2
-                    )
+        if self.fluid is None:
+            raise ValueError("A fluid must be assigned to the component.")
 
-                    beta = (1 / self.xi + 1) ** 0.5 + np.log((1 / self.xi + 1) ** 0.5 - 1)
-                    max_exp = np.log(np.finfo(np.float64).max)
-                    beta_tau = beta - tau - 1
-                    if beta_tau > max_exp:
+        if self.membrane is None:
+            raise ValueError("A membrane must be assigned to the component.")
 
-                        w = beta_tau - np.log(beta_tau)
+        if self.fluid.k_t is None:
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
+
+        # ---------------------------------------------------------------------
+        # Geometry
+        # ---------------------------------------------------------------------
+        r_i = float(self.fluid.d_Hyd) / 2.0
+        r_o = r_i + float(self.membrane.thick)
+        L = float(self.geometry.L)
+        n_pipes = int(self.geometry.n_pipes)
+
+        log_ro_ri = np.log(r_o / r_i)
+
+        # Cross-sectional area of the solid membrane.
+        area_solid = np.pi * (r_o**2 - r_i**2)
+
+        # Hollow-cylinder geometrical factor
+        F_cyl = np.pi * ((r_o**2 - r_i**2) / (2.0 * log_ro_ri) - r_i**2)
+
+        # ---------------------------------------------------------------------
+        # Liquid-metal carrier
+        # ---------------------------------------------------------------------
+        if not self.fluid.MS:
+
+            K_S_l = float(self.fluid.Solubility)
+            K_S_s = float(self.membrane.K_S)
+            D_s = float(self.membrane.D)
+            k_t = float(self.fluid.k_t)
+            U = float(self.fluid.U0)
+            d = float(self.fluid.d_Hyd)
+            c_ext_l = K_S_l * np.sqrt(p_ext)
+            c_ext_s = K_S_s * np.sqrt(p_ext)
+
+            zeta = 2.0 * D_s * K_S_s / (d * log_ro_ri * k_t * K_S_l)
+
+            axial_decay = 4.0 * k_t / (U * d) * zeta / (1.0 + zeta)
+
+            def solid_linear_inventory_density(z):
+                """
+                Solid inventory per unit axial length, lambda_I,s(z) [mol/m].
+                """
+
+                c_bulk_l = c_ext_l + (self.c_in - c_ext_l) * np.exp(-axial_decay * z)
+
+                c_wall_l = c_ext_l + (c_bulk_l - c_ext_l) / (1.0 + zeta)
+
+                # Sievert/Sievert partial-pressure continuity:
+                #
+                # c_w,l / K_S,l = c_w,s / K_S,s
+                #
+                c_wall_s = (K_S_s / K_S_l) * c_wall_l
+
+                return c_ext_s * area_solid + F_cyl * (c_wall_s - c_ext_s)
+
+        # ---------------------------------------------------------------------
+        # Molten-salt carrier
+        else:
+
+            K_H = float(self.fluid.Solubility)
+            K_S_s = float(self.membrane.K_S)
+            D_s = float(self.membrane.D)
+            k_t = float(self.fluid.k_t)
+            U = float(self.fluid.U0)
+            d = float(self.fluid.d_Hyd)
+
+            phi = D_s * K_S_s
+
+            alpha = 1.0 / K_H * (phi / (k_t * d * log_ro_ri)) ** 2
+            Pi_ext = np.sqrt(p_ext * K_H / alpha)
+            self.alpha = alpha
+            self.Pi_ext = Pi_ext
+
+            b = 1.0 + 2.0 * Pi_ext
+            s_in = np.sqrt(1.0 + 4.0 * (self.c_in / alpha + Pi_ext))
+
+            y_in = s_in - b
+
+            c_ext_l = K_H * p_ext
+            c_ext_s = K_S_s * np.sqrt(p_ext)
+
+            # If the inlet is already in equilibrium with the external
+            # pressure, the membrane concentration is uniform.
+            equilibrium_tol = 1.0e-14 * max(
+                1.0,
+                abs(s_in),
+                abs(b),
+            )
+
+            if abs(y_in) <= equilibrium_tol:
+
+                def solid_linear_inventory_density(z):
+                    """
+                    Uniform solid inventory per unit axial length [mol/m].
+                    """
+                    return c_ext_s * area_solid
+
+            else:
+
+                sign = 1.0 if y_in > 0.0 else -1.0
+
+                # Integration constant from the manuscript.
+                beta = s_in / b + np.log(abs(y_in))
+
+                log_max = np.log(np.finfo(np.float64).max)
+                log_tiny = np.log(np.finfo(np.float64).tiny)
+
+                def q_of_z(z):
+                    """
+                    Lambert-W transformed variable q(z).
+                    """
+
+                    tau_z = 4.0 * k_t * z / (U * d)
+
+                    beta_tau = beta - tau_z / b - 1.0
+
+                    # Argument magnitude:
+                    #
+                    #   argument = sign * exp(beta_tau) / b
+                    #
+                    log_argument_abs = beta_tau - np.log(b)
+
+                    if sign > 0.0:
+                        # Normal extraction: principal branch W_0.
+                        if log_argument_abs < log_max:
+                            argument = np.exp(log_argument_abs)
+                            q = lambertw(argument, k=0).real
+                        else:
+                            # Large-positive-argument approximation.
+                            q = log_argument_abs - np.log(log_argument_abs)
 
                     else:
-                        z = np.exp(beta_tau)
-                        w = lambertw(z, tol=1e-10)
-                        if w.imag != 0:
-                            raise ValueError("self.eff_an has a non-zero imaginary part")
-                        w = w.real
-                    alpha = (
-                        1
-                        / self.fluid.Solubility
-                        * (
-                            (0.5 * self.membrane.D * self.membrane.K_S)  ## TODO: Check this
-                            / (
-                                self.fluid.k_t
-                                * self.fluid.d_Hyd
-                                * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                                )
-                            )
+                        # Inverse permeation: principal branch W_0.
+                        if log_argument_abs < log_tiny:
+                            argument = 0.0
+                        else:
+                            argument = -np.exp(log_argument_abs)
+
+                        # Protect against round-off below -1/e.
+                        argument = np.clip(
+                            argument,
+                            -1.0 / np.e,
+                            0.0,
                         )
-                        ** 2
-                    )
-                    c_ext = p_out**0.5 * self.membrane.K_S
-                    conv = (self.c_in / self.fluid.Solubility) ** 0.5 * self.membrane.K_S
-                    c_w_l = (
-                        alpha * (w**2 + 2 * w)
-                        + alpha * (2 - 2 * ((w**2 + 2 * w) + 1) ** 0.5)  ## TODO: Check this
-                        + c_ext
-                    )
 
-                    if c_w_l < 0:
-                        c_w_l = 1e-17
-                    return (
-                        (
-                            -np.log(r / r_out)
-                            / np.log(r_out / r_in)
-                            * (
-                                (alpha / self.fluid.Solubility) ** 0.5 * w * self.membrane.K_S
-                                - c_ext
-                            )
-                            + c_ext
-                        )
-                        * 2
-                        * np.pi
-                        * r
-                    )
+                        q = lambertw(argument, k=0).real
 
-            result, err = integrate.nquad(integrand, [[r_in, r_out], [L_min, L_max]])
-            return result
+                    return float(q)
 
-        integral_pipe = integrate_c_profile(self)
-        self.membrane.inv = integral_pipe * self.geometry.n_pipes
-        if math.isnan(self.membrane.inv):
-            print("Error: Inventory calculation failed")
-            self.inspect()
+                def solid_linear_inventory_density(z):
+                    """
+                    Solid inventory per unit axial length, lambda_I,s(z) [mol/m].
+                    """
+
+                    q = q_of_z(z)
+
+                    # Local liquid-side wall concentration:
+                    #
+                    # c_w,l(z) =
+                    #     alpha [Pi_ext + b q(z)/2]^2
+                    #
+                    c_wall_l = alpha * (Pi_ext + 0.5 * b * q) ** 2
+
+                    # Henry/Sievert continuity:
+                    #
+                    # c_w,l/K_H = (c_w,s/K_S,s)^2
+                    #
+                    c_wall_s = K_S_s * np.sqrt(max(c_wall_l, 0.0) / K_H)
+
+                    return c_ext_s * area_solid + F_cyl * (c_wall_s - c_ext_s)
+
+        # ---------------------------------------------------------------------
+        # Numerical axial integration for one pipe
+        # ---------------------------------------------------------------------
+        inventory_one_pipe, integration_error = integrate.quad(
+            solid_linear_inventory_density,
+            0.0,
+            L,
+            epsabs=1.0e-12,
+            epsrel=1.0e-9,
+            limit=200,
+        )
+
+        if not np.isfinite(inventory_one_pipe):
+            raise ValueError("Solid inventory calculation returned a non-finite value.")
+        # Convert from one-pipe inventory to total inventory.
+        self.membrane.inv = inventory_one_pipe * n_pipes
+
+        if not np.isfinite(self.membrane.inv):
+            raise ValueError("Total solid inventory is non-finite.")
+
         return self.membrane.inv
 
-    def analytical_fluid_inventory(self, p_out: float = 0) -> None:
+    def analytical_fluid_inventory(self) -> float:
+        if self.p_ext is None:
+            p_ext = 0.0
+        else:
+            p_ext = self.p_ext
         if self.fluid.k_t is None:
 
             self.fluid.get_kt(turbulator=self.geometry.turbulator)
@@ -1848,121 +1768,217 @@ class Component(TriomaClass):
                     * self.fluid.k_t
                     / (self.fluid.U0 * self.fluid.d_Hyd)
                 )
-                c_ext = p_out**0.5 * self.fluid.Solubility
-                K = self.c_in - c_ext
-
+                c_ext = p_ext**0.5 * self.fluid.Solubility
                 L_factor = (np.exp(L_ch * self.geometry.L) - 1) / L_ch
-                K = K * L_factor
-                integral = (K) * circle(self.geometry.D / 2) + c_ext * circle(
+                integral = (self.c_in - c_ext) * circle(
                     self.geometry.D / 2
-                ) * self.geometry.L
+                ) * L_factor + c_ext * circle(self.geometry.D / 2) * self.geometry.L
                 inventory = integral
                 self.fluid.inv = inventory * self.geometry.n_pipes
-                return inventory
+                return self.fluid.inv
             case True:
                 print("MS fluid integration is done numerically")
-                self.get_fluid_inventory(flag_an=False, p_out=p_out)
+                self.get_fluid_inventory(flag_an=False)
 
-    def get_fluid_inventory(self, flag_an: bool = False, p_out: float = 0) -> float:
-        if flag_an == True:
-            return self.analytical_fluid_inventory(p_out=p_out)
-        r_in = self.fluid.d_Hyd / 2
+    def get_fluid_inventory(self, flag_an: bool = False) -> float:
+        """
+        Calculate the tritium inventory in the fluid region.
 
-        L_min = 0
-        L_max = self.geometry.L
-        N = 100
+        For liquid metals, the inventory is calculated analytically from the
+        exponential axial concentration profile.
 
-        def integrand(L):
-            if self.fluid.k_t is None:
-                self.fluid.get_kt(turbulator=self.geometry.turbulator)
-            match self.fluid.MS:
-                case False:
-                    dimless = (
-                        2
-                        * self.membrane.D
-                        * self.membrane.K_S
-                        / (
-                            self.fluid.k_t
-                            * self.fluid.Solubility
-                            * self.fluid.d_Hyd
-                            * np.log(
-                                (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                            )
-                        )
-                    )
+        For molten salts, the bulk concentration is evaluated using the same
+        Lambert-W solution used by analytical_efficiency(), then integrated
+        numerically along the pipe.
 
-                    L_ch = (
-                        -dimless
-                        / (1 + dimless)
-                        * 4
-                        * self.fluid.k_t
-                        / (self.fluid.U0 * self.fluid.d_Hyd)
-                    )
-                    c_ext = p_out**0.5 * self.fluid.Solubility
-                    return (self.c_in - c_ext) * np.exp(L_ch * L) + c_ext
-                case True:
-                    if self.tau is None or self.xi is None:
-                        self.analytical_efficiency(p_out=p_out)
-                    tau = 4 * self.fluid.k_t * L / (self.fluid.U0 * self.fluid.d_Hyd)
-                    self.xi = (
-                        1
-                        / self.c_in
-                        / self.fluid.Solubility
-                        * (
-                            0.5  ##TODO: Check this
-                            * self.membrane.K_S
-                            * self.membrane.D
-                            / (
-                                self.fluid.k_t
-                                * self.fluid.d_Hyd
-                                * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                                )
-                            )
-                        )
-                        ** 2
-                    )
+        The molten-salt inventory is multiplied by 2 to convert from mol Q2
+        to mol Q, consistently with the manuscript's f_H_to_H2 factor.
+        """
+        if self.p_ext is None:
+            p_ext = 0.0
+        else:
+            p_ext = self.p_ext
+        if flag_an:
+            return self.analytical_fluid_inventory()
 
-                    beta = (1 / self.xi + 1) ** 0.5 + np.log((1 / self.xi + 1) ** 0.5 - 1)
-                    max_exp = np.log(np.finfo(np.float64).max)
-                    beta_tau = beta - tau - 1
-                    if beta_tau > max_exp:
-                        # print(
-                        #     "Warning: Overflow encountered in exp, input too large.Approximation triggered"
-                        # )
+        if p_ext < 0:
+            raise ValueError("p_ext must be non-negative.")
 
-                        w = beta_tau - np.log(beta_tau)
+        if self.fluid.k_t is None:
+            self.fluid.get_kt(turbulator=self.geometry.turbulator)
+
+        c_in = float(self.c_in)
+        kt = float(self.fluid.k_t)
+        U = float(self.fluid.U0)
+        d = float(self.fluid.d_Hyd)
+        r_in = d / 2.0
+        area_fluid = np.pi * r_in**2
+        L = float(self.geometry.L)
+        n_pipes = self.geometry.n_pipes
+
+        if c_in < 0:
+            raise ValueError("The inlet concentration must be non-negative.")
+
+        # ---------------------------------------------------------------------
+        # Liquid-metal carrier: Sievert's law
+        # ---------------------------------------------------------------------
+        if not self.fluid.MS:
+
+            K_S_l = float(self.fluid.Solubility)
+            K_S_s = float(self.membrane.K_S)
+            D_s = float(self.membrane.D)
+            thickness = float(self.membrane.thick)
+
+            log_ro_ri = np.log((d + 2.0 * thickness) / d)
+
+            # Manuscript definition of zeta
+            zeta = 2.0 * D_s * K_S_s / (d * log_ro_ri * kt * K_S_l)
+
+            # Axial decay coefficient:
+            #
+            # c_b(z) = c_ext + (c_in - c_ext) exp(-a*z)
+            #
+            a = 4.0 * kt / (U * d) * zeta / (1.0 + zeta)
+
+            c_ext = K_S_l * np.sqrt(p_ext)
+
+            if abs(a) < 1.0e-14:
+                axial_integral = c_in * L
+            else:
+                axial_integral = c_ext * L + (c_in - c_ext) * (1.0 - np.exp(-a * L)) / a
+
+            inventory_one_pipe = area_fluid * axial_integral
+
+            self.fluid.inv = inventory_one_pipe * n_pipes
+            return self.fluid.inv
+
+        # ---------------------------------------------------------------------
+        # Molten-salt carrier: Henry's law and Lambert-W solution
+        # ---------------------------------------------------------------------
+
+        if c_in == 0.0:
+            if p_ext == 0.0:
+                self.fluid.inv = 0.0
+                return 0.0
+            raise ValueError(
+                "A positive c_in is required for the molten-salt Lambert-W "
+                "inventory formulation when p_ext > 0."
+            )
+
+        K_H = float(self.fluid.Solubility)
+        K_S = float(self.membrane.K_S)
+        D_s = float(self.membrane.D)
+
+        r_o = r_in + float(self.membrane.thick)
+        log_ro_ri = np.log(r_o / r_in)
+
+        # These definitions must match analytical_efficiency()
+        phi = D_s * K_S
+
+        alpha = 1.0 / K_H * (phi / (kt * d * log_ro_ri)) ** 2
+
+        xi = alpha / c_in
+        Pi_ext = np.sqrt(p_ext * K_H / alpha)
+
+        # Store the parameters for consistency with the rest of the class
+        self.alpha = alpha
+        self.xi = xi
+        self.Pi_ext = Pi_ext
+        self.tau = 4.0 * kt * L / (U * d)
+
+        b = 1.0 + 2.0 * Pi_ext
+
+        # Initial transformed variable
+        s_in = np.sqrt(1.0 + 4.0 * (1.0 / xi + Pi_ext))
+        y_in = s_in - b
+
+        # If the inlet is already in equilibrium with the external pressure,
+        # the bulk concentration is constant along the pipe.
+        if abs(y_in) < 1.0e-14:
+            axial_integral = c_in * L
+
+        else:
+            sign = 1.0 if y_in > 0.0 else -1.0
+
+            # Same beta definition as analytical_efficiency()
+            beta = s_in / b + np.log(abs(y_in))
+
+            log_max = np.log(np.finfo(np.float64).max)
+            log_tiny = np.log(np.finfo(np.float64).tiny)
+
+            def q_of_z(z):
+                """
+                Evaluate the Lambert-W transformed variable at axial position z.
+                """
+
+                tau_z = 4.0 * kt * z / (U * d)
+
+                # Same beta_tau definition as analytical_efficiency()
+                beta_tau = beta - tau_z / b - 1.0
+
+                # Lambert-W argument magnitude:
+                # argument = sign * exp(beta_tau) / b
+                log_argument_abs = beta_tau - np.log(b)
+
+                if sign > 0.0:
+                    # Normal extraction: principal real branch W_0
+                    if log_argument_abs < log_max:
+                        argument = np.exp(log_argument_abs)
+                        q = lambertw(argument, k=0).real
                     else:
-                        z = np.exp(beta_tau)
-                        w = lambertw(z, tol=1e-10)
-                        if w.imag != 0:
-                            raise ValueError("self.eff_an has a non-zero imaginary part")
-                        w = w.real
-                    alpha = (
-                        1
-                        / self.fluid.Solubility
-                        * (
-                            (0.5 * self.membrane.D * self.membrane.K_S)  ## TODO: Check this
-                            / (
-                                self.fluid.k_t
-                                * self.fluid.d_Hyd
-                                * np.log(
-                                    (self.fluid.d_Hyd + 2 * self.membrane.thick) / self.fluid.d_Hyd
-                                )
-                            )
-                        )
-                        ** 2
-                    )
-                    conv = (self.c_in / self.fluid.Solubility) ** 0.5 * self.membrane.K_S
-                    c_w_l = alpha * (w**2 + 2 * w)
-                    return c_w_l
+                        # Large-positive-argument approximation
+                        q = log_argument_abs - np.log(log_argument_abs)
 
-        result, err = integrate.nquad(integrand, [[L_min, L_max]])
-        self.fluid.inv = result * np.pi * r_in**2 * self.geometry.n_pipes
+                else:
+                    # Inverse permeation: principal real branch W_0
+                    if log_argument_abs < log_tiny:
+                        argument = 0.0
+                    else:
+                        argument = -np.exp(log_argument_abs)
+
+                    # Protect against small round-off excursions below -1/e
+                    argument = np.clip(argument, -1.0 / np.e, 0.0)
+                    q = lambertw(argument, k=0).real
+
+                return float(q)
+
+            def c_bulk(z):
+                """
+                Molten-salt bulk concentration c_b,l(z).
+
+                This is the local form of the manuscript's cbz_ms_pav equation.
+                """
+
+                q = q_of_z(z)
+                s = b * (1.0 + q)
+
+                c_b = alpha / 4.0 * (s**2 - 1.0 - 4.0 * Pi_ext)
+
+                # Remove tiny negative values caused only by floating-point error
+                if c_b < 0.0 and abs(c_b) < 1.0e-12 * max(c_in, 1.0):
+                    c_b = 0.0
+
+                return float(c_b)
+
+            # Integrate the bulk concentration along one pipe
+            axial_integral, _ = integrate.quad(
+                c_bulk,
+                0.0,
+                L,
+                epsabs=1.0e-12,
+                epsrel=1.0e-9,
+                limit=200,
+            )
+
+        f_H2_to_H = 2.0
+
+        inventory_one_pipe = f_H2_to_H * area_fluid * axial_integral
+
+        self.fluid.inv = inventory_one_pipe * n_pipes
         return self.fluid.inv
 
-    def get_inventory(self, flag_an: bool = True, p_out: float = 0) -> None:
-        self.get_solid_inventory(flag_an=flag_an, p_out=p_out)
-        self.get_fluid_inventory(flag_an=flag_an, p_out=p_out)
+    def get_inventory(self, flag_an: bool = True) -> None:
+        self.get_solid_inventory(flag_an=flag_an)
+        self.get_fluid_inventory(flag_an=flag_an)
         self.inv = self.fluid.inv + self.membrane.inv
         return
