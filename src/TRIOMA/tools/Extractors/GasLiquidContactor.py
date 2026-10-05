@@ -1,3 +1,5 @@
+import numpy
+
 from TRIOMA.tools.TriomaClass import TriomaClass
 from TRIOMA.tools.Extractors.PipeSubclasses import Fluid, Membrane
 import TRIOMA.tools.Extractors.extractor as extractor
@@ -118,42 +120,98 @@ class GLC(TriomaClass):
 
     def get_c_out(self):
         """
-        Calculates the outlet concentration of the GLC.
-        The outlet concentration is calculated based on the inlet concentration, the efficiency of the GLC, and the fluid properties.
-        Returns:
-            None
+        Calculate the liquid outlet concentration, liquid extraction
+        efficiency, and gas outlet partial pressure.
         """
-        match self.fluid.MS:
-            case False:
-                c_out, eff = extractor.get_c_out_GLC_lm(
-                    Z=self.H,
-                    R=self.R,
-                    G_l=self.G_L,
-                    G_gas=self.GLC_gas.G_gas,
-                    pl_in=self.c_in**2 / self.fluid.Solubility**2,
-                    T=self.T,
-                    p_t=self.GLC_gas.p_tot,
-                    K_S=self.fluid.Solubility,
-                    pg_in=self.GLC_gas.pg_in,
-                    kla=self.kla,
-                )
-                self.eff = eff
-                self.c_out = c_out
-            case True:
-                c_out, eff = extractor.get_c_out_GLC_ms(
-                    Z=self.H,
-                    R=self.R,
-                    G_l=self.G_L,
-                    G_gas=self.GLC_gas.G_gas,
-                    pl_in=self.c_in / self.fluid.Solubility,
-                    T=self.T,
-                    p_t=self.GLC_gas.p_tot,
-                    K_H=self.fluid.Solubility,
-                    pg_in=self.GLC_gas.pg_in,
-                    kla=self.kla,
-                )
-                self.eff = eff
-                self.c_out = c_out
+
+        if self.fluid is None:
+            raise ValueError("A liquid fluid must be assigned to the GLC.")
+
+        if self.GLC_gas is None:
+            raise ValueError("A GLC_Gas object must be assigned to the GLC.")
+
+        if self.G_L is None or self.G_L <= 0.0:
+            raise ValueError("G_L must be a positive liquid volumetric flow rate.")
+
+        if self.GLC_gas.G_gas is None or self.GLC_gas.G_gas <= 0.0:
+            raise ValueError("G_gas must be a positive gas flow rate.")
+
+        if self.H is None or self.H < 0.0:
+            raise ValueError("The GLC height H must be non-negative.")
+
+        if self.R is None or self.R <= 0.0:
+            raise ValueError("The GLC radius R must be positive.")
+
+        if self.kla is None or self.kla < 0.0:
+            raise ValueError("kla must be a non-negative value.")
+
+        R_const = 8.314
+        area = numpy.pi * self.R**2
+
+        u_l = self.G_L / area
+        u_g = extractor.calculate_gas_velocity(
+            G_gas=self.GLC_gas.G_gas,
+            p_t=self.GLC_gas.p_tot,
+            T=self.T,
+            R=self.R,
+        )
+
+        if u_g <= 0.0:
+            raise ValueError("The calculated gas velocity must be positive.")
+
+        if self.fluid.MS is False:
+            # LM concentration follows Sievert's law:
+            # c_l = K_S * sqrt(p_l)
+            c_out, eff = extractor.get_c_out_GLC_lm(
+                Z=self.H,
+                R=self.R,
+                G_l=self.G_L,
+                G_gas=self.GLC_gas.G_gas,
+                pl_in=self.c_in**2 / self.fluid.Solubility**2,
+                T=self.T,
+                p_t=self.GLC_gas.p_tot,
+                K_S=self.fluid.Solubility,
+                pg_in=self.GLC_gas.pg_in,
+                kla=self.kla,
+            )
+
+            molecular_factor = 2.0
+
+        else:
+            # MS concentration follows Henry's law:
+            # c_l = K_H * p_l
+            c_out, eff = extractor.get_c_out_GLC_ms(
+                Z=self.H,
+                R=self.R,
+                G_l=self.G_L,
+                G_gas=self.GLC_gas.G_gas,
+                pl_in=self.c_in / self.fluid.Solubility,
+                T=self.T,
+                p_t=self.GLC_gas.p_tot,
+                K_H=self.fluid.Solubility,
+                pg_in=self.GLC_gas.pg_in,
+                kla=self.kla,
+            )
+
+            molecular_factor = 1.0
+
+        self.eff = float(eff)
+        self.c_out = float(c_out)
+
+        # Gas concentration balance:
+        #
+        # LM: u_g dc_g = -(u_l/2) dc_l
+        # MS: u_g dc_g = -u_l dc_l
+        #
+        # Therefore:
+        # c_g,out = c_g,in + u_l/(factor*u_g)*(c_l,in-c_l,out)
+        c_g_in = self.GLC_gas.pg_in / (R_const * self.T)
+
+        c_g_out = c_g_in + (u_l / (molecular_factor * u_g)) * (self.c_in - self.c_out)
+
+        self.GLC_gas.pg_out = c_g_out * R_const * self.T
+
+        return self.c_out, self.eff
 
     def get_kla_from_cout(self):
         match self.fluid.MS:
@@ -188,7 +246,24 @@ class GLC(TriomaClass):
                 )
                 self.kla = kla
                 self.Bl = Bl
+        # Update gas outlet partial pressure from the overall isotope balance.
+        R_const = 8.314
+        area = numpy.pi * self.R**2
 
+        u_l = self.G_L / area
+        u_g = extractor.calculate_gas_velocity(
+            G_gas=self.GLC_gas.G_gas,
+            p_t=self.GLC_gas.p_tot,
+            T=self.T,
+            R=self.R,
+        )
+
+        molecular_factor = 1.0 if self.fluid.MS else 2.0
+
+        c_g_in = self.GLC_gas.pg_in / (R_const * self.T)
+        c_g_out = c_g_in + (u_l / (molecular_factor * u_g)) * (self.c_in - self.c_out)
+
+        self.GLC_gas.pg_out = c_g_out * R_const * self.T
         return Bl, kla
 
     def get_z_from_eff(self):

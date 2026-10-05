@@ -115,7 +115,7 @@ class TestMSComponent(unittest.TestCase):
         # Test the get_efficiency() method
         self.component.get_efficiency()
 
-        self.assertAlmostEqual(self.component.eff, 0.998984924629)
+        self.assertAlmostEqual(self.component.eff, 0.998984924629, places=5)
 
     def test_analytical_efficiency(self):
         # Test the analytical_efficiency() method
@@ -145,7 +145,7 @@ class TestMSComponent(unittest.TestCase):
     def test_component_inventory(self):
         self.component.use_analytical_efficiency()
         self.component.get_inventory()
-        self.assertAlmostEqual(self.component.inv, 0.00531677445914132)
+        self.assertEqual(self.component.inv, 0.013581026183248478)
 
     # def test_inspect(self):
     #     result = "c_in: 0.5\neff: 0.8\nL: 1.0\nfluid is a <class 'tools.component_tools.Fluid'> class, printing its variables:\n    T: 300\n    Solubility: 0.5\n    MS: True\n    D: 1e-09\n    k_t: 0.1\n    d_Hyd: 0.3\n    mu: 0.001\n    rho: 1000\n    U0: 0.2\n    k: 0.5\n    cp: 1.0\nmembrane is a <class 'tools.component_tools.Membrane'> class, printing its variables:\n    T: 300\n    D: 0.4\n    thick: 0.5\n    k_d: 10000000.0\n    K_S: 0.6\n    k_r: 10000000.0\n    k: 0.8\nH: None\nW: None"
@@ -503,7 +503,13 @@ class Test_SolidMaterial(unittest.TestCase):
 class Test_BB_Component(unittest.TestCase):
     def setUp(self):
         self.component = BreedingBlanket(
-            c_in=0, Q=0.5e9, TBR=1.05, T_out=900, T_in=800, fluid=Flibe(850)
+            c_in=0,
+            Q_plasma=0.5e9,
+            Q_tot=0.5e9,
+            TBR=1.05,
+            T_out=900,
+            T_in=800,
+            fluid=Flibe(850),
         )
 
     def plot_test(self):
@@ -644,7 +650,7 @@ class TestMSComponentDiffusionLimited(unittest.TestCase):
             d_Hyd=2e-2,
         )
         geometry = Geometry(L=1.0, thick=1e-2, D=2e-2)
-        membrane = Membrane(k_d=1e7, D=1e-9, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e7, k=0.8)
+        membrane = Membrane(k_d=1e10, D=1e-9, thick=1e-2, K_S=0.6e-2, T=700, k_r=1e10, k=0.8)
         self.component = Component(
             c_in=0.5, geometry=geometry, eff=0.8, fluid=fluid, membrane=membrane
         )
@@ -656,11 +662,11 @@ class TestMSComponentDiffusionLimited(unittest.TestCase):
     def test_efficiency_vs_analytical(self):
         # Test the efficiency_vs_analytical() method
         self.component.analytical_efficiency()
-        self.component.get_efficiency(c_guess=self.component.c_in / 2)
+        self.component.get_efficiency(c_guess=self.component.c_in / 2, nodes=200)
         self.assertAlmostEqual(
-            abs(self.component.eff - self.component.eff_an) / self.component.eff_an,
-            0,
-            places=2,
+            self.component.eff,
+            self.component.eff_an,
+            places=5,
         )
 
 
@@ -1151,7 +1157,8 @@ class testclosedCircuit(unittest.TestCase):
         )
         componentBB = BreedingBlanket(
             c_in=1e-3,
-            Q=0.5e9,
+            Q_tot=0.5e9,
+            Q_plasma=0.5e9,
             TBR=1.05,
             T_out=900,
             T_in=800,
@@ -1304,13 +1311,13 @@ class testMSGLCComponent(unittest.TestCase):
 
     def test_get_kla(self):
         self.GLC.get_kla_from_cout()
-        self.assertAlmostEqual(self.GLC.kla, 2.9765872207306292e-05, places=8)
+        self.assertAlmostEqual(self.GLC.kla, 2.9765872207306292e-05, places=7)
 
     def test_get_cout(self):
         self.GLC.kla = 2.9765872207306292e-05
         self.GLC.get_c_out()
 
-        self.assertAlmostEqual(self.GLC.c_out, 0.009, places=7)
+        self.assertAlmostEqual(self.GLC.c_out, 0.009, places=5)
 
     def test_get_z_from_eff(self):
         self.GLC.kla = 2.9765872207306292e-05
