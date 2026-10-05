@@ -80,12 +80,14 @@
 <li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.friction_factor"><code class="docutils literal notranslate"><span class="pre">Component.friction_factor()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.get_adimensionals"><code class="docutils literal notranslate"><span class="pre">Component.get_adimensionals()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.get_efficiency"><code class="docutils literal notranslate"><span class="pre">Component.get_efficiency()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.get_fluid_inventory"><code class="docutils literal notranslate"><span class="pre">Component.get_fluid_inventory()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.get_flux"><code class="docutils literal notranslate"><span class="pre">Component.get_flux()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.get_global_HX_coeff"><code class="docutils literal notranslate"><span class="pre">Component.get_global_HX_coeff()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.get_pipe_flowrate"><code class="docutils literal notranslate"><span class="pre">Component.get_pipe_flowrate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.get_pressure_drop"><code class="docutils literal notranslate"><span class="pre">Component.get_pressure_drop()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.get_pumping_power"><code class="docutils literal notranslate"><span class="pre">Component.get_pumping_power()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.get_regime"><code class="docutils literal notranslate"><span class="pre">Component.get_regime()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.get_solid_inventory"><code class="docutils literal notranslate"><span class="pre">Component.get_solid_inventory()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.get_total_flowrate"><code class="docutils literal notranslate"><span class="pre">Component.get_total_flowrate()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.outlet_c_comp"><code class="docutils literal notranslate"><span class="pre">Component.outlet_c_comp()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Component.split_HX"><code class="docutils literal notranslate"><span class="pre">Component.split_HX()</span></code></a></li>
@@ -410,7 +412,7 @@ Q: Heat transfer rate</p>
 <h2>Component Class<a class="headerlink" href="#component-class" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.Component">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.component_tools.</span></span><span class="sig-name descname"><span class="pre">Component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Geometry</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Fluid" title="TRIOMA.tools.Extractors.PipeSubclasses.Fluid"><span class="pre">Fluid</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">membrane</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Membrane" title="TRIOMA.tools.Extractors.PipeSubclasses.Membrane"><span class="pre">Membrane</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-15</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pumping_power</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">U</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.component_tools.</span></span><span class="sig-name descname"><span class="pre">Component</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">geometry</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Geometry</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">eff</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Fluid" title="TRIOMA.tools.Extractors.PipeSubclasses.Fluid"><span class="pre">Fluid</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">membrane</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Membrane" title="TRIOMA.tools.Extractors.PipeSubclasses.Membrane"><span class="pre">Membrane</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">loss</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inv</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delta_p</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pumping_power</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">U</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">V</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cost</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component" title="Link to this definition"></a></dt>
 <dd><p>Represents a component in a plant to make a high level T transport analysis.</p>
 <dl class="simple">
 <dt>Args:</dt><dd><p>Geometry (Geometry): The geometry of the component.
@@ -431,32 +433,33 @@ membrane (Membrane): The membrane associated with the component. Defaults to Non
 
 <dl class="py method">
 <dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.Component.analytical_efficiency">
-<span class="sig-name descname"><span class="pre">analytical_efficiency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p_out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-15</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.analytical_efficiency" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">analytical_efficiency</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.analytical_efficiency" title="Link to this definition"></a></dt>
 <dd><p>Calculate the analytical efficiency of a tritium permeation through a component.</p>
 <p>This method computes the tritium extraction efficiency by solving the governing equations
 for tritium transport in the membrane. The efficiency represents the fraction of tritium
 extracted from the component relative to inlet concentration.</p>
-<p>The calculation solves three coupled transport phenomena:
+<p>The calculation solves two coupled transport phenomena:
 1. <strong>Mass transport</strong> (fluid boundary layer): Convective mass transfer from bulk fluid to wall
-2. <strong>Diffusion</strong> (solid membrane): Fickian diffusion through the membrane thickness
-3. <strong>Surface reactions</strong> (membrane surfaces): Adsorption/desorption kinetics at interfaces</p>
+2. <strong>Diffusion</strong> (solid membrane): Fickian diffusion through the membrane thickness</p>
 <dl class="simple">
 <dt>Parameters:</dt><dd><dl class="simple">
-<dt>p_out (float): Outlet tritium partial pressure [Pa]. Defaults to 1e-15 Pa (essentially zero).</dt><dd><p>Controls the driving force for tritium extraction.</p>
+<dt>p_ext (float): Outlet tritium partial pressure [Pa]. Defaults to 0 Pa (essentially zero).</dt><dd><p>Controls the driving force for tritium extraction.</p>
 </dd>
 </dl>
 </dd>
 <dt>Updates (self attributes):</dt><dd><p>self.eff_an (float): Analytical efficiency (dimensionless, 0-1)
 self.tau (float): Dimensionless time parameter = 4*k_t*L/(U0*d_Hyd)
 self.alpha (float): Adsorption/surface parameter
-self.xi (float): Extraction parameter</p>
+self.xi (float): Extraction parameter
+self.Pi_ext (float): Dimensionless external pressure parameter
+self.c_out (float): Outlet concentration [mol/m³] = c_in * (1 - eff_an)</p>
 </dd>
 <dt>Physics:</dt><dd><dl class="simple">
 <dt>For <strong>Molten Salt</strong> fluids (MS=True):</dt><dd><p>Uses solution of coupled convective-diffusive equations with Lambert W function.
 Handles three limiting regimes: surface-limited, diffusion-limited, and mass-transport-limited.</p>
 </dd>
 <dt>For <strong>Liquid Metal</strong> fluids (MS=False):</dt><dd><p>Uses simplified solution based on partition equilibrium effects.
-Includes pressure correction factor: (1 - p_out/p_in)^0.5</p>
+Includes pressure correction factor: (1 - p_ext/p_in)^0.5</p>
 </dd>
 </dl>
 </dd>
@@ -586,67 +589,37 @@ If 0.1 &lt; W &lt; 10: Mixed regime → requires coupled solver</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.Component.get_efficiency">
-<span class="sig-name descname"><span class="pre">get_efficiency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plotvar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_guess</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-15</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.get_efficiency" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get_efficiency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">plotvar</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_guess</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nodes</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.get_efficiency" title="Link to this definition"></a></dt>
 <dd><p>Calculates the efficiency of the component.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.Component.get_fluid_inventory">
+<span class="sig-name descname"><span class="pre">get_fluid_inventory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flag_an</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.get_fluid_inventory" title="Link to this definition"></a></dt>
+<dd><p>Calculate the tritium inventory in the fluid region.</p>
+<p>For liquid metals, the inventory is calculated analytically from the
+exponential axial concentration profile.</p>
+<p>For molten salts, the bulk concentration is evaluated using the same
+Lambert-W solution used by analytical_efficiency(), then integrated
+numerically along the pipe.</p>
+<p>The molten-salt inventory is multiplied by 2 to convert from mol Q2
+to mol Q, consistently with the manuscript’s f_H_to_H2 factor.</p>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.Component.get_flux">
-<span class="sig-name descname"><span class="pre">get_flux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_guess</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-09</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-15</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.get_flux" title="Link to this definition"></a></dt>
-<dd><p>Calculate the tritium permeation flux across the membrane.</p>
-<p>This method evaluates the tritium flux by solving for the wall/interface concentrations
-that simultaneously satisfy mass transport, diffusion, and surface reaction equations.
-It automatically identifies the governing transport regime and selects the appropriate
-solution method.</p>
-<dl>
-<dt>Parameters:</dt><dd><p>c (float): Bulk tritium concentration in fluid [mol/m³]. Required.
-c_guess (float): Initial guess for iterative solver [mol/m³]. Default 1e-9.</p>
-<blockquote>
-<div><p>Used as starting point in minimization algorithm.</p>
-</div></blockquote>
-<p>p_out (float): Outlet tritium partial pressure [Pa]. Default 1e-15 Pa.</p>
-</dd>
-<dt>Returns:</dt><dd><dl class="simple">
-<dt>float: Wall/interface tritium concentration [mol/m³] for subsequent calculations.</dt><dd><p>The flux is stored in self.J_perm [mol/(m²·s)].</p>
+<span class="sig-name descname"><span class="pre">get_flux</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">c_guess</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-09</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">p_ext</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.get_flux" title="Link to this definition"></a></dt>
+<dd><p>Tritium permeation flux across the membrane.</p>
+<p>Solves for the wall/interface concentration satisfying the coupled
+mass-transport / diffusion / surface-reaction fluxes, stores the result
+in <code class="docutils literal notranslate"><span class="pre">self.J_perm</span></code> [mol/(m^2 s)] and returns the wall concentration.</p>
+<section id="raises">
+<h3>Raises<a class="headerlink" href="#raises" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>ValueError</dt><dd><p>If <code class="docutils literal notranslate"><span class="pre">c</span></code> or <code class="docutils literal notranslate"><span class="pre">c_guess</span></code> is not a float.</p>
 </dd>
 </dl>
-</dd>
-<dt>Transport Regimes (automatically selected via H and W parameters):</dt><dd><ol class="arabic simple">
-<li><dl class="simple">
-<dt><strong>Mass Transport Limited</strong> (H/W &gt;&gt; 1000):</dt><dd><p>Convection dominates: J = -2*k_t*(c - c_outlet) [Molten Salt]</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt><strong>Diffusion Limited</strong> (H/W &lt;&lt; 0.0001):</dt><dd><p>Solid-state diffusion dominates: J = -(D/δ)*K_S*((c/K_H)^0.5 - p_out^0.5)</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt><strong>Surface Reaction Limited</strong> (W &lt; 0.1):</dt><dd><p>Adsorption/desorption kinetics dominate: J = -k_d*(c/K_H)</p>
-</dd>
-</dl>
-</li>
-<li><dl class="simple">
-<dt><strong>Mixed Regimes</strong>:</dt><dd><p>All three mechanisms coupled; solved by minimizing residual between fluxes.</p>
-</dd>
-</dl>
-</li>
-</ol>
-</dd>
-<dt>Solution Method:</dt><dd><p>Uses scipy.optimize.minimize (Powell method) to find wall concentration where:
-<a href="#id1"><span class="problematic" id="id2">|J_mass_transport - J_diffusion|</span></a> = 0  (for diffusion-limited cases)
-<a href="#id3"><span class="problematic" id="id4">|J_mass_transport - J_surface|</span></a> = 0    (for surface-limited cases)</p>
-</dd>
-<dt>Notes:</dt><dd><ul class="simple">
-<li><p>For Molten Salts: includes factor of 2 for H dissociation: H₂ ↔ 2H</p></li>
-<li><p>For Liquid Metals: factor of 1 (atomic hydrogen)</p></li>
-<li><p>Numerical solver may fail for extremely low/high concentrations (raises ValueError)</p></li>
-</ul>
-</dd>
-<dt>Raises:</dt><dd><p>ValueError: If c is not float or c_guess not float</p>
-</dd>
-</dl>
+</section>
 </dd></dl>
 
 <dl class="py method">
@@ -747,6 +720,44 @@ calculations that depend on local temperatures.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.Component.get_solid_inventory">
+<span class="sig-name descname"><span class="pre">get_solid_inventory</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">flag_an</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.get_solid_inventory" title="Link to this definition"></a></dt>
+<dd><p>Calculate the tritium inventory in the solid membrane.</p>
+<p>The radial concentration profile is the steady-state solution for a
+hollow cylindrical membrane:</p>
+<blockquote>
+<div><dl>
+<dt>c_s(r, z) = c_ext,s</dt><dd><ul class="simple">
+<li><p>[c_w,s(z) - c_ext,s]</p></li>
+</ul>
+<ul class="simple">
+<li><p>ln(r_o / r) / ln(r_o / r_i)</p></li>
+</ul>
+</dd>
+</dl>
+</div></blockquote>
+<p>The radial integral is evaluated analytically, while the axial
+integral is evaluated numerically.</p>
+<section id="parameters">
+<h3>Parameters<a class="headerlink" href="#parameters" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>p_ext<span class="classifier">float, optional</span></dt><dd><p>External Q2 partial pressure [Pa].</p>
+</dd>
+<dt>flag_an<span class="classifier">bool, optional</span></dt><dd><p>If True, use analytical_solid_inventory(). If False, use the
+numerical axial-integration implementation below.</p>
+</dd>
+</dl>
+</section>
+<section id="returns">
+<h3>Returns<a class="headerlink" href="#returns" title="Link to this heading"></a></h3>
+<dl class="simple">
+<dt>float</dt><dd><p>Total solid inventory in all pipes [mol].</p>
+</dd>
+</dl>
+</section>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.Component.get_total_flowrate">
 <span class="sig-name descname"><span class="pre">get_total_flowrate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">float</span></span></span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.get_total_flowrate" title="Link to this definition"></a></dt>
 <dd><p>Calculates the total flow rate of the component.</p>
@@ -787,7 +798,7 @@ Physical interpretation: Bypass valve that recycles some extracted tritium</p>
 </dl>
 </li>
 <li><dl>
-<dt><strong>Bypass without Recirculation</strong> (recirculation &lt; 0, <a href="#id5"><span class="problematic" id="id6">|recirculation|</span></a> &lt; 1):</dt><dd><p>c_out = c_in * (1 - eff) * (1 + recirculation) + c_in * (-recirculation)</p>
+<dt><strong>Bypass without Recirculation</strong> (recirculation &lt; 0, <a href="#id1"><span class="problematic" id="id2">|recirculation|</span></a> &lt; 1):</dt><dd><p>c_out = c_in * (1 - eff) * (1 + recirculation) + c_in * (-recirculation)</p>
 <p>Negative recirculation represents bypass flow: portion of inlet bypasses
 the component entirely and combines with outlet mixture.</p>
 <p>Example: recirculation=-0.3 means 30% of flow bypasses the component
@@ -850,7 +861,7 @@ ValueError: If recirculation is NaN or invalid</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.Component.use_analytical_efficiency">
-<span class="sig-name descname"><span class="pre">use_analytical_efficiency</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">p_out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1e-15</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.use_analytical_efficiency" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">use_analytical_efficiency</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.Component.use_analytical_efficiency" title="Link to this definition"></a></dt>
 <dd><p>Evaluates the analytical efficiency and substitutes it in the efficiency attribute of the component.</p>
 <dl class="simple">
 <dt>Args:</dt><dd><p>L (float): the length of the pipe component</p>
@@ -987,7 +998,7 @@ cp (float): Specific heat capacity of the fluid material.</p>
 <h2>Breeding Blanket Class<a class="headerlink" href="#breeding-blanket-class" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.BreedingBlanket">
-<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.component_tools.</span></span><span class="sig-name descname"><span class="pre">BreedingBlanket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TBR</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Fluid" title="TRIOMA.tools.Extractors.PipeSubclasses.Fluid"><span class="pre">Fluid</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_coolant</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.BreedingBlanket" title="Link to this definition"></a></dt>
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">src.TRIOMA.tools.component_tools.</span></span><span class="sig-name descname"><span class="pre">BreedingBlanket</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">c_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_tot</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">Q_plasma</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">TBR</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_out</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">T_in</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fluid</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#src.TRIOMA.tools.component_tools.Fluid" title="TRIOMA.tools.Extractors.PipeSubclasses.Fluid"><span class="pre">Fluid</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">m_coolant</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.BreedingBlanket" title="Link to this definition"></a></dt>
 <dd><p>Represents a breeding blanket component in a fuel cycle system.</p>
 <dl class="simple">
 <dt>Attributes:</dt><dd><p>c_in(float): Inlet concentration of tritium in the breeding blanket component.
@@ -1072,12 +1083,8 @@ component2: The component to connect to.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="src.TRIOMA.tools.component_tools.GLC.get_c_out">
 <span class="sig-name descname"><span class="pre">get_c_out</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#src.TRIOMA.tools.component_tools.GLC.get_c_out" title="Link to this definition"></a></dt>
-<dd><p>Calculates the outlet concentration of the GLC.
-The outlet concentration is calculated based on the inlet concentration, the efficiency of the GLC, and the fluid properties.
-Returns:</p>
-<blockquote>
-<div><p>None</p>
-</div></blockquote>
+<dd><p>Calculate the liquid outlet concentration, liquid extraction
+efficiency, and gas outlet partial pressure.</p>
 </dd></dl>
 
 <dl class="py method">
